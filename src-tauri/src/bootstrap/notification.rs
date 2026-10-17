@@ -67,7 +67,7 @@ pub(super) fn handle_runtime_auth_failure_invalidation(
         state
             .runtime_host()
             .end_login_session(vrcx_0_application::auth::LoginSessionEnd::Invalidated {
-                expected_user_id: failure.owner_user_id,
+                expected_user_id: failure.owner_user_id.to_string(),
                 expected_auth_scope_generation: failure.auth_scope_generation,
                 expected_realtime_transport: failure.realtime_transport,
             })
