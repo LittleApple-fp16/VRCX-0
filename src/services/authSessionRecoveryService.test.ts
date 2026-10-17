@@ -87,11 +87,7 @@ function savedSnapshot(userId: string) {
                 hasLoginCredentials: true,
                 hasCookies: true
             }
-        ],
-        autoLoginStatus: 'available',
-        autoLoginReason: 'available',
-        autoLoginDelayEnabled: false,
-        autoLoginDelaySeconds: 0
+        ]
     };
 }
 

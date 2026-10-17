@@ -600,7 +600,6 @@
         },
         "label": {
             "authenticated_and_prepared_the_session": "로그인 완료",
-            "auto_login": "자동 로그인",
             "vrchat_launched": "VRChat 실행됨"
         },
         "action": {
@@ -2658,9 +2657,7 @@
                 },
                 "logging": {
                     "header": "로깅",
-                    "resource_load": "Udon 문자열/이미지 로드 로그",
-                    "auto_login_delay": "자동 로그인 지연",
-                    "auto_login_delay_button": "지연 시간(초) 설정"
+                    "resource_load": "Udon 문자열/이미지 로드 로그"
                 },
                 "automation": {
                     "change_status_description": "상태 메시지 재정의",
@@ -3410,28 +3407,8 @@
             }
         },
         "auth": {
-            "auto_login": {
-                "skipped": "자동 로그인을 건너뛰었습니다.",
-                "preparing_login_for": "{name} 계정으로 자동 로그인 준비 중",
-                "preparing_restore_for": "{userId}에 대한 자동 세션 복원 준비 중",
-                "authenticating": "{name} 인증 중",
-                "restoring_session_for": "{name}에 대한 기존 브라우저 세션 복원 중",
-                "logged_in_as": "{name} 계정으로 자동 로그인했습니다.",
-                "restored_session_for": "{name}에 대한 이전 브라우저 세션을 자동으로 복원했습니다.",
-                "skipped_before_request": "자동 로그인이 시작되기 전에 취소되었습니다.",
-                "throttled": "지난 한 시간 동안 반복된 실패로 인해 자동 로그인이 비활성화되었습니다.",
-                "expired": "이전 세션이 만료되었고, 로그인할 저장된 계정이 없습니다.",
-                "failed_manual": "자동 로그인에 실패했습니다. 아래에서 직접 로그인하세요.",
-                "failed_unexpectedly": "예기치 않게 자동 로그인에 실패했습니다.",
-                "skipped_form_changed": "로그인 양식이 변경되어 자동 로그인을 건너뛰었습니다.",
-                "skipped_manual_started": "수동 로그인이 시작되었기 때문에 자동 로그인을 건너뛰었습니다.",
-                "skipped_saved_account_selected": "저장된 다른 계정을 선택했기 때문에 자동 로그인을 건너뛰었습니다.",
-                "skipped_countdown_finished": "카운트다운이 완료되기 전에 자동 로그인을 건너뛰었습니다.",
-                "skipped_saved_account_edited": "저장된 계정을 편집 중이므로 자동 로그인을 건너뛰었습니다."
-            },
             "toast": {
                 "failed_to_load_saved_auth_snapshot": "저장된 계정을 불러오지 못했습니다.",
-                "automatic_login_failed_unexpectedly": "예기치 않게 자동 로그인에 실패했습니다.",
                 "failed_to_change_language": "언어를 변경하지 못했습니다.",
                 "failed_to_load_proxy_settings": "프록시 설정을 불러오지 못했습니다.",
                 "failed_to_save_proxy_settings": "프록시 설정을 저장하지 못했습니다.",
@@ -5979,11 +5956,6 @@
             "description": "백업 이름을 입력하세요.",
             "input_error": "이름은 필수입니다"
         },
-        "auto_login_delay": {
-            "header": "자동 로그인 지연",
-            "description": "지연 시간을 초 단위로 입력하세요(비활성화하려면 0, 최대 10).",
-            "input_error": "0~10 사이의 정수를 입력하세요."
-        },
         "background_mode_delay": {
             "header": "백그라운드 모드 지연",
             "description": "지연 시간을 분 단위로 입력하세요(10-600).",
@@ -6026,14 +5998,11 @@
         }
     },
     "message": {
-        "auto_login_delay_countdown": "{seconds}초 후 자동 로그인",
         "auth": {
             "logout_greeting": "또 만나요, {name}!",
             "account_removed": "계정이 삭제됨",
-            "auto_login_success": "자동으로 로그인됨",
-            "auto_login_failed": "자동 로그인에 실패했습니다",
             "session_expired": "VRChat 세션이 만료되었습니다. 로그인으로 돌아갑니다.",
-            "session_restore_available": "저장된 계정을 사용할 수 있는 경우 VRCX-0은 자동으로 다시 로그인을 시도합니다.",
+            "session_restore_available": "저장된 계정을 선택하고 직접 로그인해 주세요.",
             "offline": "오프라인 상태입니다"
         },
         "vrcx_updater": {

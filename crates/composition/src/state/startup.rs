@@ -179,7 +179,9 @@ impl RuntimeHostState {
             )
             .await
         } else {
-            self.authenticate_non_interactive().await
+            Err(NonInteractiveAuthError::InteractionRequired(
+                "Select a saved account and sign in manually, or use --login for interactive CLI login.".into(),
+            ))
         };
         let session = match auth_result {
             Ok(session) => session,
@@ -189,11 +191,13 @@ impl RuntimeHostState {
                 return Err(crate::Error::AuthInteractionRequired(reason));
             }
             Err(NonInteractiveAuthError::SessionInvalidated {
-                user_id,
+                user_id: _,
                 reason,
                 status_code,
             }) => {
-                self.clear_invalid_non_interactive_auth_session(&user_id, &reason);
+                self.runtime_context.auth_cookies.clear();
+                self.runtime_context.auth_cookies.save();
+                self.clear_backend_authenticated_session(&reason);
                 return Err(crate::Error::AuthSessionInvalidated {
                     reason,
                     status_code,

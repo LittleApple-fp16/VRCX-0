@@ -401,7 +401,6 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::integrations::external_api::service::app__external_api_youtube_video_metadata_get,
             commands::vrchat::auth::service::app__vrchat_auth_config_get,
             commands::vrchat::auth::service::app__vrchat_auth_config_refresh,
-            commands::vrchat::auth::service::app__vrchat_auth_auto_login_start,
             commands::vrchat::auth::service::app__vrchat_auth_current_user_get,
             commands::vrchat::auth::service::app__vrchat_auth_file_analysis_get,
             commands::vrchat::auth::service::app__vrchat_auth_session_end,

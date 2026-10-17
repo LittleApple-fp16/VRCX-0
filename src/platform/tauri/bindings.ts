@@ -1414,13 +1414,6 @@ const generatedCommands = {
     async appVrchatAuthConfigRefresh(): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_auth_config_refresh');
     },
-    async appVrchatAuthAutoLoginStart(
-        input: AutoLoginStartInput
-    ): Promise<AutoLoginOutcome> {
-        return await TAURI_INVOKE('app__vrchat_auth_auto_login_start', {
-            input
-        });
-    },
     async appVrchatAuthCurrentUserGet(): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_auth_current_user_get');
     },
@@ -3382,11 +3375,6 @@ export type AuthenticatedSessionSnapshot = {
     currentUserSnapshot: CurrentUserSnapshot;
 };
 export type AuthorDetail = { id?: string; displayName?: string | null };
-export type AutoLoginOutcome = LoginSessionState | AutoLoginTerminalOutcome;
-export type AutoLoginStartInput = { userId?: string };
-export type AutoLoginTerminalOutcome =
-    | { status: 'throttled'; snapshot: SavedAuthSnapshot }
-    | { status: 'expired'; snapshot: SavedAuthSnapshot };
 export type AvatarCacheOutput = {
     id: string;
     authorId: string;
@@ -6385,18 +6373,9 @@ export type RuntimeVrchatAuthFailurePayload = {
     realtimeTransport?: RuntimeRealtimeTransportEpoch | null;
 };
 export type RuntimeWorkerErrorPayload = { worker: string; message: string };
-export type SavedAuthAutoLoginStatus =
-    | 'not-configured'
-    | 'missing-last-user'
-    | 'missing-credentials'
-    | 'available';
 export type SavedAuthSnapshot = {
     lastUserLoggedIn: string | null;
     savedCredentialsList: SavedCredentialSnapshot[];
-    autoLoginDelayEnabled: boolean;
-    autoLoginDelaySeconds: number;
-    autoLoginStatus: SavedAuthAutoLoginStatus;
-    autoLoginReason: string;
 };
 export type SavedCredentialSnapshot = {
     user: SavedCredentialUser;

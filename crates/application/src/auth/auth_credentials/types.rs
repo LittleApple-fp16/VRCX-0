@@ -47,24 +47,11 @@ pub struct SavedCredentialSnapshot {
     pub has_cookies: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, specta::Type)]
-#[serde(rename_all = "kebab-case")]
-pub enum SavedAuthAutoLoginStatus {
-    NotConfigured,
-    MissingLastUser,
-    MissingCredentials,
-    Available,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SavedAuthSnapshot {
     pub last_user_logged_in: Option<String>,
     pub saved_credentials_list: Vec<SavedCredentialSnapshot>,
-    pub auto_login_delay_enabled: bool,
-    pub auto_login_delay_seconds: i64,
-    pub auto_login_status: SavedAuthAutoLoginStatus,
-    pub auto_login_reason: String,
 }
 
 pub struct LoginSuccessRecordInput {

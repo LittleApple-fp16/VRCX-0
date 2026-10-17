@@ -143,7 +143,6 @@ export type BuildSettingsPageStateSectionsInput = DialogSectionInput &
         openTranslationApiDialog: SettingsCallback;
         openUgcFolderSelector: SettingsCallback;
         openYoutubeApiDialog: SettingsCallback;
-        promptAutoLoginDelaySeconds: SettingsCallback;
         promptBackgroundModeDelayMinutes: SettingsCallback;
         prefs: SettingsPrefs;
         refreshConfigTreeData: SettingsVoidAction;

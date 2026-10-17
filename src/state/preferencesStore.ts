@@ -400,8 +400,6 @@ export const DEFAULT_PREFERENCES = Object.freeze({
     anonymousUsageTelemetry: true,
     udonExceptionLogging: false,
     logResourceLoad: false,
-    autoLoginDelayEnabled: false,
-    autoLoginDelaySeconds: 0,
     backgroundModeEnabled: false,
     backgroundModeDelayEnabled: false,
     backgroundModeDelayMinutes: 60,
@@ -678,12 +676,6 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
         anonymousUsageTelemetry: normalizeBool(next.anonymousUsageTelemetry),
         udonExceptionLogging: normalizeBool(next.udonExceptionLogging),
         logResourceLoad: normalizeBool(next.logResourceLoad),
-        autoLoginDelayEnabled: normalizeBool(next.autoLoginDelayEnabled),
-        autoLoginDelaySeconds: normalizeBoundedInt(next.autoLoginDelaySeconds, {
-            min: 0,
-            max: 10,
-            fallback: 0
-        }),
         backgroundModeEnabled: normalizeBool(next.backgroundModeEnabled),
         backgroundModeDelayEnabled: normalizeBool(
             next.backgroundModeDelayEnabled

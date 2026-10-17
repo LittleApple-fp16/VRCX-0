@@ -183,8 +183,6 @@ export async function loadPreferenceSnapshot() {
         anonymousUsageTelemetry,
         udonExceptionLogging,
         logResourceLoad,
-        autoLoginDelayEnabled,
-        autoLoginDelaySeconds,
         backgroundModeEnabled,
         backgroundModeDelayEnabled,
         backgroundModeDelayMinutes,
@@ -347,8 +345,6 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('anonymousUsageTelemetry', true),
         configRepository.getBool('udonExceptionLogging', false),
         configRepository.getBool('logResourceLoad', false),
-        configRepository.getBool('autoLoginDelayEnabled', false),
-        configRepository.getInt('autoLoginDelaySeconds', 0),
         configRepository.getBool('backgroundModeEnabled', false),
         configRepository.getBool('backgroundModeDelayEnabled', false),
         configRepository.getInt('backgroundModeDelayMinutes', 60),
@@ -606,10 +602,6 @@ export async function loadPreferenceSnapshot() {
         anonymousUsageTelemetry: Boolean(anonymousUsageTelemetry),
         udonExceptionLogging: Boolean(udonExceptionLogging),
         logResourceLoad: Boolean(logResourceLoad),
-        autoLoginDelayEnabled: Boolean(autoLoginDelayEnabled),
-        autoLoginDelaySeconds: Number.isFinite(autoLoginDelaySeconds)
-            ? autoLoginDelaySeconds
-            : 0,
         backgroundModeEnabled: Boolean(backgroundModeEnabled),
         backgroundModeDelayEnabled: Boolean(backgroundModeDelayEnabled),
         backgroundModeDelayMinutes: normalizeBackgroundModeDelayMinutes(

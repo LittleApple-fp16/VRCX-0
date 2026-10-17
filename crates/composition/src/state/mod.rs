@@ -1,9 +1,9 @@
 use crate::{Result, RuntimeHostContext, RuntimeHostEventSink, RuntimeHostProfile};
 use vrcx_0_application::auth::{
     current_user_from_cookie, AuthenticatedRuntimeSession, AuthenticatedSessionProjection,
-    AutoLoginOutcome, AutoLoginStartInput, LoginRuntimeTransition, LoginSessionCancelInput,
-    LoginSessionEnd, LoginSessionEndRequest, LoginSessionRespondInput, LoginSessionStartInput,
-    LoginSessionState, NonInteractiveAuthError, SavedAuthSnapshot,
+    LoginRuntimeTransition, LoginSessionCancelInput, LoginSessionEnd, LoginSessionEndRequest,
+    LoginSessionRespondInput, LoginSessionStartInput, LoginSessionState, NonInteractiveAuthError,
+    SavedAuthSnapshot,
 };
 use vrcx_0_application::social::{PrintCleanupDeps, PrintCleanupTrigger};
 use vrcx_0_application_core::{
@@ -16,7 +16,6 @@ use vrcx_0_persistence::DatabaseService;
 
 mod auth_session;
 mod background;
-mod background_auth;
 mod background_ticks;
 mod capabilities;
 mod combined_snapshot;

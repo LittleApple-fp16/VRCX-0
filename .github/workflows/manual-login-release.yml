@@ -1,0 +1,119 @@
+name: Manual Login Release
+
+on:
+    push:
+        branches: [master]
+        paths:
+            - 'src/**'
+            - 'src-tauri/**'
+            - 'crates/**'
+            - 'scripts/**'
+            - 'Cargo.*'
+            - 'package*.json'
+            - '.github/workflows/manual-login-release.yml'
+    workflow_dispatch:
+
+concurrency:
+    group: manual-login-release-${{ github.ref }}
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    windows:
+        name: Build and publish Windows release
+        runs-on: windows-latest
+        timeout-minutes: 90
+        permissions:
+            contents: write
+        env:
+            VRCX_0_DISABLE_UPDATE_CHECK: '1'
+            VRCX_0_BUILD_LABEL: manual-login
+            VRCX_0_BUILD_BADGE: Manual Login
+        steps:
+            - uses: actions/checkout@v7
+            - uses: ./.github/actions/setup-node
+            - uses: ./.github/actions/setup-rust
+              with:
+                  components: rustfmt
+                  cache-key: manual-login-windows
+                  save-cache: 'true'
+
+            - name: Verify frontend and Rust formatting
+              run: |
+                  npm run typecheck
+                  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                  npm run lint
+                  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                  npm test -- src/features/auth src/services/authExecutionService.test.ts src/services/authSessionRecoveryService.test.ts src/services/authSnapshotService.test.ts
+                  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                  cargo fmt --all -- --check
+                  exit $LASTEXITCODE
+
+            - name: Test authentication
+              run: |
+                  cargo test --locked -p vrcx-0-application auth::
+                  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                  cargo test --locked -p vrcx-0-outbound-adapters --test manual_login_startup
+                  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                  cargo test --locked -p vrcx-0-composition headless_start_requires_manual_login
+                  exit $LASTEXITCODE
+
+            - name: Prepare unsigned installer configuration
+              shell: bash
+              run: |
+                  node <<'NODE'
+                  const fs = require('node:fs');
+                  const config = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+                  config.bundle.createUpdaterArtifacts = false;
+                  delete config.bundle.windows.certificateThumbprint;
+                  delete config.bundle.windows.signCommand;
+                  fs.writeFileSync('src-tauri/tauri.manual-login.conf.json', JSON.stringify(config, null, 4));
+                  NODE
+
+            - name: Build release installer
+              run: npm run tauri:build -- --config src-tauri/tauri.manual-login.conf.json --no-sign --bundles nsis
+
+            - name: Collect installer and portable executable
+              id: assets
+              shell: pwsh
+              run: |
+                  $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+                  $stem = "VRCX-0_${version}_manual-login_${{ github.run_number }}_windows_x86_64"
+                  New-Item -ItemType Directory -Path release-assets, portable | Out-Null
+                  Copy-Item target/release/vrcx-0.exe "portable/VRCX-0.exe"
+                  Copy-Item LICENSE portable/LICENSE
+                  Copy-Item LICENSES portable/LICENSES -Recurse
+                  New-Item -ItemType Directory portable/licenses | Out-Null
+                  Copy-Item src-tauri/resources/licenses/THIRD_PARTY_NOTICES.txt portable/licenses/
+                  Compress-Archive -Path portable/* -DestinationPath "release-assets/${stem}_portable.zip"
+                  $installers = @(Get-ChildItem target/release/bundle/nsis/*.exe)
+                  if ($installers.Count -ne 1) { throw "Expected one NSIS installer, got $($installers.Count)" }
+                  Copy-Item $installers[0].FullName "release-assets/${stem}_setup.exe"
+                  Get-ChildItem release-assets | ForEach-Object {
+                      $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+                      "$hash  $($_.Name)"
+                  } | Set-Content release-assets/SHA256SUMS.txt
+                  "version=$version" >> $env:GITHUB_OUTPUT
+
+            - uses: actions/upload-artifact@v7
+              with:
+                  name: manual-login-windows-${{ github.run_number }}
+                  path: release-assets/*
+                  if-no-files-found: error
+
+            - uses: softprops/action-gh-release@v3
+              with:
+                  tag_name: manual-login-${{ github.run_number }}
+                  target_commitish: ${{ github.sha }}
+                  name: VRCX-0 ${{ steps.assets.outputs.version }} · Manual Login · Build ${{ github.run_number }}
+                  body: |
+                      Windows x64 release with automatic account login removed.
+
+                      Startup, background session expiry and headless startup cannot automatically sign in. Select a saved account to sign in manually. Account saving and interactive login remain available.
+
+                      Includes an unsigned installer, portable ZIP and SHA-256 checksums. Upstream update checks are disabled for this build so it cannot automatically replace itself with a version that restores automatic login.
+                  files: release-assets/*
+                  fail_on_unmatched_files: true
+                  make_latest: true

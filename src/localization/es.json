@@ -600,7 +600,6 @@
         },
         "label": {
             "authenticated_and_prepared_the_session": "Sesión iniciada",
-            "auto_login": "Inicio de sesión automático",
             "vrchat_launched": "VRChat iniciado"
         },
         "action": {
@@ -2721,9 +2720,7 @@
                 },
                 "logging": {
                     "header": "Registro",
-                    "resource_load": "Registrar carga de cadena/imagen de Udon",
-                    "auto_login_delay": "Retraso del inicio de sesión automático",
-                    "auto_login_delay_button": "Definir segundos de retraso"
+                    "resource_load": "Registrar carga de cadena/imagen de Udon"
                 },
                 "automation": {
                     "change_status_description": "Sobrescribir descripción del estado",
@@ -3473,28 +3470,8 @@
             }
         },
         "auth": {
-            "auto_login": {
-                "skipped": "Se omitió el inicio de sesión automático",
-                "preparing_login_for": "Preparando el inicio de sesión automático de {name}",
-                "preparing_restore_for": "Preparando la restauración automática de la sesión de {userId}",
-                "authenticating": "Autenticando a {name}",
-                "restoring_session_for": "Restaurando una sesión de navegador existente de {name}",
-                "logged_in_as": "Sesión iniciada automáticamente como {name}",
-                "restored_session_for": "Se restauró automáticamente la sesión de navegador anterior de {name}",
-                "skipped_before_request": "El inicio de sesión automático se canceló antes de comenzar",
-                "throttled": "El inicio de sesión automático se desactivó tras varios fallos en la última hora.",
-                "expired": "Tu sesión anterior caducó y no hay ninguna cuenta guardada con la que iniciar sesión.",
-                "failed_manual": "El inicio de sesión automático falló. Aún puedes iniciar sesión manualmente abajo",
-                "failed_unexpectedly": "El inicio de sesión automático falló de forma inesperada",
-                "skipped_form_changed": "Se omitió el inicio de sesión automático porque el formulario de inicio de sesión cambió",
-                "skipped_manual_started": "Se omitió el inicio de sesión automático porque comenzó un inicio de sesión manual",
-                "skipped_saved_account_selected": "Se omitió el inicio de sesión automático porque se seleccionó otra cuenta guardada",
-                "skipped_countdown_finished": "Se omitió el inicio de sesión automático antes de que terminara la cuenta atrás",
-                "skipped_saved_account_edited": "Se omitió el inicio de sesión automático porque se está editando una cuenta guardada"
-            },
             "toast": {
                 "failed_to_load_saved_auth_snapshot": "No se pudieron cargar tus cuentas guardadas",
-                "automatic_login_failed_unexpectedly": "El inicio de sesión automático falló de forma inesperada",
                 "failed_to_change_language": "No se pudo cambiar el idioma",
                 "failed_to_load_proxy_settings": "No se pudieron cargar los ajustes del proxy",
                 "failed_to_save_proxy_settings": "No se pudieron guardar los ajustes del proxy",
@@ -6045,11 +6022,6 @@
             "description": "Introduce un nombre para la copia de seguridad",
             "input_error": "El nombre es obligatorio"
         },
-        "auto_login_delay": {
-            "header": "Retraso del inicio de sesión automático",
-            "description": "Introduce el retraso en segundos (0 para desactivar, máx. 10)",
-            "input_error": "Introduce un número entero del 0 al 10"
-        },
         "background_mode_delay": {
             "header": "Retraso del modo en segundo plano",
             "description": "Introduce el retraso en minutos (10-600).",
@@ -6092,14 +6064,11 @@
         }
     },
     "message": {
-        "auto_login_delay_countdown": "Iniciando sesión automáticamente en {seconds} s",
         "auth": {
             "logout_greeting": "¡Hasta pronto, {name}!",
             "account_removed": "Cuenta eliminada",
-            "auto_login_success": "Sesión iniciada automáticamente",
-            "auto_login_failed": "No se pudo iniciar sesión automáticamente",
             "session_expired": "La sesión de VRChat ha caducado. Volviendo al inicio de sesión.",
-            "session_restore_available": "Si hay una cuenta guardada disponible, VRCX-0 intentará iniciar sesión de nuevo automáticamente.",
+            "session_restore_available": "Selecciona una cuenta guardada e inicia sesión manualmente.",
             "offline": "Estás sin conexión"
         },
         "vrcx_updater": {

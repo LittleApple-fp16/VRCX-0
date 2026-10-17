@@ -465,7 +465,6 @@
         },
         "label": {
             "authenticated_and_prepared_the_session": "Connecté",
-            "auto_login": "Connexion automatique",
             "vrchat_launched": "VRChat lancé"
         },
         "action": {
@@ -2557,9 +2556,7 @@
                 },
                 "logging": {
                     "header": "Journalisation",
-                    "resource_load": "Journal des textes/images chargées par Udon",
-                    "auto_login_delay": "Délai de connexion automatique",
-                    "auto_login_delay_button": "Définir le délai en secondes"
+                    "resource_load": "Journal des textes/images chargées par Udon"
                 },
                 "automation": {
                     "change_status_description": "Remplacer la description du statut",
@@ -3293,28 +3290,8 @@
             }
         },
         "auth": {
-            "auto_login": {
-                "skipped": "Connexion automatique ignorée",
-                "preparing_login_for": "Préparation de la connexion automatique pour {name}",
-                "preparing_restore_for": "Préparation de la restauration automatique de session pour {userId}",
-                "authenticating": "Authentification de {name}",
-                "restoring_session_for": "Restauration d'une session de navigateur existante pour {name}",
-                "logged_in_as": "Connecté automatiquement en tant que {name}",
-                "restored_session_for": "Session de navigateur précédente restaurée automatiquement pour {name}",
-                "skipped_before_request": "La connexion automatique a été annulée avant de commencer",
-                "throttled": "La connexion automatique a été désactivée après des échecs répétés au cours de la dernière heure.",
-                "expired": "La session de navigateur précédente a expiré et aucun compte enregistré de secours n'était disponible.",
-                "failed_manual": "Échec de la connexion automatique. La connexion manuelle reste disponible ci-dessous",
-                "failed_unexpectedly": "La connexion automatique a échoué de manière inattendue",
-                "skipped_form_changed": "Connexion automatique ignorée car le formulaire de connexion a changé",
-                "skipped_manual_started": "Connexion automatique ignorée car une connexion manuelle a démarré",
-                "skipped_saved_account_selected": "Connexion automatique ignorée car un autre compte enregistré a été sélectionné",
-                "skipped_countdown_finished": "Connexion automatique ignorée avant la fin du compte à rebours",
-                "skipped_saved_account_edited": "Connexion automatique ignorée car un compte enregistré est en cours de modification"
-            },
             "toast": {
                 "failed_to_load_saved_auth_snapshot": "Impossible de charger vos comptes enregistrés",
-                "automatic_login_failed_unexpectedly": "La connexion automatique a échoué de manière inattendue",
                 "failed_to_change_language": "Échec du changement de langue",
                 "failed_to_load_proxy_settings": "Échec du chargement des paramètres de proxy",
                 "failed_to_save_proxy_settings": "Échec de l'enregistrement des paramètres de proxy",
@@ -5842,11 +5819,6 @@
             "description": "Saisissez un nom pour la sauvegarde",
             "input_error": "Le nom est obligatoire"
         },
-        "auto_login_delay": {
-            "header": "Délai de connexion automatique",
-            "description": "Saisissez le délai en secondes (0 pour désactiver, max. 10)",
-            "input_error": "Veuillez saisir un nombre entier de 0 à 10"
-        },
         "background_mode_delay": {
             "header": "Délai avant le mode arrière-plan",
             "description": "Saisissez le délai en minutes (10-600).",
@@ -5889,14 +5861,11 @@
         }
     },
     "message": {
-        "auto_login_delay_countdown": "Connexion automatique dans {seconds} s...",
         "auth": {
             "logout_greeting": "À bientôt, {name} !",
             "account_removed": "Compte supprimé",
-            "auto_login_success": "Connexion automatique réussie",
-            "auto_login_failed": "Échec de la connexion automatique",
             "session_expired": "La session VRChat a expiré. Retour à la connexion.",
-            "session_restore_available": "Si un compte enregistré est disponible, VRCX-0 tentera de se reconnecter automatiquement.",
+            "session_restore_available": "Sélectionnez un compte enregistré et connectez-vous manuellement.",
             "offline": "Vous êtes hors ligne"
         },
         "vrcx_updater": {

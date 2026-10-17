@@ -15,10 +15,6 @@ use crate::auth::{
 };
 use vrcx_0_application_core::Error;
 
-use super::auto_login::{
-    drive_auto_login, AutoLoginDrive, AutoLoginOutcome, AutoLoginStartInput,
-    AutoLoginTerminalOutcome, AutoLoginThrottle,
-};
 use super::service::{respond_to_challenge, start_gui_basic_login, start_saved_credential_login};
 use super::types::{LoginApi, LoginFailureKind, LoginSessionState};
 
@@ -187,7 +183,6 @@ impl LoginSessionOperation {
 pub struct LoginSessionRuntime {
     inner: Arc<Mutex<LoginSessionRuntimeInner>>,
     network_gate: Arc<AsyncMutex<()>>,
-    auto_login_throttle: Arc<AutoLoginThrottle>,
 }
 
 impl Default for LoginSessionRuntime {
@@ -205,98 +200,6 @@ impl LoginSessionRuntime {
                 inflight_attempt_id: None,
             })),
             network_gate: Arc::new(AsyncMutex::new(())),
-            auto_login_throttle: Arc::new(AutoLoginThrottle::new()),
-        }
-    }
-
-    pub async fn auto_login_start(
-        &self,
-        api: Arc<dyn LoginApi>,
-        cookies: &dyn AuthSessionCookies,
-        config: &dyn AuthCredentialStore,
-        input: AutoLoginStartInput,
-        transition: &TransitionSink<'_>,
-    ) -> vrcx_0_application_core::Result<AutoLoginOutcome> {
-        self.auto_login_start_with_transition(api, config, cookies, input, transition)
-            .await
-    }
-
-    #[cfg(test)]
-    pub(super) async fn auto_login_start_with(
-        &self,
-        api: Arc<dyn LoginApi>,
-        config: &dyn AuthCredentialStore,
-        cookies: &dyn AuthSessionCookies,
-        input: AutoLoginStartInput,
-    ) -> vrcx_0_application_core::Result<AutoLoginOutcome> {
-        self.auto_login_start_with_transition(api, config, cookies, input, &|_| Ok(()))
-            .await
-    }
-
-    pub(super) async fn auto_login_start_with_transition(
-        &self,
-        api: Arc<dyn LoginApi>,
-        config: &dyn AuthCredentialStore,
-        cookies: &dyn AuthSessionCookies,
-        input: AutoLoginStartInput,
-        transition: &TransitionSink<'_>,
-    ) -> vrcx_0_application_core::Result<AutoLoginOutcome> {
-        let operation = self.begin_operation(transition)?;
-        let _network = match self.acquire_network(&operation).await {
-            Ok(guard) => guard,
-            Err(error) => return Err(error),
-        };
-        let auto_user_id = input.user_id.clone();
-        let endpoint = VRCHAT_API_DEFAULT_ENDPOINT.to_string();
-        let result = drive_auto_login(
-            api.as_ref(),
-            config,
-            cookies,
-            &self.auto_login_throttle,
-            &operation,
-            input,
-        )
-        .await;
-        let drive = match result {
-            Ok(result) => result,
-            Err(error) => {
-                let reason = error.to_string();
-                let _ = operation.run_if_current(|| {
-                    transition(LoginRuntimeTransition::Unauthenticated(reason.clone()))
-                        .map_err(Error::Custom)
-                });
-                return Err(error);
-            }
-        };
-        operation.ensure_current()?;
-        match drive {
-            AutoLoginDrive::Install(state) => {
-                let state = self.install_state(
-                    &operation,
-                    state,
-                    api,
-                    endpoint,
-                    LoginAttemptPolicy::SavedCredential {
-                        user_id: auto_user_id,
-                    },
-                    LoginRuntimeDeps {
-                        cookies,
-                        config,
-                        transition,
-                    },
-                )?;
-                auto_login_outcome_from_state(state, config)
-            }
-            AutoLoginDrive::Done(outcome) => {
-                let outcome = *outcome;
-                if let Some(reason) = auto_login_failure_reason(&outcome) {
-                    operation.run_if_current(|| {
-                        transition(LoginRuntimeTransition::Unauthenticated(reason.to_string()))
-                            .map_err(Error::Custom)
-                    })?;
-                }
-                Ok(outcome)
-            }
         }
     }
 
@@ -359,7 +262,6 @@ impl LoginSessionRuntime {
                 );
                 cookies.clear();
                 cookies.save();
-                self.auto_login_throttle.reset_all();
                 snapshot
             }
             LoginSessionEnd::Invalidated { .. } => {
@@ -705,23 +607,6 @@ fn apply_terminal_transition(
     }
 }
 
-fn auto_login_failure_reason(outcome: &AutoLoginOutcome) -> Option<&str> {
-    match outcome {
-        AutoLoginOutcome::Terminal(AutoLoginTerminalOutcome::Throttled { .. }) => {
-            Some("Automatic login was throttled.")
-        }
-        AutoLoginOutcome::Terminal(AutoLoginTerminalOutcome::Expired { .. }) => {
-            Some("The saved browser session expired.")
-        }
-        AutoLoginOutcome::Session(LoginSessionState::Failed { reason, .. }) => Some(reason),
-        AutoLoginOutcome::Session(
-            LoginSessionState::Authenticated { .. }
-            | LoginSessionState::Challenge { .. }
-            | LoginSessionState::Cancelled,
-        ) => None,
-    }
-}
-
 fn transition_failure(error: Error) -> LoginSessionState {
     LoginSessionState::failed(error.to_string(), LoginFailureKind::Other)
 }
@@ -810,45 +695,6 @@ fn with_attempt_id(state: LoginSessionState, attempt_id: &str) -> LoginSessionSt
             error,
         },
         state => state,
-    }
-}
-
-fn auto_login_outcome_from_state(
-    state: LoginSessionState,
-    config: &dyn AuthCredentialStore,
-) -> vrcx_0_application_core::Result<AutoLoginOutcome> {
-    match state {
-        LoginSessionState::Authenticated { session, snapshot } => {
-            let snapshot = snapshot
-                .ok_or_else(|| Error::Custom("Authenticated login snapshot is missing.".into()))?;
-            Ok(AutoLoginOutcome::Session(
-                LoginSessionState::Authenticated {
-                    session,
-                    snapshot: Some(snapshot),
-                },
-            ))
-        }
-        state @ LoginSessionState::Challenge { .. } => Ok(AutoLoginOutcome::Session(state)),
-        LoginSessionState::Failed {
-            reason,
-            kind,
-            snapshot,
-        } => {
-            let snapshot = match snapshot {
-                Some(snapshot) => snapshot,
-                None => Box::new(saved_snapshot(config)?),
-            };
-            Ok(AutoLoginOutcome::Session(LoginSessionState::Failed {
-                reason,
-                kind,
-                snapshot: Some(snapshot),
-            }))
-        }
-        LoginSessionState::Cancelled => Ok(AutoLoginOutcome::Session(LoginSessionState::Failed {
-            reason: "The login session was cancelled.".into(),
-            kind: LoginFailureKind::Other,
-            snapshot: Some(Box::new(saved_snapshot(config)?)),
-        })),
     }
 }
 

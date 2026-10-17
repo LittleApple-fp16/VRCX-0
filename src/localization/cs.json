@@ -600,7 +600,6 @@
         },
         "label": {
             "authenticated_and_prepared_the_session": "Přihlášeno",
-            "auto_login": "Automatické přihlášení",
             "vrchat_launched": "VRChat spuštěn"
         },
         "action": {
@@ -2727,9 +2726,7 @@
                 },
                 "logging": {
                     "header": "Záznamy",
-                    "resource_load": "Záznam načítání Udon nápisů/obrázků",
-                    "auto_login_delay": "Zpoždění automatického přihlášení",
-                    "auto_login_delay_button": "Nastavit zpoždění v sekundách"
+                    "resource_load": "Záznam načítání Udon nápisů/obrázků"
                 },
                 "automation": {
                     "change_status_description": "Přepsat popis statusu",
@@ -3479,28 +3476,8 @@
             }
         },
         "auth": {
-            "auto_login": {
-                "skipped": "Automatické přihlášení bylo přeskočeno",
-                "preparing_login_for": "Připravuje se automatické přihlášení pro {name}",
-                "preparing_restore_for": "Připravuje se automatické obnovení relace pro {userId}",
-                "authenticating": "Ověřování {name}",
-                "restoring_session_for": "Obnovuje se existující relace prohlížeče pro {name}",
-                "logged_in_as": "Automaticky přihlášen jako {name}",
-                "restored_session_for": "Automaticky obnovena předchozí relace prohlížeče pro {name}",
-                "skipped_before_request": "Automatické přihlášení bylo zrušeno ještě před zahájením",
-                "throttled": "Automatické přihlášení bylo vypnuto po opakovaných selháních v poslední hodině.",
-                "expired": "Předchozí relace prohlížeče vypršela a nebyl k dispozici žádný uložený náhradní účet.",
-                "failed_manual": "Automatické přihlášení selhalo. Ruční přihlášení je stále dostupné níže",
-                "failed_unexpectedly": "Automatické přihlášení neočekávaně selhalo",
-                "skipped_form_changed": "Automatické přihlášení bylo přeskočeno, protože se změnil přihlašovací formulář",
-                "skipped_manual_started": "Automatické přihlášení bylo přeskočeno, protože bylo zahájeno ruční přihlášení",
-                "skipped_saved_account_selected": "Automatické přihlášení bylo přeskočeno, protože byl vybrán jiný uložený účet",
-                "skipped_countdown_finished": "Automatické přihlášení bylo přeskočeno před dokončením odpočtu",
-                "skipped_saved_account_edited": "Automatické přihlášení bylo přeskočeno, protože se upravuje uložený účet"
-            },
             "toast": {
                 "failed_to_load_saved_auth_snapshot": "Nepodařilo se načíst uložené účty",
-                "automatic_login_failed_unexpectedly": "Automatické přihlášení neočekávaně selhalo",
                 "failed_to_change_language": "Nepodařilo se změnit jazyk",
                 "failed_to_load_proxy_settings": "Nepodařilo se načíst nastavení proxy",
                 "failed_to_save_proxy_settings": "Nepodařilo se uložit nastavení proxy",
@@ -6021,11 +5998,6 @@
             "description": "Zadejte název zálohy",
             "input_error": "Název je povinný"
         },
-        "auto_login_delay": {
-            "header": "Zpoždění automatického přihlášení",
-            "description": "Zadejte zpoždění v sekundách (0 vypne, max. 10)",
-            "input_error": "Zadejte celé číslo od 0 do 10"
-        },
         "background_mode_delay": {
             "header": "Zpoždění režimu na pozadí",
             "description": "Zadejte zpoždění v minutách (10-600).",
@@ -6068,14 +6040,11 @@
         }
     },
     "message": {
-        "auto_login_delay_countdown": "Automatické přihlášení za {seconds} s",
         "auth": {
             "logout_greeting": "Uvidíme se zase, {name}!",
             "account_removed": "Účet odebrán",
-            "auto_login_success": "Automaticky přihlášeno",
-            "auto_login_failed": "Automatické přihlášení se nezdařilo",
             "session_expired": "Relace VRChat vypršela. Návrat na přihlašovací obrazovku.",
-            "session_restore_available": "Pokud je k dispozici uložený účet, VRCX-0 se pokusí znovu automaticky přihlásit.",
+            "session_restore_available": "Vyberte uložený účet a přihlaste se ručně.",
             "offline": "Jste offline"
         },
         "vrcx_updater": {

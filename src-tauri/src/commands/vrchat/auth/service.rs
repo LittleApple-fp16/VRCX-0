@@ -5,8 +5,8 @@ use tauri::State;
 use crate::error::AppError;
 use crate::state::AppState;
 use vrcx_0_application::auth::{
-    AutoLoginOutcome, AutoLoginStartInput, LoginSessionCancelInput, LoginSessionEnd,
-    LoginSessionRespondInput, LoginSessionStartInput, LoginSessionState, SavedAuthSnapshot,
+    LoginSessionCancelInput, LoginSessionEnd, LoginSessionRespondInput, LoginSessionStartInput,
+    LoginSessionState, SavedAuthSnapshot,
 };
 use vrcx_0_application_core::vrchat_api::VrchatApiResponse;
 
@@ -30,19 +30,6 @@ pub async fn app__vrchat_auth_session_start(
     input: LoginSessionStartInput,
 ) -> Result<LoginSessionState, AppError> {
     Ok(state.runtime_host().start_login_session(input).await)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_auth_auto_login_start(
-    state: State<'_, AppState>,
-    input: AutoLoginStartInput,
-) -> Result<AutoLoginOutcome, AppError> {
-    state
-        .runtime_host()
-        .start_auto_login(input)
-        .await
-        .map_err(AppError::from)
 }
 
 #[tauri::command]

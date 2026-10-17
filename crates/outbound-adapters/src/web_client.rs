@@ -88,9 +88,8 @@ impl WebClient {
             .unwrap_or_default();
         let proxy_url =
             vrcx_0_application_core::load_proxy_url(raw_enabled.as_deref(), &raw_proxy_url);
-        let persisted_cookies =
-            cookies::get_default_cookies(db.as_ref()).map_err(crate::map_persistence_error)?;
-        let inner = transport::WebClient::new(proxy_url, persisted_cookies.as_deref(), app_version)
+        // Credentials and cookies may only be restored after an explicit account selection.
+        let inner = transport::WebClient::new(proxy_url, None, app_version)
             .map_err(crate::map_web_client_error)?;
         let image_fetcher = Arc::new(
             ImageFetcher::new(inner.cookie_jar(), inner.proxy_url(), app_version)

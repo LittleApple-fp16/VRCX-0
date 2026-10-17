@@ -600,7 +600,6 @@
         },
         "label": {
             "authenticated_and_prepared_the_session": "已登入",
-            "auto_login": "自動登入",
             "vrchat_launched": "已啟動 VRChat"
         },
         "action": {
@@ -2715,9 +2714,7 @@
                 },
                 "logging": {
                     "header": "記錄",
-                    "resource_load": "記錄 Udon 字串/圖片載入",
-                    "auto_login_delay": "自動登入延遲",
-                    "auto_login_delay_button": "設定延遲秒數"
+                    "resource_load": "記錄 Udon 字串/圖片載入"
                 },
                 "automation": {
                     "change_status_description": "覆寫狀態描述",
@@ -3467,28 +3464,8 @@
             }
         },
         "auth": {
-            "auto_login": {
-                "skipped": "已跳過自動登入",
-                "preparing_login_for": "正在為 {name} 準備自動登入",
-                "preparing_restore_for": "正在為 {userId} 準備自動恢復工作階段",
-                "authenticating": "正在認證 {name}",
-                "restoring_session_for": "正在為 {name} 恢復已有瀏覽器工作階段",
-                "logged_in_as": "已自動以 {name} 登入",
-                "restored_session_for": "已為 {name} 自動恢復上次瀏覽器工作階段",
-                "skipped_before_request": "自動登入在開始前已被取消",
-                "throttled": "過去一小時內多次失敗，自動登入已停用。",
-                "expired": "先前的工作階段已過期，且沒有可用來登入的已儲存帳號。",
-                "failed_manual": "自動登入失敗，仍可在下方手動登入",
-                "failed_unexpectedly": "自動登入意外失敗",
-                "skipped_form_changed": "登入表單已更改，已跳過自動登入",
-                "skipped_manual_started": "已開始手動登入，因此跳過自動登入",
-                "skipped_saved_account_selected": "選擇了另一個已儲存帳號，因此跳過自動登入",
-                "skipped_countdown_finished": "倒數計時結束前已跳過自動登入",
-                "skipped_saved_account_edited": "正在編輯已儲存帳號，因此跳過自動登入"
-            },
             "toast": {
                 "failed_to_load_saved_auth_snapshot": "無法載入您儲存的帳戶",
-                "automatic_login_failed_unexpectedly": "自動登入意外失敗",
                 "failed_to_change_language": "切換語言失敗",
                 "failed_to_load_proxy_settings": "載入代理設定失敗",
                 "failed_to_save_proxy_settings": "儲存代理設定失敗",
@@ -6026,11 +6003,6 @@
             "description": "請輸入備份名稱",
             "input_error": "名稱為必填"
         },
-        "auto_login_delay": {
-            "header": "自動登入延遲",
-            "description": "請輸入延遲秒數（0 表示停用，最多 10 秒）",
-            "input_error": "請輸入 0 到 10 之間的整數"
-        },
         "background_mode_delay": {
             "header": "背景模式延遲",
             "description": "請輸入延遲分鐘數（10-600）。",
@@ -6073,14 +6045,11 @@
         }
     },
     "message": {
-        "auto_login_delay_countdown": "自動登入中，預計耗時 {seconds} 秒",
         "auth": {
             "logout_greeting": "再見，{name}！",
             "account_removed": "帳號已移除。",
-            "auto_login_success": "已自動登入。",
-            "auto_login_failed": "自動登入失敗。",
             "session_expired": "VRChat 工作階段已過期，正在返回登入畫面。",
-            "session_restore_available": "如果有已儲存的帳號，VRCX-0 會嘗試自動重新登入。",
+            "session_restore_available": "請選擇已儲存的帳號並手動登入。",
             "offline": "你目前處於離線狀態。"
         },
         "vrcx_updater": {

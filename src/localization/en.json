@@ -600,7 +600,6 @@
         },
         "label": {
             "authenticated_and_prepared_the_session": "Signed in",
-            "auto_login": "Auto sign-in",
             "vrchat_launched": "VRChat launched"
         },
         "action": {
@@ -2721,9 +2720,7 @@
                 },
                 "logging": {
                     "header": "Logging",
-                    "resource_load": "Log Udon String/Image Load",
-                    "auto_login_delay": "Auto Sign-In Delay",
-                    "auto_login_delay_button": "Set Delay (Seconds)"
+                    "resource_load": "Log Udon String/Image Load"
                 },
                 "automation": {
                     "change_status_description": "Override Status Description",
@@ -3473,28 +3470,8 @@
             }
         },
         "auth": {
-            "auto_login": {
-                "skipped": "Automatic sign-in was skipped",
-                "preparing_login_for": "Preparing automatic sign-in for {name}",
-                "preparing_restore_for": "Preparing automatic session restore for {userId}",
-                "authenticating": "Authenticating {name}",
-                "restoring_session_for": "Restoring an existing browser session for {name}",
-                "logged_in_as": "Automatically signed in as {name}",
-                "restored_session_for": "Automatically restored the previous browser session for {name}",
-                "skipped_before_request": "Automatic sign-in was canceled before it began",
-                "throttled": "Automatic sign-in was disabled after repeated failures in the last hour.",
-                "expired": "Your previous session expired and there's no saved account to sign in with.",
-                "failed_manual": "Automatic sign-in failed. You can still sign in manually below.",
-                "failed_unexpectedly": "Automatic sign-in failed unexpectedly",
-                "skipped_form_changed": "Automatic sign-in was skipped because the sign-in form changed",
-                "skipped_manual_started": "Automatic sign-in was skipped because a manual sign-in started",
-                "skipped_saved_account_selected": "Automatic sign-in was skipped because another saved account was selected",
-                "skipped_countdown_finished": "Automatic sign-in was skipped before the countdown finished",
-                "skipped_saved_account_edited": "Automatic sign-in was skipped because a saved account is being edited"
-            },
             "toast": {
                 "failed_to_load_saved_auth_snapshot": "Couldn't load your saved accounts",
-                "automatic_login_failed_unexpectedly": "Automatic sign-in failed unexpectedly",
                 "failed_to_change_language": "Failed to change language",
                 "failed_to_load_proxy_settings": "Failed to load proxy settings",
                 "failed_to_save_proxy_settings": "Failed to save proxy settings",
@@ -6045,11 +6022,6 @@
             "description": "Enter a name for the backup",
             "input_error": "Name is required"
         },
-        "auto_login_delay": {
-            "header": "Auto sign-in delay",
-            "description": "Enter delay in seconds (0 to disable, max 10)",
-            "input_error": "Please enter a whole number from 0 to 10"
-        },
         "background_mode_delay": {
             "header": "Background mode delay",
             "description": "Enter delay in minutes (10-600).",
@@ -6092,14 +6064,11 @@
         }
     },
     "message": {
-        "auto_login_delay_countdown": "Signing in automatically in {seconds}s",
         "auth": {
             "logout_greeting": "See you again, {name}!",
             "account_removed": "Account removed",
-            "auto_login_success": "Signed in automatically",
-            "auto_login_failed": "Failed to sign in automatically",
             "session_expired": "VRChat session expired. Returning to sign-in.",
-            "session_restore_available": "If a saved account is available, VRCX-0 will try to sign in again automatically.",
+            "session_restore_available": "Select a saved account and sign in manually.",
             "offline": "You're offline"
         },
         "vrcx_updater": {

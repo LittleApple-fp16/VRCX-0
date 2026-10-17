@@ -2,17 +2,13 @@ use crate::auth::AuthCredentialStore;
 use serde_json::Value;
 use vrcx_0_application_core::vrchat_api::VrchatApiResponse as HttpApiExecuteResponse;
 use vrcx_0_contracts::vrchat_login::{
-    classify_vrchat_login_failure, interpret_login_config_response, interpret_login_response,
+    interpret_login_config_response, interpret_login_response,
     interpret_two_factor_current_user_response, interpret_two_factor_verify_response,
-    unsupported_two_factor_method, CookieProbeResult, CookieProbeStage, VrchatLoginStep,
-    VrchatTwoFactorVerifyOutcome,
+    unsupported_two_factor_method, VrchatLoginStep, VrchatTwoFactorVerifyOutcome,
 };
 
 use crate::auth::auth_credentials::saved_credential_login_start_with_api;
-use crate::auth::{
-    auth_response_error_message, cookie_session::probe_cookie_session, AuthenticatedRuntimeSession,
-    SavedCredentialLoginStartInput,
-};
+use crate::auth::{AuthenticatedRuntimeSession, SavedCredentialLoginStartInput};
 
 use super::types::{
     AuthSessionCookies, LoginApi, LoginFailureKind, LoginRemoteOperation, LoginSessionState,
@@ -155,48 +151,6 @@ pub(super) async fn start_saved_credential_login(
     };
 
     session_state(interpret_login_response(&response), endpoint)
-}
-
-pub(super) async fn start_cookie_restore(
-    api: &dyn LoginApi,
-    endpoint: &str,
-    expected_user_id: &str,
-) -> LoginSessionState {
-    match probe_cookie_session(api, endpoint, expected_user_id).await {
-        Ok(CookieProbeResult::Authenticated { user, .. }) => {
-            authenticated_state(user, endpoint.to_string())
-        }
-        Ok(CookieProbeResult::RequiresTwoFactor(_)) => LoginSessionState::failed(
-            "The stored browser session still requires interactive verification.",
-            LoginFailureKind::TwoFactorUnavailable,
-        ),
-        Ok(CookieProbeResult::MissingCredentials(response)) => LoginSessionState::failed(
-            auth_response_error_message(
-                &response,
-                format!("VRChat auth request failed with HTTP {}.", response.status),
-            ),
-            LoginFailureKind::MissingCredentials,
-        ),
-        Ok(CookieProbeResult::UserMismatch { .. }) => LoginSessionState::failed(
-            "The stored browser session belongs to a different account.",
-            LoginFailureKind::MissingCredentials,
-        ),
-        Ok(CookieProbeResult::Rejected { stage, response }) => {
-            let request_name = match stage {
-                CookieProbeStage::Config => "config",
-                CookieProbeStage::CurrentUser => "current-user",
-            };
-            let reason = auth_response_error_message(
-                &response,
-                format!(
-                    "VRChat {request_name} request failed with HTTP {}.",
-                    response.status
-                ),
-            );
-            LoginSessionState::failed(reason, classify_vrchat_login_failure(&response).into())
-        }
-        Err(error) => LoginSessionState::failed(error.to_string(), LoginFailureKind::Network),
-    }
 }
 
 pub(super) async fn respond_to_challenge(

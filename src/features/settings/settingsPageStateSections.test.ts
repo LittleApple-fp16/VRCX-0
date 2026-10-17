@@ -84,7 +84,6 @@ function createInput(
         openUgcFolderSelector: callback,
         openYoutubeApiDialog: callback,
         prefs,
-        promptAutoLoginDelaySeconds: callback,
         promptBackgroundModeDelayMinutes: callback,
         purgeAvatarFeedData: asyncCallback,
         purgeDialogOpen: false,

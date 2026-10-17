@@ -49,85 +49,6 @@ pub enum NonInteractiveAuthError {
     Failed(String),
 }
 
-pub enum CookieSessionProbe {
-    Authenticated(AuthenticatedRuntimeSession),
-    Fallback,
-}
-
-pub async fn probe_current_user_from_cookie(
-    api: &dyn LoginApi,
-    user_id: String,
-    endpoint: String,
-    websocket: String,
-) -> std::result::Result<CookieSessionProbe, NonInteractiveAuthError> {
-    probe_current_user_from_cookie_with_api(api, user_id, endpoint, websocket).await
-}
-
-pub(crate) async fn probe_current_user_from_cookie_with_api(
-    api: &dyn LoginApi,
-    user_id: String,
-    endpoint: String,
-    websocket: String,
-) -> std::result::Result<CookieSessionProbe, NonInteractiveAuthError> {
-    let result = probe_cookie_session(api, &endpoint, &user_id)
-        .await
-        .map_err(|error| NonInteractiveAuthError::Failed(error.to_string()))?;
-    if matches!(result, CookieProbeResult::RequiresTwoFactor(_)) {
-        return Ok(CookieSessionProbe::Fallback);
-    }
-    map_fallback_probe(result, user_id, endpoint, websocket)
-}
-
-pub async fn probe_saved_current_user_from_cookie(
-    api: &dyn LoginApi,
-    user_id: String,
-    endpoint: String,
-    websocket: String,
-) -> std::result::Result<CookieSessionProbe, NonInteractiveAuthError> {
-    probe_saved_current_user_from_cookie_with_api(api, user_id, endpoint, websocket).await
-}
-
-pub(crate) async fn probe_saved_current_user_from_cookie_with_api(
-    api: &dyn LoginApi,
-    user_id: String,
-    endpoint: String,
-    websocket: String,
-) -> std::result::Result<CookieSessionProbe, NonInteractiveAuthError> {
-    let result = probe_cookie_session(api, &endpoint, &user_id)
-        .await
-        .map_err(|error| NonInteractiveAuthError::Failed(error.to_string()))?;
-    if matches!(result, CookieProbeResult::RequiresTwoFactor(_)) {
-        return Err(NonInteractiveAuthError::InteractionRequired(
-            "Re-authentication in the GUI is required because this account requires 2FA/OTP."
-                .into(),
-        ));
-    }
-    map_fallback_probe(result, user_id, endpoint, websocket)
-}
-
-fn map_fallback_probe(
-    result: CookieProbeResult,
-    user_id: String,
-    endpoint: String,
-    websocket: String,
-) -> std::result::Result<CookieSessionProbe, NonInteractiveAuthError> {
-    match result {
-        CookieProbeResult::Authenticated { user, .. } => Ok(CookieSessionProbe::Authenticated(
-            AuthenticatedRuntimeSession::from_user(user, endpoint, websocket),
-        )),
-        CookieProbeResult::MissingCredentials(_) | CookieProbeResult::UserMismatch { .. } => {
-            Ok(CookieSessionProbe::Fallback)
-        }
-        CookieProbeResult::RequiresTwoFactor(_) => unreachable!(),
-        CookieProbeResult::Rejected { response, .. } if response.status == 401 => {
-            Ok(CookieSessionProbe::Fallback)
-        }
-        CookieProbeResult::Rejected { stage, response } => {
-            rejected_probe_error(user_id, stage, response)
-        }
-    }
-}
-
 pub async fn current_user_from_cookie(
     api: &dyn LoginApi,
     user_id: String,
@@ -318,20 +239,5 @@ mod tests {
             Err(NonInteractiveAuthError::Failed(message))
                 if message == "VRChat auth request failed with HTTP 500."
         ));
-    }
-
-    #[test]
-    fn generic_401_cookie_probe_allows_saved_credential_fallback() {
-        let result = map_fallback_probe(
-            CookieProbeResult::Rejected {
-                stage: CookieProbeStage::CurrentUser,
-                response: response(401, serde_json::json!({ "error": "Unauthorized" })),
-            },
-            "usr_1".into(),
-            String::new(),
-            String::new(),
-        );
-
-        assert!(matches!(result, Ok(CookieSessionProbe::Fallback)));
     }
 }

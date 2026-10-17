@@ -14,7 +14,6 @@ use crate::{
 };
 use vrcx_0_application::auth::{
     AuthenticatedSessionMaintenanceRuntime, AuthenticatedSessionProjection,
-    BackgroundAuthRecoveryOrchestrator,
 };
 use vrcx_0_application::collections::SharedCollectionImportRuntime;
 use vrcx_0_application::favorites::{FavoriteImportRuntime, FavoriteImportRuntimeDeps};
@@ -123,7 +122,6 @@ pub struct RuntimeHostState {
     pub(crate) database_maintenance_cache_dir: Option<PathBuf>,
     pub(super) profile_extension: Option<Arc<dyn RuntimeHostProfileExtension>>,
     pub(super) backend_starting: AtomicBool,
-    pub(super) background_auth_recovery: BackgroundAuthRecoveryOrchestrator,
     pub(super) authenticated_session_maintenance: AuthenticatedSessionMaintenanceRuntime,
     pub(super) social_maintenance: SocialMaintenanceRuntime,
     pub(super) activity_warmup: ActivityWarmupRuntime,
@@ -660,7 +658,6 @@ impl RuntimeHostStateBuilder {
             database_maintenance_cache_dir: self.database_maintenance_cache_dir,
             profile_extension,
             backend_starting: AtomicBool::new(false),
-            background_auth_recovery: BackgroundAuthRecoveryOrchestrator::new(),
             authenticated_session_maintenance,
             social_maintenance,
             activity_warmup,

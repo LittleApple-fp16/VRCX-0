@@ -4,7 +4,6 @@ use std::sync::Arc;
 use serde_json::{json, Value};
 use vrcx_0_application::auth::{
     migrate_saved_credential_secrets, saved_credential_session_data, saved_snapshot,
-    SavedAuthAutoLoginStatus,
 };
 use vrcx_0_persistence::{
     config::ConfigRepository,
@@ -182,10 +181,6 @@ fn auth_credentials_encrypt_migrate_decrypt_and_clear_damaged_fields() {
         .unwrap();
     assert!(!credential.has_login_credentials);
     assert!(!credential.has_cookies);
-    assert_eq!(
-        snapshot.auto_login_status,
-        SavedAuthAutoLoginStatus::MissingCredentials
-    );
     let cleaned = raw_saved_credentials(&config);
     assert!(cleaned["usr_1"].get("cookies").is_none());
     assert!(cleaned["usr_1"]["loginParams"].get("password").is_none());

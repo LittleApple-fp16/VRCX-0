@@ -5,27 +5,15 @@ use super::storage::{
     write_saved_credentials, LAST_USER_LOGGED_IN_KEY,
 };
 use super::types::{
-    SavedAuthAutoLoginStatus, SavedAuthSnapshot, SavedCredential, SavedCredentialSnapshot,
-    SavedCredentials, SavedLoginParamsSnapshot,
+    SavedAuthSnapshot, SavedCredential, SavedCredentialSnapshot, SavedCredentials,
+    SavedLoginParamsSnapshot,
 };
 use vrcx_0_application_core::Result;
 
-const MAX_AUTO_LOGIN_DELAY_SECONDS: i64 = 10;
 const LEGACY_PRIMARY_PASSWORD_KEY: &str = "enablePrimaryPassword";
-const AUTO_LOGIN_DELAY_ENABLED_KEY: &str = "autoLoginDelayEnabled";
-const AUTO_LOGIN_DELAY_SECONDS_KEY: &str = "autoLoginDelaySeconds";
 
 pub fn saved_snapshot(config: &dyn AuthCredentialStore) -> Result<SavedAuthSnapshot> {
     build_saved_auth_snapshot(config)
-}
-
-fn normalize_auto_login_delay_seconds(value: &str) -> i64 {
-    value
-        .trim()
-        .parse::<i64>()
-        .ok()
-        .map(|value| value.clamp(0, MAX_AUTO_LOGIN_DELAY_SECONDS))
-        .unwrap_or(0)
 }
 
 impl SavedCredential {
@@ -54,48 +42,6 @@ impl SavedCredential {
             has_cookies: self.has_cookies(),
         }
     }
-}
-
-fn resolve_auto_login_status(
-    last_user_logged_in: &str,
-    saved_credentials: &SavedCredentials,
-    auto_login_delay_enabled: bool,
-    auto_login_delay_seconds: i64,
-) -> (SavedAuthAutoLoginStatus, String) {
-    if last_user_logged_in.is_empty() {
-        return (
-            SavedAuthAutoLoginStatus::NotConfigured,
-            "No previous login was recorded.".into(),
-        );
-    }
-
-    let Some(saved_credential) = saved_credentials.get(last_user_logged_in) else {
-        return (
-            SavedAuthAutoLoginStatus::MissingLastUser,
-            "The last logged-in account is no longer present in saved credentials.".into(),
-        );
-    };
-
-    if !saved_credential.has_login_credentials() {
-        return (
-            SavedAuthAutoLoginStatus::MissingCredentials,
-            "The saved account is missing username or password data.".into(),
-        );
-    }
-
-    if auto_login_delay_enabled && auto_login_delay_seconds > 0 {
-        return (
-            SavedAuthAutoLoginStatus::Available,
-            format!(
-                "Saved credentials are available. Auto-login delay is {auto_login_delay_seconds} second(s)."
-            ),
-        );
-    }
-
-    (
-        SavedAuthAutoLoginStatus::Available,
-        "Saved credentials are available and auto-login can run immediately.".into(),
-    )
 }
 
 fn saved_credential_sort_name(value: &SavedCredential) -> String {
@@ -141,27 +87,11 @@ pub(super) fn build_saved_auth_snapshot(
         remove_config_value(config, LAST_USER_LOGGED_IN_KEY)?;
     }
 
-    let auto_login_delay_enabled = get_config_bool(config, AUTO_LOGIN_DELAY_ENABLED_KEY, false)?;
-    let auto_login_delay_seconds = normalize_auto_login_delay_seconds(&get_config_string(
-        config,
-        AUTO_LOGIN_DELAY_SECONDS_KEY,
-        "0",
-    )?);
-    let (auto_login_status, auto_login_reason) = resolve_auto_login_status(
-        &last_user_logged_in,
-        &saved_credentials,
-        auto_login_delay_enabled,
-        auto_login_delay_seconds,
-    );
     let saved_credentials_list =
         sorted_redacted_saved_credentials_list(&saved_credentials, &last_user_logged_in);
 
     Ok(SavedAuthSnapshot {
         last_user_logged_in: (!last_user_logged_in.is_empty()).then_some(last_user_logged_in),
         saved_credentials_list,
-        auto_login_delay_enabled,
-        auto_login_delay_seconds,
-        auto_login_status,
-        auto_login_reason,
     })
 }

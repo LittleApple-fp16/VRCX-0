@@ -304,3 +304,46 @@ fn construction_time_tasks_run_on_the_provided_executor() -> Result<()> {
     assert!(spawned.load(Ordering::Acquire) > 0);
     Ok(())
 }
+
+#[tokio::test]
+async fn headless_start_requires_manual_login_even_with_saved_credentials() -> Result<()> {
+    let dir = TestDir::new("manual-login-required");
+    let app_data = dir.path.join("app-data");
+    std::fs::create_dir_all(&app_data)?;
+    let state = RuntimeHostState::new(cli_options(
+        app_data,
+        RuntimeHostProfile::HeadlessData,
+        None,
+    ))?;
+    let config = &state.runtime_context.config;
+    config.set_string("lastUserLoggedIn", "usr_saved")?;
+    config.set_string("autoLoginDelayEnabled", "true")?;
+    config.set_string("autoLoginDelaySeconds", "0")?;
+    config.set_string(
+        "savedCredentials",
+        &serde_json::json!({
+            "usr_saved": {
+                "user": {"id": "usr_saved", "displayName": "Saved"},
+                "loginParams": {"username": "saved", "password": "secret"},
+                "cookies": "legacy-cookie-data"
+            }
+        })
+        .to_string(),
+    )?;
+
+    let result = state.start_headless_backend_runtime(None).await;
+    assert!(matches!(
+        result,
+        Err(crate::Error::AuthInteractionRequired(_))
+    ));
+    assert!(state.authenticated_session_projection().session.is_none());
+    assert!(state
+        .runtime_context
+        .auth_scope
+        .snapshot()
+        .current_user_id
+        .is_empty());
+    assert_eq!(config.get_string("lastUserLoggedIn", "")?, "usr_saved");
+    state.stop_backend_runtime("test completed");
+    Ok(())
+}

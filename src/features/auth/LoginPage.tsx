@@ -49,9 +49,7 @@ export function LoginPage() {
                             isAuthBusy={savedAccounts.isAuthBusy}
                             onLogin={savedAccounts.onLogin}
                             onDeleteStart={savedAccounts.onDeleteStart}
-                            onCancelAutoLogin={savedAccounts.onCancelAutoLogin}
                             onUseOtherAccount={(entry) => {
-                                form.onCancelAutoLogin();
                                 if (entry) {
                                     form.onPrepareSavedAccount(entry);
                                 }
@@ -67,7 +65,6 @@ export function LoginPage() {
                             setLoginForm={form.setLoginForm}
                             setLoginErrors={form.setLoginErrors}
                             onSubmit={form.onSubmit}
-                            onCancelAutoLogin={form.onCancelAutoLogin}
                             onBackToSavedAccounts={() => {
                                 setManualLoginSelected(false);
                             }}

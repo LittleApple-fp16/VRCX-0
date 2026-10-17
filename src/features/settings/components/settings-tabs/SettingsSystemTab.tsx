@@ -15,8 +15,6 @@ import { useSettingsSystemTabState } from '../useSettingsSystemTabState';
 
 type SettingsSystemTabContentProps = {
     autoInstallUpdatesOnStartup?: boolean;
-    autoLoginDelayEnabled?: boolean;
-    autoLoginDelaySeconds?: number;
     backgroundModeEnabled?: boolean;
     backgroundModeDelayEnabled?: boolean;
     backgroundModeDelayMinutes?: number;
@@ -33,12 +31,10 @@ type SettingsSystemTabContentProps = {
     showPostUpdateChangelogToast?: boolean;
     updateCheckDisabled?: boolean;
     onAutoInstallUpdatesOnStartupChange: (checked: boolean) => void;
-    onAutoLoginDelayEnabledChange: (checked: boolean) => void;
     onBackgroundModeEnabledChange: (checked: boolean) => void;
     onBackgroundModeDelayEnabledChange: (checked: boolean) => void;
     onCloseToTrayChange: (checked: boolean) => void;
     onFocusVrchatOnJoinChange: (checked: boolean) => void;
-    onPromptAutoLoginDelaySeconds: () => void;
     onPromptBackgroundModeDelayMinutes: () => void;
     onProxyEnabledChange: (checked: boolean) => void | Promise<void>;
     onProxySettings: () => void;
@@ -61,8 +57,6 @@ export function SettingsSystemTabContent({
     isStartAsMinimizedState,
     isCloseToTray,
     systemWindowFrame,
-    autoLoginDelayEnabled,
-    autoLoginDelaySeconds,
     autoInstallUpdatesOnStartup,
     updateCheckDisabled = false,
     showPostUpdateChangelogToast,
@@ -78,8 +72,6 @@ export function SettingsSystemTabContent({
     onStartAsMinimizedChange,
     onCloseToTrayChange,
     onSystemWindowFrameChange,
-    onAutoLoginDelayEnabledChange,
-    onPromptAutoLoginDelaySeconds,
     onBackgroundModeEnabledChange,
     onBackgroundModeDelayEnabledChange,
     onPromptBackgroundModeDelayMinutes,
@@ -316,38 +308,6 @@ export function SettingsSystemTabContent({
                 cardId="system.network"
                 title={t('view.settings.general.application.network_header')}
             >
-                <Field
-                    label={t('view.settings.general.logging.auto_login_delay')}
-                >
-                    <Switch
-                        checked={autoLoginDelayEnabled}
-                        onCheckedChange={onAutoLoginDelayEnabledChange}
-                    />
-                </Field>
-                {autoLoginDelayEnabled ? (
-                    <Field
-                        label={t(
-                            'view.settings.general.logging.auto_login_delay_button'
-                        )}
-                    >
-                        <div className="flex items-center gap-2">
-                            <Badge variant="outline">
-                                {autoLoginDelaySeconds}
-                                {t('common.time_units.s')}
-                            </Badge>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={onPromptAutoLoginDelaySeconds}
-                            >
-                                {t(
-                                    'view.settings.general.logging.auto_login_delay_button'
-                                )}
-                            </Button>
-                        </div>
-                    </Field>
-                ) : null}
                 <Field label={t('view.settings.general.application.proxy')}>
                     <div className="flex flex-wrap items-center justify-end gap-2">
                         <Switch

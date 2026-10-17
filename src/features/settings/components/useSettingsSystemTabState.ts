@@ -26,8 +26,6 @@ export function useSettingsSystemTabState() {
             isStartAsMinimizedState: state.isStartAsMinimizedState,
             isCloseToTray: state.isCloseToTray,
             systemWindowFrame: state.systemWindowFrame,
-            autoLoginDelayEnabled: state.autoLoginDelayEnabled,
-            autoLoginDelaySeconds: state.autoLoginDelaySeconds,
             autoInstallUpdatesOnStartup: state.autoInstallUpdatesOnStartup,
             showPostUpdateChangelogToast: state.showPostUpdateChangelogToast,
             backgroundModeEnabled: state.backgroundModeEnabled,
@@ -48,7 +46,6 @@ export function useSettingsSystemTabState() {
         setStartAsMinimizedPreference,
         setCloseToTrayPreference,
         setSystemWindowFramePreference,
-        promptAutoLoginDelaySeconds,
         promptBackgroundModeDelayMinutes
     } = system;
 
@@ -58,8 +55,6 @@ export function useSettingsSystemTabState() {
         isStartAsMinimizedState: prefs.isStartAsMinimizedState,
         isCloseToTray: prefs.isCloseToTray,
         systemWindowFrame: prefs.systemWindowFrame,
-        autoLoginDelayEnabled: prefs.autoLoginDelayEnabled,
-        autoLoginDelaySeconds: prefs.autoLoginDelaySeconds,
         autoInstallUpdatesOnStartup: prefs.autoInstallUpdatesOnStartup,
         updateCheckDisabled: isUpdateCheckDisabledBuild(),
         showPostUpdateChangelogToast: prefs.showPostUpdateChangelogToast,
@@ -109,13 +104,6 @@ export function useSettingsSystemTabState() {
                 setCloseToTrayPreference(enabled)
             );
         },
-        onAutoLoginDelayEnabledChange: (enabled: boolean) => {
-            saveBoolPreference(
-                'autoLoginDelayEnabled',
-                'autoLoginDelayEnabled',
-                enabled
-            );
-        },
         onBackgroundModeEnabledChange: (enabled: boolean) => {
             saveBoolPreference(
                 'backgroundModeEnabled',
@@ -160,9 +148,6 @@ export function useSettingsSystemTabState() {
                 'focusVrchatOnJoin',
                 checked
             );
-        },
-        onPromptAutoLoginDelaySeconds: () => {
-            promptAutoLoginDelaySeconds();
         },
         onPromptBackgroundModeDelayMinutes: () => {
             promptBackgroundModeDelayMinutes();

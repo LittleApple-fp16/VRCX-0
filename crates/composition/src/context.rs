@@ -3,7 +3,6 @@ use std::time::Duration;
 
 use vrcx_0_application::auth::{
     AuthCredentialStore, AuthSessionCookies, LoginApi, LoginSessionRuntime,
-    NonInteractiveAuthRuntime,
 };
 use vrcx_0_application::avatars::AvatarModerationRuntime;
 use vrcx_0_application::favorites::{
@@ -65,7 +64,6 @@ pub(crate) struct RuntimeHostContext {
     pub(crate) auth_credentials: Arc<dyn AuthCredentialStore>,
     pub(crate) login_api: Arc<dyn LoginApi>,
     pub(crate) auth_cookies: Arc<dyn AuthSessionCookies>,
-    pub(crate) noninteractive_auth: NonInteractiveAuthRuntime,
     pub(crate) avatar_cache: Arc<AvatarCache>,
     pub(crate) avatar_moderation: AvatarModerationRuntime,
     pub(crate) world_cache: Arc<WorldCache>,
@@ -280,12 +278,6 @@ impl RuntimeHostContext {
         let auth_cookies: Arc<dyn AuthSessionCookies> = Arc::new(
             vrcx_0_outbound_adapters::WebAuthSessionCookies::new(Arc::clone(&web)),
         );
-        let noninteractive_auth = NonInteractiveAuthRuntime::new(Arc::new(
-            vrcx_0_outbound_adapters::LocalNonInteractiveAuthActions::new(
-                Arc::clone(&web),
-                Arc::clone(&auth_credentials),
-            ),
-        ));
         let event_bus = RuntimeEventBus::new();
         let diagnostics = RuntimeDiagnostics::new();
         let sync = RuntimeSyncEngine::new();
@@ -405,7 +397,6 @@ impl RuntimeHostContext {
             auth_credentials,
             login_api,
             auth_cookies,
-            noninteractive_auth,
             avatar_cache,
             avatar_moderation: AvatarModerationRuntime::new(),
             world_cache,

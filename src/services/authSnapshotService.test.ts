@@ -21,10 +21,6 @@ import {
 function snapshot(patch: Partial<SavedAuthSnapshot> = {}): SavedAuthSnapshot {
     return {
         lastUserLoggedIn: 'usr_1',
-        autoLoginStatus: 'available',
-        autoLoginReason: 'ready',
-        autoLoginDelayEnabled: false,
-        autoLoginDelaySeconds: 0,
         savedCredentialsList: [
             {
                 user: { id: 'usr_1', displayName: 'User One' },
@@ -45,9 +41,7 @@ describe('authSnapshotService', () => {
         repositoryMocks.deleteSavedCredential.mockResolvedValue(
             snapshot({
                 lastUserLoggedIn: null,
-                savedCredentialsList: [],
-                autoLoginStatus: 'missing-last-user',
-                autoLoginReason: 'missing'
+                savedCredentialsList: []
             })
         );
     });
@@ -56,34 +50,26 @@ describe('authSnapshotService', () => {
         const applied = applySavedAuthSnapshot(snapshot());
 
         expect(applied).toMatchObject({
-            lastUserLoggedIn: 'usr_1',
-            autoLoginStatus: 'available'
+            lastUserLoggedIn: 'usr_1'
         });
         expect(useRuntimeStore.getState().auth).toMatchObject({
             lastUserLoggedIn: 'usr_1',
-            savedCredentialCount: 1,
-            autoLoginStatus: 'available',
-            autoLoginReason: 'ready',
-            autoLoginDelayEnabled: false,
-            autoLoginDelaySeconds: 0
+            savedCredentialCount: 1
         });
         expect(useRuntimeStore.getState().startup.auth).toMatchObject({
-            status: 'pending',
-            detail: 'ready'
+            status: 'completed',
+            detail: 'Waiting for the user to sign in manually.'
         });
     });
 
     it('marks missing saved credentials as a completed auth startup task', () => {
         applySavedAuthSnapshot(
-            snapshot({
-                autoLoginStatus: 'missing-credentials',
-                autoLoginReason: 'no password'
-            })
+            snapshot({ lastUserLoggedIn: null, savedCredentialsList: [] })
         );
 
         expect(useRuntimeStore.getState().startup.auth).toMatchObject({
             status: 'completed',
-            detail: 'no password'
+            detail: 'Waiting for the user to sign in manually.'
         });
     });
 
@@ -101,8 +87,7 @@ describe('authSnapshotService', () => {
         );
         expect(useRuntimeStore.getState().auth).toMatchObject({
             lastUserLoggedIn: null,
-            savedCredentialCount: 0,
-            autoLoginStatus: 'missing-last-user'
+            savedCredentialCount: 0
         });
     });
 });

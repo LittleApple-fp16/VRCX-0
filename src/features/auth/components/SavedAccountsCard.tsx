@@ -23,7 +23,6 @@ type SavedAccountsCardProps = {
     activeSavedUserId: string;
     isAuthBusy: boolean;
     isDeleting: boolean;
-    onCancelAutoLogin: () => void;
     onDeleteStart: (entry: SavedCredentialRecord) => void;
     onLogin: (entry: SavedCredentialRecord) => void;
     onUseOtherAccount: (entry?: SavedCredentialRecord) => void;
@@ -36,7 +35,6 @@ export function SavedAccountsCard({
     isAuthBusy,
     onLogin,
     onDeleteStart,
-    onCancelAutoLogin,
     onUseOtherAccount
 }: SavedAccountsCardProps) {
     const { t } = useTranslation();
@@ -118,7 +116,6 @@ export function SavedAccountsCard({
                                     )}
                                     disabled={isDeleting || isAuthBusy}
                                     onClick={() => {
-                                        onCancelAutoLogin();
                                         onDeleteStart(entry);
                                     }}
                                 >

@@ -348,7 +348,7 @@ pub fn app__auth_failure_notification_show(
     crate::bootstrap::show_auth_failure_notification_once(
         &app_handle,
         &state,
-        reason.as_deref().unwrap_or("auto-login"),
+        reason.as_deref().unwrap_or("manual-login-required"),
     );
     Ok(())
 }

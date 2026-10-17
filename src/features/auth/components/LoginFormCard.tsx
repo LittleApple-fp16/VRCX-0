@@ -25,7 +25,6 @@ type LoginFormCardProps = {
     loginErrors: LoginErrors;
     loginForm: LoginFormState;
     onBackToSavedAccounts: () => void;
-    onCancelAutoLogin: () => void;
     onOpenForgotPassword: () => void;
     onOpenRegister: () => void;
     onSubmit: FormEventHandler<HTMLFormElement>;
@@ -43,7 +42,6 @@ export function LoginFormCard({
     setLoginForm,
     setLoginErrors,
     onSubmit,
-    onCancelAutoLogin,
     onBackToSavedAccounts,
     onOpenRegister,
     onOpenForgotPassword,
@@ -91,7 +89,6 @@ export function LoginFormCard({
                                 )}
                                 value={loginForm.username}
                                 onChange={(event) => {
-                                    onCancelAutoLogin();
                                     setLoginForm((current) => ({
                                         ...current,
                                         username: event.target.value
@@ -123,7 +120,6 @@ export function LoginFormCard({
                                 )}
                                 value={loginForm.password}
                                 onChange={(event) => {
-                                    onCancelAutoLogin();
                                     setLoginForm((current) => ({
                                         ...current,
                                         password: event.target.value
@@ -147,7 +143,6 @@ export function LoginFormCard({
                                 checked={loginForm.saveCredentials}
                                 disabled={busy}
                                 onCheckedChange={(checked) => {
-                                    onCancelAutoLogin();
                                     setLoginForm((current) => ({
                                         ...current,
                                         saveCredentials: checked === true

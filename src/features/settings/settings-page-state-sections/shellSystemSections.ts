@@ -13,7 +13,6 @@ type SystemSectionInput = SettingsSectionInput<
     | 'setStartAsMinimizedPreference'
     | 'setCloseToTrayPreference'
     | 'setSystemWindowFramePreference'
-    | 'promptAutoLoginDelaySeconds'
     | 'promptBackgroundModeDelayMinutes'
 >;
 
@@ -36,7 +35,6 @@ export function buildSystemSection({
     setStartAsMinimizedPreference,
     setCloseToTrayPreference,
     setSystemWindowFramePreference,
-    promptAutoLoginDelaySeconds,
     promptBackgroundModeDelayMinutes
 }: SystemSectionInput) {
     return {
@@ -47,7 +45,6 @@ export function buildSystemSection({
         setStartAsMinimizedPreference,
         setCloseToTrayPreference,
         setSystemWindowFramePreference,
-        promptAutoLoginDelaySeconds,
         promptBackgroundModeDelayMinutes
     };
 }

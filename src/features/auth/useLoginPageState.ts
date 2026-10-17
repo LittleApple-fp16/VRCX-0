@@ -41,7 +41,6 @@ import {
     getLoginUserDisplayName as getUserDisplayName,
     shouldShowLegacyMigrationAction
 } from './loginDisplay';
-import { useLoginAutoLogin } from './useLoginAutoLogin';
 
 type LoginFormState = {
     password: string;
@@ -95,15 +94,6 @@ export function useLoginPageState() {
         setProxyInput(proxyServer || '');
     }, [proxyEnabled, proxyServer]);
 
-    const { cancelPendingAutoLogin } = useLoginAutoLogin({
-        activeSavedUserId,
-        applySnapshot: setSnapshot,
-        databaseReady,
-        isLoading,
-        isSubmitting,
-        snapshot
-    });
-
     const isDatabaseBlocked = !databaseReady;
     const isAuthBusy =
         isDatabaseBlocked ||
@@ -151,7 +141,6 @@ export function useLoginPageState() {
     }, [t]);
 
     async function handleLanguageChange(nextLanguage: string) {
-        cancelPendingAutoLogin();
         try {
             await setAppLanguagePreference(nextLanguage);
         } catch (error) {
@@ -166,7 +155,6 @@ export function useLoginPageState() {
     }
 
     async function openProxyDialog() {
-        cancelPendingAutoLogin();
         if (!preferencesHydrated) {
             try {
                 await loadPreferenceSnapshot();
@@ -186,7 +174,6 @@ export function useLoginPageState() {
     }
 
     async function migrateLegacyVrcxData() {
-        cancelPendingAutoLogin();
         await promptLegacyVrcxForceMigration({ alert, confirm, t, toast });
     }
 
@@ -194,7 +181,6 @@ export function useLoginPageState() {
         if (isValidatingRestore || isAuthBusy) {
             return;
         }
-        cancelPendingAutoLogin();
         setIsValidatingRestore(true);
         try {
             await selectProfileBackupToRestore();
@@ -319,7 +305,6 @@ export function useLoginPageState() {
             return;
         }
 
-        cancelPendingAutoLogin();
         setIsSubmitting(true);
         try {
             const nextSnapshot = await executeManualLogin({
@@ -364,7 +349,6 @@ export function useLoginPageState() {
             return;
         }
 
-        cancelPendingAutoLogin();
         setActiveSavedUserId(userId);
         try {
             const nextSnapshot = await executeSavedCredentialLogin(entry);
@@ -417,7 +401,6 @@ export function useLoginPageState() {
 
     return {
         activeSavedUserId,
-        cancelPendingAutoLogin,
         deleteTarget,
         handleDeleteSavedAccount,
         handleLanguageChange,

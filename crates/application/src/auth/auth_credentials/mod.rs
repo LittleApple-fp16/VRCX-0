@@ -15,7 +15,7 @@ pub use storage::{
     AuthCredentialStore, SavedLoginCredentials, SealedAuthSecret,
 };
 pub use types::{
-    LoginSuccessRecordInput, LogoutRecordInput, SavedAuthAutoLoginStatus, SavedAuthSnapshot,
-    SavedCredentialLoginStartInput, SavedCredentialSessionData, SavedCredentialSnapshot,
-    SavedCredentialUser, SavedLoginParamsSnapshot,
+    LoginSuccessRecordInput, LogoutRecordInput, SavedAuthSnapshot, SavedCredentialLoginStartInput,
+    SavedCredentialSessionData, SavedCredentialSnapshot, SavedCredentialUser,
+    SavedLoginParamsSnapshot,
 };

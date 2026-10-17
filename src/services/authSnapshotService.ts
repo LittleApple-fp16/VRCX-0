@@ -1,36 +1,7 @@
-import type { RuntimeOperationStatus } from '@/platform/tauri/bindings';
 import authRepository, {
     type SavedAuthSnapshot
 } from '@/repositories/authRepository';
 import { useRuntimeStore } from '@/state/runtimeStore';
-
-type AuthStartupTask = {
-    status: RuntimeOperationStatus;
-    detail: string;
-};
-
-function describeAuthStartupTask(snapshot: SavedAuthSnapshot): AuthStartupTask {
-    switch (snapshot.autoLoginStatus) {
-        case 'available':
-            return {
-                status: 'pending',
-                detail: snapshot.autoLoginReason
-            };
-        case 'missing-last-user':
-        case 'missing-credentials':
-            return {
-                status: 'completed',
-                detail: snapshot.autoLoginReason
-            };
-        default:
-            return {
-                status: 'completed',
-                detail:
-                    snapshot.autoLoginReason ||
-                    'No saved credentials were detected.'
-            };
-    }
-}
 
 let cachedAuthSnapshot: SavedAuthSnapshot | null = null;
 
@@ -40,15 +11,14 @@ export function applySavedAuthSnapshot(
     const runtimeStore = useRuntimeStore.getState();
     runtimeStore.setAuthBootstrap({
         lastUserLoggedIn: snapshot.lastUserLoggedIn,
-        savedCredentialCount: snapshot.savedCredentialsList.length,
-        autoLoginStatus: snapshot.autoLoginStatus,
-        autoLoginReason: snapshot.autoLoginReason,
-        autoLoginDelayEnabled: snapshot.autoLoginDelayEnabled,
-        autoLoginDelaySeconds: snapshot.autoLoginDelaySeconds
+        savedCredentialCount: snapshot.savedCredentialsList.length
     });
 
-    const task = describeAuthStartupTask(snapshot);
-    runtimeStore.setStartupTask('auth', task.status, task.detail);
+    runtimeStore.setStartupTask(
+        'auth',
+        'completed',
+        'Waiting for the user to sign in manually.'
+    );
     cachedAuthSnapshot = snapshot;
     return snapshot;
 }

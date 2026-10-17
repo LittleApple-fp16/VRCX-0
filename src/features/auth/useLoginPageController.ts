@@ -37,7 +37,6 @@ export function useLoginPageController() {
             busy: page.isAuthBusy,
             loginErrors: page.loginErrors,
             loginForm: page.loginForm,
-            onCancelAutoLogin: page.cancelPendingAutoLogin,
             onPrepareSavedAccount: page.prepareSavedAccountLogin,
             onSubmit: page.handleManualLoginSubmit,
             setLoginErrors: page.setLoginErrors,
@@ -74,7 +73,6 @@ export function useLoginPageController() {
             activeSavedUserId: page.activeSavedUserId,
             isAuthBusy: page.isAuthBusy,
             isDeleting: page.isDeleting,
-            onCancelAutoLogin: page.cancelPendingAutoLogin,
             onDeleteStart: page.setDeleteTarget,
             onLogin: page.handleSavedCredentialLogin,
             visible: page.hasSavedAccounts

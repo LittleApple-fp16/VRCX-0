@@ -600,7 +600,6 @@
         },
         "label": {
             "authenticated_and_prepared_the_session": "登录成功，欢迎使用",
-            "auto_login": "自动登录",
             "vrchat_launched": "已启动 VRChat"
         },
         "action": {
@@ -2715,9 +2714,7 @@
                 },
                 "logging": {
                     "header": "日志",
-                    "resource_load": "显示世界内 Udon 网络资源的加载详情",
-                    "auto_login_delay": "自动登录延迟",
-                    "auto_login_delay_button": "设置延迟（秒）"
+                    "resource_load": "显示世界内 Udon 网络资源的加载详情"
                 },
                 "automation": {
                     "change_status_description": "覆盖当前的状态描述",
@@ -3467,28 +3464,8 @@
             }
         },
         "auth": {
-            "auto_login": {
-                "skipped": "已跳过自动登录",
-                "preparing_login_for": "正在为 {name} 准备自动登录",
-                "preparing_restore_for": "正在为 {userId} 准备自动登录",
-                "authenticating": "正在以 {name} 的身份登录",
-                "restoring_session_for": "正在为 {name} 恢复登录",
-                "logged_in_as": "已作为 {name} 自动登录",
-                "restored_session_for": "已为 {name} 恢复上次登录",
-                "skipped_before_request": "登录开始前已跳过自动登录",
-                "throttled": "由于过去一小时内多次失败，自动登录已停用。",
-                "expired": "上次登录已过期，且没有可用的已保存账号可供登录。",
-                "failed_manual": "自动登录失败，但你仍可在下方手动登录",
-                "failed_unexpectedly": "自动登录因意外失败",
-                "skipped_form_changed": "登录信息已更改，已跳过自动登录",
-                "skipped_manual_started": "已开始手动登录，因此跳过自动登录",
-                "skipped_saved_account_selected": "选择了另一个已保存账号，因此跳过自动登录",
-                "skipped_countdown_finished": "倒计时结束前已跳过自动登录",
-                "skipped_saved_account_edited": "正在编辑已保存账号，因此跳过自动登录"
-            },
             "toast": {
                 "failed_to_load_saved_auth_snapshot": "加载已保存的登录信息失败",
-                "automatic_login_failed_unexpectedly": "自动登录意外失败",
                 "failed_to_change_language": "切换语言失败",
                 "failed_to_load_proxy_settings": "加载代理设置失败",
                 "failed_to_save_proxy_settings": "保存代理设置失败",
@@ -6035,11 +6012,6 @@
             "description": "输入备份名称",
             "input_error": "请输入备份名称"
         },
-        "auto_login_delay": {
-            "header": "自动登录延迟",
-            "description": "输入延迟时间（秒）（0 表示禁用，最大值为 10）。",
-            "input_error": "请输入 0 到 10 之间的整数。"
-        },
         "background_mode_delay": {
             "header": "后台模式延迟",
             "description": "输入延迟时间（分钟），范围 10 到 600。",
@@ -6082,14 +6054,11 @@
         }
     },
     "message": {
-        "auto_login_delay_countdown": "将在 {seconds} 秒后自动登录",
         "auth": {
             "logout_greeting": "下次再见，{name}！",
             "account_removed": "已移除账号",
-            "auto_login_success": "自动登录成功",
-            "auto_login_failed": "自动登录失败",
             "session_expired": "VRChat 会话已过期，正在返回登录界面。",
-            "session_restore_available": "如果有已保存的账号，VRCX-0 会尝试自动重新登录。",
+            "session_restore_available": "请选择已保存的账号并手动登录。",
             "offline": "你现在处于离线状态"
         },
         "vrcx_updater": {

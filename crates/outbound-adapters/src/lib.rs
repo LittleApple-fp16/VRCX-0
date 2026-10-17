@@ -30,7 +30,6 @@ mod login_api;
 mod media_upload;
 mod moderation_sync;
 mod mutual_graph;
-mod noninteractive_auth;
 mod note_export_requests;
 mod notification_chains;
 mod notification_delivery;
@@ -97,7 +96,6 @@ pub use login_api::{VrchatLoginApi, WebAuthSessionCookies};
 pub use media_upload::LocalMediaUploadAdapter;
 pub use moderation_sync::{LocalModerationSyncStore, VrchatModerationSyncRemoteRequests};
 pub use mutual_graph::{LocalMutualGraphStore, VrchatMutualGraphRemoteRequests};
-pub use noninteractive_auth::LocalNonInteractiveAuthActions;
 pub use note_export_requests::VrchatNoteExportRemoteRequests;
 pub use notification_chains::LocalNotificationChainActions;
 pub use notification_delivery::{

@@ -600,7 +600,6 @@
         },
         "label": {
             "authenticated_and_prepared_the_session": "Выполнен вход",
-            "auto_login": "Автологин",
             "vrchat_launched": "VRChat запущено"
         },
         "action": {
@@ -2725,9 +2724,7 @@
                 },
                 "logging": {
                     "header": "Журнал игры",
-                    "resource_load": "Запись загрузки ресурсов Udon",
-                    "auto_login_delay": "Задержка с автологином",
-                    "auto_login_delay_button": "Задержка"
+                    "resource_load": "Запись загрузки ресурсов Udon"
                 },
                 "automation": {
                     "change_status_description": "Описание состояния",
@@ -3477,28 +3474,8 @@
             }
         },
         "auth": {
-            "auto_login": {
-                "skipped": "Автоматический вход пропущен",
-                "preparing_login_for": "Подготовка автоматического входа для {name}",
-                "preparing_restore_for": "Подготовка автоматического сеанса восстановления для {userId}",
-                "authenticating": "Выполняется вход для {name}",
-                "restoring_session_for": "Восстановление существующего сеанса браузера для {name}",
-                "logged_in_as": "Выполнен автоматический вход как {name}",
-                "restored_session_for": "Автоматически восстановлена предыдущая сессия браузера для {name}",
-                "skipped_before_request": "Автоматический вход отменён до начала",
-                "throttled": "Автоматический вход отключен после повторных ошибок за последний час.",
-                "expired": "Срок действия предыдущей сессии браузера истёк, а резервный сохранённый аккаунт недоступен.",
-                "failed_manual": "Ошибка автоматического входа. Ручной вход всё ещё доступен ниже.",
-                "failed_unexpectedly": "Автоматический вход неожиданно завершился ошибкой",
-                "skipped_form_changed": "Автоматический вход пропущен, потому что форма входа изменилась",
-                "skipped_manual_started": "Автоматический вход пропущен, потому что начался ручной вход",
-                "skipped_saved_account_selected": "Автоматический вход пропущен, потому что выбран другой сохраненный аккаунт",
-                "skipped_countdown_finished": "Автоматический вход пропущен до завершения обратного отсчёта",
-                "skipped_saved_account_edited": "Автоматический вход пропущен, потому что сохраненный аккаунт редактируется"
-            },
             "toast": {
                 "failed_to_load_saved_auth_snapshot": "Не удалось загрузить сохранённые учётные записи",
-                "automatic_login_failed_unexpectedly": "Автоматический вход неожиданно завершился ошибкой",
                 "failed_to_change_language": "Не удалось изменить язык",
                 "failed_to_load_proxy_settings": "Не удалось загрузить настройки прокси",
                 "failed_to_save_proxy_settings": "Не удалось сохранить настройки прокси",
@@ -6015,11 +5992,6 @@
             "description": "Введите имя резервного копирования",
             "input_error": "Должно быть указано имя"
         },
-        "auto_login_delay": {
-            "header": "Задержка автоматического входа",
-            "description": "Введите задержку в секундах (0 — отключить, макс. 10)",
-            "input_error": "Пожалуйста, введите целое число от 0 до 10"
-        },
         "background_mode_delay": {
             "header": "Задержка фонового режима",
             "description": "Введите задержку в минутах (10–600).",
@@ -6062,14 +6034,11 @@
         }
     },
     "message": {
-        "auto_login_delay_countdown": "Автологин {seconds}С",
         "auth": {
             "logout_greeting": "Увидимся. {name}!",
             "account_removed": "Удаление аккаунта",
-            "auto_login_success": "Выполнен автоматический вход",
-            "auto_login_failed": "Ошибка автоматического входа в систему",
             "session_expired": "Сессия VRChat истекла. Возврат к экрану входа.",
-            "session_restore_available": "Если есть сохранённый аккаунт, VRCX-0 автоматически попытается войти снова.",
+            "session_restore_available": "Выберите сохранённый аккаунт и войдите вручную.",
             "offline": "Ты выключен."
         },
         "vrcx_updater": {

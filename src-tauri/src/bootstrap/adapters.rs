@@ -29,7 +29,7 @@ use vrcx_0_runtime_host_desktop::RuntimeHostActions;
 use crate::state::AppState;
 
 use super::notification::{
-    handle_runtime_auth_failure_notification, handle_runtime_auth_failure_recovery,
+    handle_runtime_auth_failure_invalidation, handle_runtime_auth_failure_notification,
 };
 
 #[derive(Clone)]
@@ -286,7 +286,7 @@ impl RuntimeHostActions for TauriRuntimeHostActions {
     }
 
     fn vrchat_auth_failed(&self, failure: &RuntimeVrchatAuthFailurePayload) {
-        handle_runtime_auth_failure_recovery(&self.app_handle, failure);
+        handle_runtime_auth_failure_invalidation(&self.app_handle, failure);
         handle_runtime_auth_failure_notification(&self.app_handle, failure);
     }
 

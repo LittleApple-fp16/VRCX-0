@@ -36,9 +36,8 @@ use crate::{
 };
 use serde_json::{json, Value};
 use vrcx_0_application::auth::{
-    AutoLoginOutcome, AutoLoginStartInput, LoginSessionCancelInput, LoginSessionEnd,
-    LoginSessionRespondInput, LoginSessionStartInput, LoginSessionState, SavedAuthSnapshot,
-    VrchatConfigRuntime,
+    LoginSessionCancelInput, LoginSessionEnd, LoginSessionRespondInput, LoginSessionStartInput,
+    LoginSessionState, SavedAuthSnapshot, VrchatConfigRuntime,
 };
 use vrcx_0_application::collections::{
     get_or_create_share_owner_token, register_world_open_share, share_collection_create,
@@ -1586,29 +1585,6 @@ impl DesktopRuntimeHostState {
         result
     }
 
-    pub async fn start_auto_login(&self, input: AutoLoginStartInput) -> Result<AutoLoginOutcome> {
-        let diagnostics = self.runtime.desktop_assembly().diagnostics();
-        diagnostics.record_command(
-            "app__vrchat_auth_auto_login_start",
-            RuntimeOperationStatus::Running,
-            "Starting an automatic VRChat login attempt.",
-        );
-        let result = self.runtime.start_auto_login(input).await;
-        match &result {
-            Ok(outcome) => diagnostics.record_command(
-                "app__vrchat_auth_auto_login_start",
-                RuntimeOperationStatus::Ok,
-                format!("status={outcome:?}"),
-            ),
-            Err(error) => diagnostics.record_command(
-                "app__vrchat_auth_auto_login_start",
-                RuntimeOperationStatus::Error,
-                error.to_string(),
-            ),
-        }
-        result
-    }
-
     pub async fn respond_login_session(
         &self,
         input: LoginSessionRespondInput,
@@ -1873,12 +1849,6 @@ impl DesktopRuntimeHostState {
         mode: GuiRuntimeMode,
     ) -> vrcx_0_application_core::BackendRuntimeSnapshot {
         self.runtime.set_gui_backend_runtime_mode(mode)
-    }
-
-    pub async fn recover_background_auth_after_failure(&self, reason: String) {
-        self.runtime
-            .recover_background_auth_after_failure(reason)
-            .await;
     }
 
     pub fn active_realtime_transport(&self) -> Option<RealtimeTransportStartResult> {

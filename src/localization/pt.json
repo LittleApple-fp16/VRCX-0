@@ -600,7 +600,6 @@
         },
         "label": {
             "authenticated_and_prepared_the_session": "Login realizado",
-            "auto_login": "Login automático",
             "vrchat_launched": "VRChat iniciado"
         },
         "action": {
@@ -2717,9 +2716,7 @@
                 },
                 "logging": {
                     "header": "Registro",
-                    "resource_load": "Registrar Carregamento de String/Imagem Udon",
-                    "auto_login_delay": "Atraso de Login Automático",
-                    "auto_login_delay_button": "Definir Segundos de Atraso"
+                    "resource_load": "Registrar Carregamento de String/Imagem Udon"
                 },
                 "automation": {
                     "change_status_description": "Substituir Descrição de Status",
@@ -3469,28 +3466,8 @@
             }
         },
         "auth": {
-            "auto_login": {
-                "skipped": "Login automático ignorado",
-                "preparing_login_for": "Preparando login automático para {name}",
-                "preparing_restore_for": "Preparando restauração automática de sessão para {userId}",
-                "authenticating": "Autenticando {name}",
-                "restoring_session_for": "Restaurando uma sessão de navegador existente para {name}",
-                "logged_in_as": "Conectado automaticamente como {name}",
-                "restored_session_for": "Sessão de navegador anterior de {name} restaurada automaticamente",
-                "skipped_before_request": "O login automático foi cancelado antes de começar",
-                "throttled": "O login automático foi desativado após falhas repetidas na última hora.",
-                "expired": "A sessão de navegador anterior expirou e não havia conta salva disponível como alternativa.",
-                "failed_manual": "O login automático falhou. O login manual continua disponível abaixo",
-                "failed_unexpectedly": "O login automático falhou inesperadamente",
-                "skipped_form_changed": "O login automático foi ignorado porque o formulário de login mudou",
-                "skipped_manual_started": "O login automático foi ignorado porque um login manual foi iniciado",
-                "skipped_saved_account_selected": "O login automático foi ignorado porque outra conta salva foi selecionada",
-                "skipped_countdown_finished": "O login automático foi ignorado antes do fim da contagem regressiva",
-                "skipped_saved_account_edited": "O login automático foi ignorado porque uma conta salva está sendo editada"
-            },
             "toast": {
                 "failed_to_load_saved_auth_snapshot": "Não foi possível carregar suas contas salvas",
-                "automatic_login_failed_unexpectedly": "O login automático falhou inesperadamente",
                 "failed_to_change_language": "Falha ao alterar o idioma",
                 "failed_to_load_proxy_settings": "Falha ao carregar as configurações de proxy",
                 "failed_to_save_proxy_settings": "Falha ao salvar as configurações de proxy",
@@ -5997,11 +5974,6 @@
             "description": "Insira um nome para o backup",
             "input_error": "Nome é obrigatório"
         },
-        "auto_login_delay": {
-            "header": "Atraso de login automático",
-            "description": "Insira o atraso em segundos (0 para desativar, máx. 10).",
-            "input_error": "Por favor, insira um número inteiro de 0 a 10."
-        },
         "background_mode_delay": {
             "header": "Atraso para o modo em segundo plano",
             "description": "Insira o atraso em minutos (10-600).",
@@ -6044,14 +6016,11 @@
         }
     },
     "message": {
-        "auto_login_delay_countdown": "Login automático em {seconds}s",
         "auth": {
             "logout_greeting": "Até logo, {name}!",
             "account_removed": "Conta removida.",
-            "auto_login_success": "Login automático realizado.",
-            "auto_login_failed": "Falha no login automático.",
             "session_expired": "Sessão do VRChat expirada. Voltando para o login.",
-            "session_restore_available": "Se houver uma conta salva, o VRCX-0 tentará fazer login novamente de forma automática.",
+            "session_restore_available": "Selecione uma conta salva e entre manualmente.",
             "offline": "Você está offline."
         },
         "vrcx_updater": {

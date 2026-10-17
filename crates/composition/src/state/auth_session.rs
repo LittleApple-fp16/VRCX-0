@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use super::{
-    AuthenticatedRuntimeSession, AutoLoginOutcome, AutoLoginStartInput, BackendRuntimeSnapshot,
-    LoginRuntimeTransition, LoginSessionCancelInput, LoginSessionEnd, LoginSessionEndRequest,
-    LoginSessionRespondInput, LoginSessionStartInput, LoginSessionState, NonInteractiveAuthError,
-    Result, RuntimeHostState, RuntimeRealtimeTransportEpoch, SavedAuthSnapshot,
+    AuthenticatedRuntimeSession, LoginRuntimeTransition, LoginSessionCancelInput, LoginSessionEnd,
+    LoginSessionEndRequest, LoginSessionRespondInput, LoginSessionStartInput, LoginSessionState,
+    NonInteractiveAuthError, Result, RuntimeHostState, RuntimeRealtimeTransportEpoch,
+    SavedAuthSnapshot,
 };
 
 impl RuntimeHostState {
@@ -40,21 +40,6 @@ impl RuntimeHostState {
                 &|transition| self.apply_login_transition(transition),
             )
             .await
-    }
-
-    pub async fn start_auto_login(&self, input: AutoLoginStartInput) -> Result<AutoLoginOutcome> {
-        self.web.clear_vrchat_config_snapshot();
-        self.runtime_context
-            .login_session
-            .auto_login_start(
-                Arc::clone(&self.runtime_context.login_api),
-                self.runtime_context.auth_cookies.as_ref(),
-                self.runtime_context.auth_credentials.as_ref(),
-                input,
-                &|transition| self.apply_login_transition(transition),
-            )
-            .await
-            .map_err(Into::into)
     }
 
     pub async fn respond_login_session(
@@ -131,38 +116,6 @@ impl RuntimeHostState {
             session.auth_scope_generation,
             active.as_ref(),
         )
-    }
-
-    pub(super) async fn authenticate_non_interactive(
-        &self,
-    ) -> std::result::Result<AuthenticatedRuntimeSession, NonInteractiveAuthError> {
-        self.runtime_context
-            .noninteractive_auth
-            .authenticate_last_saved_user()
-            .await
-    }
-
-    pub(super) async fn authenticate_non_interactive_for_saved_user(
-        &self,
-        user_id: &str,
-        endpoint: &str,
-    ) -> std::result::Result<AuthenticatedRuntimeSession, NonInteractiveAuthError> {
-        self.runtime_context
-            .noninteractive_auth
-            .authenticate_saved_user(user_id, endpoint)
-            .await
-    }
-
-    pub(super) fn clear_invalid_non_interactive_auth_session(
-        &self,
-        user_id: &str,
-        reason: &str,
-    ) -> BackendRuntimeSnapshot {
-        self.runtime_context
-            .noninteractive_auth
-            .clear_invalid_saved_session(user_id);
-        self.runtime_context.auth_scope.set("", "");
-        self.clear_backend_authenticated_session(reason)
     }
 }
 

@@ -57,13 +57,11 @@ function noop() {}
 
 const handlers = {
     onAutoInstallUpdatesOnStartupChange: noop,
-    onAutoLoginDelayEnabledChange: noop,
     onBackgroundModeDelayEnabledChange: noop,
     onBackgroundModeEnabledChange: noop,
     onCloseToTrayChange: noop,
     onFocusVrchatOnJoinChange: noop,
     onPostUpdateChangelogToastChange: noop,
-    onPromptAutoLoginDelaySeconds: noop,
     onPromptBackgroundModeDelayMinutes: noop,
     onProxyEnabledChange: noop,
     onProxySettings: noop,

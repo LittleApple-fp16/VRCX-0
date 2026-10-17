@@ -135,21 +135,8 @@ function savedSnapshot({
     lastUserLoggedIn?: string | null;
 } = {}): SavedAuthSnapshot {
     const credential = savedCredential(credentialId);
-    const hasTarget = includeCredential && lastUserLoggedIn === credentialId;
     return {
         lastUserLoggedIn,
-        autoLoginStatus: hasTarget
-            ? 'available'
-            : lastUserLoggedIn
-              ? 'missing-last-user'
-              : 'not-configured',
-        autoLoginReason: hasTarget
-            ? 'Saved credentials are available.'
-            : lastUserLoggedIn
-              ? 'The last logged-in account is missing.'
-              : 'No previous login was recorded.',
-        autoLoginDelayEnabled: false,
-        autoLoginDelaySeconds: 0,
         savedCredentialsList: includeCredential ? [credential] : []
     };
 }

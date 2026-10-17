@@ -294,30 +294,6 @@ export function createSettingsMaintenanceActions({
             });
         }
     }
-    async function promptAutoLoginDelaySeconds() {
-        const result = await prompt({
-            title: t('prompt.auto_login_delay.header'),
-            description: t('prompt.auto_login_delay.description'),
-            inputValue: String(prefs.autoLoginDelaySeconds ?? 0),
-            pattern: /^(10|[0-9])$/,
-            errorMessage: t('prompt.auto_login_delay.input_error')
-        });
-        if (!result.ok) {
-            return;
-        }
-        const seconds = Math.min(
-            10,
-            Math.max(0, Number.parseInt(String(result.value), 10) || 0)
-        );
-        await savePreferenceValue('autoLoginDelaySeconds', seconds, () =>
-            setIntConfigPreference('autoLoginDelaySeconds', seconds, {
-                min: 0,
-                max: 10,
-                fallback: 0
-            })
-        );
-    }
-
     async function promptBackgroundModeDelayMinutes() {
         const currentMinutes = normalizeBackgroundModeDelayMinutes(
             prefs.backgroundModeDelayMinutes
@@ -528,7 +504,6 @@ export function createSettingsMaintenanceActions({
         dismissAppDataDirCleanup,
         openAppDataDirSelector,
         resetAppDataDir,
-        promptAutoLoginDelaySeconds,
         promptBackgroundModeDelayMinutes,
         resetUgcFolder,
         purgeAvatarFeedData,

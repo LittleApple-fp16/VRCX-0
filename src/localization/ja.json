@@ -600,7 +600,6 @@
         },
         "label": {
             "authenticated_and_prepared_the_session": "ログインしました",
-            "auto_login": "自動ログイン",
             "vrchat_launched": "VRChat を起動しました"
         },
         "action": {
@@ -2715,9 +2714,7 @@
                 },
                 "logging": {
                     "header": "ロギング",
-                    "resource_load": "Udon での文字列/画像読み込みを記録",
-                    "auto_login_delay": "自動ログイン遅延",
-                    "auto_login_delay_button": "遅延秒数を設定"
+                    "resource_load": "Udon での文字列/画像読み込みを記録"
                 },
                 "automation": {
                     "change_status_description": "ステータスメッセージを上書き",
@@ -3467,28 +3464,8 @@
             }
         },
         "auth": {
-            "auto_login": {
-                "skipped": "自動ログインをスキップしました",
-                "preparing_login_for": "{name} の自動ログインを準備中",
-                "preparing_restore_for": "{userId} の自動セッション復元を準備中",
-                "authenticating": "{name} を認証中",
-                "restoring_session_for": "{name} の既存ブラウザーセッションを復元中",
-                "logged_in_as": "{name} として自動ログインしました",
-                "restored_session_for": "{name} の前回のブラウザーセッションを自動復元しました",
-                "skipped_before_request": "自動ログインは開始前にキャンセルされました",
-                "throttled": "直近 1 時間に繰り返し失敗したため、自動ログインを無効化しました。",
-                "expired": "前回のセッションの有効期限が切れており、ログインに使える保存済みアカウントもありません。",
-                "failed_manual": "自動ログインに失敗しました。下から手動ログインできます",
-                "failed_unexpectedly": "自動ログインが予期せず失敗しました",
-                "skipped_form_changed": "ログインフォームが変更されたため、自動ログインをスキップしました",
-                "skipped_manual_started": "手動ログインが開始されたため、自動ログインをスキップしました",
-                "skipped_saved_account_selected": "別の保存済みアカウントが選択されたため、自動ログインをスキップしました",
-                "skipped_countdown_finished": "カウントダウン完了前に自動ログインをスキップしました",
-                "skipped_saved_account_edited": "保存済みアカウントを編集中のため、自動ログインをスキップしました"
-            },
             "toast": {
                 "failed_to_load_saved_auth_snapshot": "保存済みアカウントを読み込めませんでした",
-                "automatic_login_failed_unexpectedly": "自動ログインが予期せず失敗しました",
                 "failed_to_change_language": "言語の変更に失敗しました",
                 "failed_to_load_proxy_settings": "プロキシ設定の読み込みに失敗しました",
                 "failed_to_save_proxy_settings": "プロキシ設定の保存に失敗しました",
@@ -6035,11 +6012,6 @@
             "description": "バックアップの名前を入力してください。",
             "input_error": "名前の入力は必須です"
         },
-        "auto_login_delay": {
-            "header": "自動ログイン遅延",
-            "description": "遅延時間を秒数で入力してください (0で無効化、最大10)。",
-            "input_error": "0〜10 の整数を入力してください。"
-        },
         "background_mode_delay": {
             "header": "バックグラウンドモードの待機時間",
             "description": "待機時間を分単位で入力してください (10〜600)。",
@@ -6082,14 +6054,11 @@
         }
     },
     "message": {
-        "auto_login_delay_countdown": "自動ログインまで {seconds} 秒",
         "auth": {
             "logout_greeting": "またお会いしましょう、{name}！",
             "account_removed": "アカウントのログイン情報が削除されました",
-            "auto_login_success": "自動的にログインしました",
-            "auto_login_failed": "自動ログインに失敗しました",
             "session_expired": "VRChat セッションの有効期限が切れました。ログイン画面に戻ります。",
-            "session_restore_available": "保存済みアカウントがある場合、VRCX-0 は自動的に再ログインを試みます。",
+            "session_restore_available": "保存済みのアカウントを選択して、手動でログインしてください。",
             "offline": "オフラインです"
         },
         "vrcx_updater": {

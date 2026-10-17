@@ -42,7 +42,7 @@ pub(super) fn handle_runtime_auth_failure_notification(
     show_auth_failure_notification_once(app_handle, &state, &notification_key);
 }
 
-pub(super) fn handle_runtime_auth_failure_recovery(
+pub(super) fn handle_runtime_auth_failure_invalidation(
     app_handle: &tauri::AppHandle,
     failure: &RuntimeVrchatAuthFailurePayload,
 ) {
@@ -66,8 +66,13 @@ pub(super) fn handle_runtime_auth_failure_recovery(
         }
         state
             .runtime_host()
-            .recover_background_auth_after_failure(failure.reason)
-            .await;
+            .end_login_session(vrcx_0_application::auth::LoginSessionEnd::Invalidated {
+                expected_user_id: failure.owner_user_id,
+                expected_auth_scope_generation: failure.auth_scope_generation,
+                expected_realtime_transport: failure.realtime_transport,
+            })
+            .await
+            .ok();
     });
 }
 

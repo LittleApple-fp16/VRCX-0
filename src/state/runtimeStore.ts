@@ -15,7 +15,6 @@ import type {
     NotificationDoNotDisturbSnapshot,
     PrivacyLockSnapshot,
     RuntimeOperationStatus,
-    SavedAuthAutoLoginStatus,
     RuntimeGroupInstancesStatus,
     VrcStatusSnapshot
 } from '@/platform/tauri/bindings';
@@ -148,10 +147,6 @@ type RuntimeStore = {
         currentUserSnapshot: CurrentUserSnapshotState | null;
         lastUserLoggedIn: string | null;
         savedCredentialCount: number;
-        autoLoginStatus: SavedAuthAutoLoginStatus | 'idle';
-        autoLoginReason: string;
-        autoLoginDelayEnabled: boolean;
-        autoLoginDelaySeconds: number;
     };
     updateLoop: {
         isRunning: boolean;
@@ -526,11 +521,7 @@ const initialState: RuntimeStoreState = {
         currentUserWebsocket: '',
         currentUserSnapshot: null,
         lastUserLoggedIn: null,
-        savedCredentialCount: 0,
-        autoLoginStatus: 'idle',
-        autoLoginReason: '',
-        autoLoginDelayEnabled: false,
-        autoLoginDelaySeconds: 0
+        savedCredentialCount: 0
     },
     updateLoop: {
         isRunning: false,

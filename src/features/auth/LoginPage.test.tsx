@@ -88,7 +88,6 @@ function controllerValue(hasSavedAccounts: boolean) {
             busy: false,
             loginErrors: {},
             loginForm: {},
-            onCancelAutoLogin: noop,
             onPrepareSavedAccount: noop,
             onSubmit: noop,
             setLoginErrors: noop,
@@ -117,7 +116,6 @@ function controllerValue(hasSavedAccounts: boolean) {
             activeSavedUserId: '',
             isAuthBusy: false,
             isDeleting: false,
-            onCancelAutoLogin: noop,
             onDeleteStart: noop,
             onLogin: noop,
             visible: hasSavedAccounts

@@ -600,7 +600,6 @@
         },
         "label": {
             "authenticated_and_prepared_the_session": "Angemeldet",
-            "auto_login": "Auto-Anmeldung",
             "vrchat_launched": "VRChat gestartet"
         },
         "action": {
@@ -2717,9 +2716,7 @@
                 },
                 "logging": {
                     "header": "Protokollierung",
-                    "resource_load": "Laden von Udon-String/Bild protokollieren",
-                    "auto_login_delay": "Verzögerung der automatischen Anmeldung",
-                    "auto_login_delay_button": "Verzögerung in Sekunden festlegen"
+                    "resource_load": "Laden von Udon-String/Bild protokollieren"
                 },
                 "automation": {
                     "change_status_description": "Statusbeschreibung überschreiben",
@@ -3469,28 +3466,8 @@
             }
         },
         "auth": {
-            "auto_login": {
-                "skipped": "Automatische Anmeldung wurde übersprungen",
-                "preparing_login_for": "Automatische Anmeldung für {name} wird vorbereitet",
-                "preparing_restore_for": "Automatische Sitzungswiederherstellung für {userId} wird vorbereitet",
-                "authenticating": "{name} wird authentifiziert",
-                "restoring_session_for": "Vorhandene Browsersitzung für {name} wird wiederhergestellt",
-                "logged_in_as": "Automatisch angemeldet als {name}",
-                "restored_session_for": "Vorherige Browsersitzung für {name} automatisch wiederhergestellt",
-                "skipped_before_request": "Die automatische Anmeldung wurde abgebrochen, bevor sie begann",
-                "throttled": "Automatische Anmeldung wurde nach wiederholten Fehlversuchen in der letzten Stunde deaktiviert.",
-                "expired": "Die vorherige Browsersitzung ist abgelaufen und es war kein gespeichertes Konto als Ausweichlösung verfügbar.",
-                "failed_manual": "Automatische Anmeldung fehlgeschlagen. Die manuelle Anmeldung ist unten weiterhin verfügbar",
-                "failed_unexpectedly": "Automatische Anmeldung unerwartet fehlgeschlagen",
-                "skipped_form_changed": "Automatische Anmeldung wurde übersprungen, da sich das Anmeldeformular geändert hat",
-                "skipped_manual_started": "Automatische Anmeldung wurde übersprungen, da eine manuelle Anmeldung gestartet wurde",
-                "skipped_saved_account_selected": "Automatische Anmeldung wurde übersprungen, da ein anderes gespeichertes Konto ausgewählt wurde",
-                "skipped_countdown_finished": "Automatische Anmeldung wurde vor Ablauf des Countdowns übersprungen",
-                "skipped_saved_account_edited": "Automatische Anmeldung wurde übersprungen, da ein gespeichertes Konto gerade bearbeitet wird"
-            },
             "toast": {
                 "failed_to_load_saved_auth_snapshot": "Gespeicherte Konten konnten nicht geladen werden",
-                "automatic_login_failed_unexpectedly": "Automatische Anmeldung unerwartet fehlgeschlagen",
                 "failed_to_change_language": "Sprache konnte nicht geändert werden",
                 "failed_to_load_proxy_settings": "Proxy-Einstellungen konnten nicht geladen werden",
                 "failed_to_save_proxy_settings": "Proxy-Einstellungen konnten nicht gespeichert werden",
@@ -5997,11 +5974,6 @@
             "description": "Gib einen Namen für das Backup ein",
             "input_error": "Ein Name ist erforderlich"
         },
-        "auto_login_delay": {
-            "header": "Verzögerung für Auto-Login",
-            "description": "Gib die Verzögerung in Sekunden ein (0 zum Deaktivieren, max. 10)",
-            "input_error": "Bitte gib eine ganze Zahl von 0 bis 10 ein"
-        },
         "background_mode_delay": {
             "header": "Verzögerung für Hintergrundmodus",
             "description": "Gib die Verzögerung in Minuten ein (10-600).",
@@ -6044,14 +6016,11 @@
         }
     },
     "message": {
-        "auto_login_delay_countdown": "Automatische Anmeldung in {seconds}s",
         "auth": {
             "logout_greeting": "Bis bald, {name}!",
             "account_removed": "Account entfernt",
-            "auto_login_success": "Automatisch angemeldet",
-            "auto_login_failed": "Automatische Anmeldung fehlgeschlagen",
             "session_expired": "VRChat-Sitzung abgelaufen. Zurück zur Anmeldung.",
-            "session_restore_available": "Falls ein gespeicherter Account verfügbar ist, versucht VRCX-0 automatisch, dich erneut anzumelden.",
+            "session_restore_available": "Wähle ein gespeichertes Konto und melde dich manuell an.",
             "offline": "Du bist offline"
         },
         "vrcx_updater": {
