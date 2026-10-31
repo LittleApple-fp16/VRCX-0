@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
 
+use vrcx_0_application_activity::notification::unresolved_group_id;
 use vrcx_0_application_activity::{ActivityDelivery, ActivityEntry};
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_vr_overlay::DesktopWidgetRow;
@@ -8,7 +9,7 @@ use vrcx_0_vr_overlay::DesktopWidgetRow;
 use super::feed::{DesktopWidgetFeed, DesktopWidgetRowPart, DesktopWidgetTarget};
 use super::settings::{DesktopWidgetBounds, DesktopWidgetSettings};
 use crate::avatar_cache::AvatarBitmapCache;
-use crate::config::{load_app_language, load_localizer};
+use crate::config::load_localizer;
 use crate::surfaces::hmd_toast::unresolved_entry_world_id;
 use crate::VrOverlayRuntimeServices;
 
@@ -51,7 +52,7 @@ pub trait DesktopWidgetWindow: Send {
     fn close(self: Box<Self>);
 }
 
-const WORLD_NAME_RESOLVE_BUDGET: Duration = Duration::from_secs(2);
+const LOCATION_NAME_RESOLVE_BUDGET: Duration = Duration::from_secs(2);
 
 struct Inner {
     settings: DesktopWidgetSettings,
@@ -211,8 +212,9 @@ impl DesktopWidgetRuntime {
         }
     }
 
+    #[cfg(windows)]
     pub(crate) fn app_language(&self) -> String {
-        load_app_language(&self.config)
+        crate::config::load_app_language(&self.config)
     }
 
     pub fn activate(&self, id: u64, part: DesktopWidgetRowPart) {
@@ -327,9 +329,17 @@ impl DesktopWidgetRuntime {
                     &world_id,
                 );
                 if let Ok(Some(world_name)) =
-                    tokio::time::timeout(WORLD_NAME_RESOLVE_BUDGET, resolve).await
+                    tokio::time::timeout(LOCATION_NAME_RESOLVE_BUDGET, resolve).await
                 {
                     runtime.update_row(|feed| feed.resolve_world_name(&source_id, &world_name));
+                }
+            }
+            if let Some(group_id) = unresolved_group_id(&entry.content) {
+                let resolve = services.notification_group_name(&endpoint, &group_id);
+                if let Ok(Some(group_name)) =
+                    tokio::time::timeout(LOCATION_NAME_RESOLVE_BUDGET, resolve).await
+                {
+                    runtime.update_row(|feed| feed.resolve_group_name(&source_id, &group_name));
                 }
             }
             let user_id = entry.actor_user_id.trim();

@@ -1,4 +1,5 @@
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
+pub use vrcx_0_contracts::vrchat_requests::GroupRoleMutation;
 use vrcx_0_core::GroupJoinRequestAction;
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
@@ -101,6 +102,34 @@ pub struct VrchatGroupProfileInput {
 pub struct VrchatGroupUserGroupsInput {
     #[serde(default)]
     pub user_id: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
+pub enum GroupMembershipListStatus {
+    #[serde(rename = "invited")]
+    Invited,
+    #[serde(rename = "requested")]
+    Requested,
+    #[serde(rename = "userblocked")]
+    UserBlocked,
+}
+
+impl GroupMembershipListStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Invited => "invited",
+            Self::Requested => "requested",
+            Self::UserBlocked => "userblocked",
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct VrchatGroupMembershipListInput {
+    #[serde(default)]
+    pub user_id: String,
+    pub status: GroupMembershipListStatus,
 }
 
 #[derive(Debug, Deserialize, specta::Type)]
@@ -246,6 +275,33 @@ pub struct VrchatGroupJoinRequestRespondInput {
     pub action: GroupJoinRequestAction,
     #[serde(default)]
     pub block: bool,
+}
+
+#[derive(Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct VrchatGroupRoleCreateInput {
+    #[serde(default)]
+    pub group_id: String,
+    pub params: GroupRoleMutation,
+}
+
+#[derive(Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct VrchatGroupRoleUpdateInput {
+    #[serde(default)]
+    pub group_id: String,
+    #[serde(default)]
+    pub role_id: String,
+    pub params: GroupRoleMutation,
+}
+
+#[derive(Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct VrchatGroupRoleInput {
+    #[serde(default)]
+    pub group_id: String,
+    #[serde(default)]
+    pub role_id: String,
 }
 
 #[derive(Debug, Deserialize, specta::Type)]

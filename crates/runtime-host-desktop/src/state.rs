@@ -384,6 +384,7 @@ impl DesktopRuntimeHostState {
             instance_roster_observer: Some(Arc::clone(&game_roster_observer)),
             backend_status: backend_status.clone(),
             side_effect_sink: game_log_side_effect_sink,
+            isolation: desktop_services.game_isolation(),
         }));
         let vr_overlay_runtime =
             Arc::new(DesktopVrOverlayRuntime::new(Arc::clone(&desktop_services))?);
@@ -406,6 +407,7 @@ impl DesktopRuntimeHostState {
             instance_roster_observer: Some(Arc::clone(&game_roster_observer)),
             backend_status: backend_status.clone(),
             activity_router: desktop_services.activity_router(),
+            isolation: desktop_services.game_isolation(),
         }));
         let session_runtime = Arc::new(SessionHostRuntime::new(
             builder.desktop_assembly().session().clone(),
@@ -494,10 +496,14 @@ impl DesktopRuntimeHostState {
                 .app_data
                 .join("presenceAutomationState.json"),
         });
-        let local_game_context = Arc::new(GameLogLocalGameContextSource::new(
-            builder.desktop_assembly().session().clone(),
-            game_log_snapshot,
-        ));
+        let local_game_context =
+            Arc::new(crate::game_isolation::IsolatedLocalGameContextSource::new(
+                Arc::new(GameLogLocalGameContextSource::new(
+                    builder.desktop_assembly().session().clone(),
+                    game_log_snapshot,
+                )),
+                desktop_services.game_isolation(),
+            ));
         let friend_projection_observer: Arc<dyn FriendProjectionObserver> =
             desktop_services.clone();
         let instance_launch = crate::instance_launch::build_instance_launch_runtime(
@@ -517,6 +523,14 @@ impl DesktopRuntimeHostState {
             profile_extension: Some(extension.clone()),
         })?;
         current_user_presence_observer.bind(runtime.realtime_runtime());
+        let isolation_realtime = Arc::downgrade(runtime.realtime_runtime());
+        desktop_services
+            .game_isolation()
+            .add_observer(Arc::new(move |_enabled| {
+                if let Some(realtime_runtime) = isolation_realtime.upgrade() {
+                    realtime_runtime.refresh_current_user_local_presence();
+                }
+            }));
         let realtime_runtime = Arc::downgrade(runtime.realtime_runtime());
         runtime
             .desktop_assembly()
@@ -610,6 +624,7 @@ impl DesktopRuntimeHostState {
         );
         let screenshots = DesktopScreenshotRuntime::new(
             game.screenshot_cache.clone(),
+            Arc::clone(runtime.database()),
             desktop.host_file_access.clone(),
             runtime.paths().clone(),
             vrcx_0_host_desktop::vrchat_paths::vrchat_photos_location(),
@@ -757,21 +772,28 @@ impl DesktopRuntimeHostState {
         &self,
         requested_location: &str,
     ) -> vrcx_0_application_game::PlayerListSnapshotOutput {
-        let snapshot = if self.is_game_running() {
-            self.desktop.services.game_log_snapshot()
-        } else {
-            Arc::new(vrcx_0_application_game::RuntimeSnapshot::default())
-        };
+        let snapshot =
+            if self.is_game_running() && !self.desktop.services.game_isolation().is_enabled() {
+                self.desktop.services.game_log_snapshot()
+            } else {
+                Arc::new(vrcx_0_application_game::RuntimeSnapshot::default())
+            };
         vrcx_0_application_game::player_list_runtime_snapshot(&snapshot, requested_location)
     }
 
     pub fn current_log_location_snapshot(
         &self,
     ) -> Option<vrcx_0_application_game::LogLocationSnapshot> {
+        if self.desktop.services.game_isolation().is_enabled() {
+            return None;
+        }
         self.game.log_watcher.current_location_snapshot()
     }
 
     pub fn now_playing_snapshot(&self) -> vrcx_0_application_game::NowPlayingSnapshot {
+        if self.desktop.services.game_isolation().is_enabled() {
+            return vrcx_0_application_game::NowPlayingSnapshot::default();
+        }
         self.desktop.services.now_playing().as_ref().clone()
     }
 
@@ -1851,6 +1873,10 @@ impl DesktopRuntimeHostState {
         self.runtime.set_gui_backend_runtime_mode(mode)
     }
 
+    pub fn retry_realtime_now(&self) {
+        self.runtime.authenticated_runtime().retry_now();
+    }
+
     pub fn active_realtime_transport(&self) -> Option<RealtimeTransportStartResult> {
         self.runtime
             .authenticated_runtime()
@@ -1987,6 +2013,7 @@ impl DesktopRuntimeHostState {
     ) -> vrcx_0_core::screenshots::ScreenshotLibraryScanStatus {
         vrcx_0_outbound_adapters::screenshots::start_screenshot_library_scan(
             &self.game.screenshot_cache,
+            self.screenshots.screenshot_favorites().clone(),
             self.runtime.paths().screenshot_thumbs.clone(),
             self.runtime.desktop_assembly().event_bus().clone(),
             self.runtime.desktop_assembly().tasks().clone(),
@@ -2162,6 +2189,17 @@ impl DesktopRuntimeHostState {
             self.desktop.desktop_widget.reload_settings();
         }
         Ok(removed)
+    }
+
+    pub fn game_isolation_snapshot(&self) -> crate::GameIsolationSnapshot {
+        self.desktop.services.game_isolation().snapshot()
+    }
+
+    pub fn set_game_isolation_enabled(
+        &self,
+        enabled: bool,
+    ) -> vrcx_0_application_core::Result<crate::GameIsolationSnapshot> {
+        self.desktop.services.game_isolation().set_enabled(enabled)
     }
 
     pub fn desktop_widget(&self) -> Arc<crate::desktop_widget::DesktopWidget> {
@@ -2371,7 +2409,16 @@ impl RuntimeHostProfileExtension for DesktopRuntimeProfileExtension {
     fn start_profile_maintenance(&self, state: &RuntimeHostState) {
         self.start_registry_backup_loop(state);
         self.start_desktop_maintenance_loops(state);
-        self.desktop.feed_logger.start_presence_loop(state);
+        let feed_logger = &self.desktop.feed_logger;
+        let check = Arc::clone(feed_logger);
+        state
+            .realtime_runtime()
+            .set_reconnect_backfill_check(Arc::new(move || check.recorder_may_be_recording()));
+        feed_logger.start_presence_loop(
+            state.backend_runtime().clone(),
+            state.desktop_assembly().auth_scope().clone(),
+            state.desktop_assembly().tasks().clone(),
+        );
     }
 }
 
@@ -2402,10 +2449,13 @@ impl DesktopRuntimeProfileExtension {
                 if let Err(error) = community_theme.initialize().await {
                     tracing::warn!(error = %error, "failed to initialize community theme runtime");
                 }
-                if let Err(error) = background_image.initialize().await {
-                    tracing::warn!(error = %error, "failed to initialize background image runtime");
-                }
-                background_image.run_rotation_loop(stop_token).await;
+                let background_image_runtime = async {
+                    if let Err(error) = background_image.initialize().await {
+                        tracing::warn!(error = %error, "failed to initialize background image runtime");
+                    }
+                    background_image.run_rotation_loop(stop_token).await;
+                };
+                tokio::join!(community_theme.check_for_updates(), background_image_runtime);
             });
     }
 

@@ -11,8 +11,14 @@
         "app_launcher_description": "앱이나 바로가기를 추가하고 언제 실행할지 선택하세요.",
         "app_launcher_selection_title": "앱 또는 바로가기 선택",
         "app_launcher_selection_description": "앱을 선택하면 실행 시점을 편집할 수 있습니다.",
+        "feed_title": "아직 친구 활동이 없습니다",
+        "feed_description": "VRCX-0이 실행 중일 때 친구가 접속하거나 월드를 옮기거나 프로필을 바꾸면 여기에 표시됩니다.",
         "game_log_title": "아직 VRChat 활동이 없습니다",
-        "game_log_description": "플레이하면서 방문한 월드, 만난 플레이어와 그 밖의 VRChat 활동이 여기에 표시됩니다.",
+        "game_log_description": "VRCX-0을 실행한 채로 VRChat을 시작하세요. 플레이하면서 방문한 월드, 만난 플레이어와 그 밖의 활동이 여기에 표시됩니다.",
+        "game_log_disabled_description": "게임 로그 저장이 꺼져 있어 새 활동이 저장되지 않습니다.",
+        "game_log_enable_action": "설정에서 켜기",
+        "game_log_unavailable_description": "이 컴퓨터에서 VRChat 로그 폴더를 찾지 못해 새 활동을 기록할 수 없습니다. 로그 파일은 직접 가져올 수 있습니다.",
+        "game_log_unsupported_description": "이 시스템에서는 VRChat 로그를 읽을 수 없어 게임 활동을 기록할 수 없습니다.",
         "my_avatars_title": "아직 업로드한 아바타가 없습니다",
         "my_avatars_description": "VRChat에 업로드한 아바타가 여기에 표시됩니다.",
         "search_no_results": "검색 결과가 없습니다",
@@ -134,6 +140,10 @@
         "untitled": "새 대화",
         "close": "닫기",
         "thinking": "답변 생성 중",
+        "trace": {
+            "working": "데이터를 살펴보는 중",
+            "done": "데이터를 살펴봤습니다"
+        },
         "scroll_to_latest": "맨 아래로 스크롤",
         "connection": {
             "checking": "연결 확인 중",
@@ -169,7 +179,10 @@
         "in_private_world": "비공개 월드에 있음",
         "mutual_friends": "공통 친구 {count}명",
         "no_mutual_friends": "공통 친구 없음",
-        "name_separator": ", "
+        "name_separator": ", ",
+        "open_world": "월드 열기",
+        "unknown_user": "알 수 없는 사용자",
+        "load_failed": "이 사용자의 프로필을 불러오지 못했습니다"
     },
     "group_event_hover_card": {
         "following": "팔로우 중",
@@ -562,7 +575,8 @@
             "view_options": "보기 옵션",
             "cut": "잘라내기",
             "paste": "붙여넣기",
-            "select_all": "모두 선택"
+            "select_all": "모두 선택",
+            "more_actions": "추가 작업"
         },
         "sort_by": "정렬 기준:",
         "time_units": {
@@ -599,6 +613,7 @@
             "database_initialization_is_still_pending": "데이터베이스가 아직 시작 중입니다. 잠시 후 다시 시도하세요."
         },
         "label": {
+            "terminal": "터미널",
             "authenticated_and_prepared_the_session": "로그인 완료",
             "vrchat_launched": "VRChat 실행됨"
         },
@@ -623,10 +638,32 @@
             "label_count": "필터 ({count})"
         }
     },
+    "economy": {
+        "free": "무료",
+        "vrc_plus_price": "VRC+ {price}",
+        "subscription_term": "구독 · {duration}",
+        "permanent": "영구",
+        "owned": "보유 중",
+        "store_header": "스토어",
+        "store_read_only_hint": "구매는 게임 내 또는 웹사이트에서 할 수 있습니다.",
+        "store_failed_to_load": "스토어를 불러오지 못했습니다",
+        "store_empty": "판매 중인 상품이 없습니다",
+        "duration": {
+            "day_one": "{count}일",
+            "day_other": "{count}일",
+            "week_one": "{count}주",
+            "week_other": "{count}주",
+            "month_one": "{count}개월",
+            "month_other": "{count}개월",
+            "year_one": "{count}년",
+            "year_other": "{count}년"
+        }
+    },
     "overlay": {
         "footer": {
             "players": "{count}명",
-            "instance_duration": "체류 {duration}"
+            "instance_duration": "체류 {duration}",
+            "online_duration": "온라인 {duration}"
         },
         "generic_instance_location": "인스턴스",
         "discord": {
@@ -655,6 +692,29 @@
             "show": "맨 앞으로 가져오기"
         }
     },
+    "game_isolation": {
+        "confirm_title": "게임 분리 모드를 켤까요?",
+        "active_title": "게임 분리 모드 켜짐",
+        "summary": "이 계정은 이 PC에서 VRChat을 플레이 중인 계정이 아닙니다.",
+        "effect_game_log": "게임 로그를 기록하지 않습니다",
+        "effect_presence": "내 위치와 상태는 VRChat 서버 정보만 사용합니다",
+        "effect_vr": "VR 오버레이, XSOverlay, OVR Toolkit, 텍스트 음성 변환을 끕니다",
+        "effect_automation": "게임 기반 자동화, Discord 상태, 스크린샷 정보 기록, 충돌 후 재실행을 끕니다",
+        "unchanged": "데스크톱 알림과 데스크톱 오버레이는 그대로 작동합니다.",
+        "hint_before_launch": "VRChat을 실행하기 전에 켜는 것을 권장합니다. 게임을 여러 개 실행할 때도 권장합니다.",
+        "hint_running_enable": "VRChat 실행 중: 현재 방은 계속 기록되고, 다음 방부터 기록을 멈춥니다.",
+        "hint_running_active": "VRChat 실행 중: 끄면 다음 방부터 기록을 다시 시작합니다.",
+        "cancel": "취소",
+        "confirm": "켜기",
+        "close": "닫기",
+        "turn_off": "게임 분리 모드 끄기",
+        "toast_on": "게임 분리 모드를 켰습니다",
+        "toast_off": "게임 분리 모드를 껐습니다",
+        "toast_off_running": "게임 분리 모드를 껐습니다 · 다음 방부터 기록을 다시 시작합니다",
+        "failed": "게임 분리 모드를 변경하지 못했습니다",
+        "badge": "분리됨",
+        "menu_item": "게임 분리 모드…"
+    },
     "nativeShell": {
         "tray": {
             "open": "VRCX-0 열기",
@@ -664,10 +724,12 @@
             "doNotDisturbThreeHours": "3시간",
             "doNotDisturbUntilStopped": "끌 때까지",
             "doNotDisturbTurnOff": "방해 금지 끄기",
+            "gameIsolation": "게임 분리 모드",
             "rebuildUi": "UI 새로고침",
             "sidebarMode": "사이드바 모드",
             "disableTheme": "테마 비활성화",
             "exit": "종료",
+            "realtimeReconnecting": "실시간 연결이 끊겨 다시 연결하는 중",
             "lock": "잠금"
         },
         "notification": {
@@ -728,7 +790,6 @@
                 "keyboardShortcuts": "키보드 단축키",
                 "sendFeedback": "피드백 보내기",
                 "reportIssue": "GitHub에서 문제 보고",
-                "qqGroup": "QQ그룹 (중국 커뮤니티)",
                 "openDevtools": "DevTools 열기",
                 "supportVrcx": "VRCX-0 후원"
             }
@@ -760,7 +821,6 @@
         "toggle_theme": "테마 전환"
     },
     "nav_menu": {
-        "qq_group": "QQ그룹 (중국 커뮤니티)",
         "changelog": "변경 내역",
         "update": "업데이트",
         "update_downloading": "다운로드 중",
@@ -869,6 +929,8 @@
             "notification_center_page": "모든 알림입니다.",
             "my_avatars": "내 아바타",
             "avatar_collection_page": "업로드한 아바타입니다.",
+            "vrchat_log": "VRChat 로그 뷰어",
+            "vrchat_log_page": "VRChat 출력 로그를 실시간으로 보고 필터링합니다.",
             "tools": "도구",
             "tools_launcher_page": "모든 도구를 한곳에 모았습니다."
         }
@@ -949,12 +1011,16 @@
             "pagination": "검색 및 표 페이지 이동",
             "screenshots": "스크린샷 상세 정보",
             "image_viewer": "전체 화면 이미지 뷰어",
-            "selection": "스크린샷 및 즐겨찾기 선택"
+            "selection": "스크린샷 및 즐겨찾기 선택",
+            "gallery_inventory": "갤러리 및 인벤토리"
         },
         "navigation_items": "1~9번째 내비게이션 항목 열기",
         "hold_for_hints": "단축키 힌트 표시(길게 누르기)",
         "toggle_details": "상세 정보 표시/숨기기",
-        "clear_selection": "선택 해제"
+        "clear_selection": "선택 해제",
+        "toggle_theme_safe_mode": "커뮤니티 테마 일시 중지",
+        "theme_safe_mode_on": "커뮤니티 테마를 일시적으로 껐습니다",
+        "theme_safe_mode_off": "커뮤니티 테마를 다시 켰습니다"
     },
     "side_panel": {
         "search_placeholder": "검색",
@@ -1075,6 +1141,8 @@
             "title": "알림 센터",
             "view_more": "더 많이 보기",
             "mark_all_read": "모두 읽음으로 표시",
+            "marking_all_read": "읽음으로 표시하는 중…",
+            "mark_read_failed": "읽음으로 표시하지 못했습니다",
             "mark_as_read": "읽음으로 표시",
             "more_actions": "추가 작업",
             "join_now": "지금 참가",
@@ -1083,7 +1151,8 @@
             "group_system": "시스템",
             "tab_friend": "친구",
             "no_new_notifications": "지난 24시간 동안 새 알림이 없습니다.",
-            "no_unseen_notifications": "읽지 않은 알림 없음"
+            "no_unseen_notifications": "읽지 않은 알림 없음",
+            "title_with_count": "알림, 읽지 않음 {count}개"
         },
         "success": {
             "vrchat_launch_request_sent": "VRChat에서 열었습니다.",
@@ -1202,7 +1271,9 @@
                 "restore_preset": "프리셋 복원",
                 "restore_preset_title": "피드 열 프리셋을 복원할까요?",
                 "restore_preset_description": "즐겨찾기, 위치, 프로필, 현재 상태 등 미리 설정된 열이 복원됩니다.",
-                "restore_preset_confirm": "프리셋 복원"
+                "restore_preset_confirm": "프리셋 복원",
+                "empty_title": "이 열에는 아직 항목이 없습니다",
+                "empty_description": "이 열의 친구 범위와 유형에 맞는 활동이 여기에 표시됩니다."
             },
             "error": {
                 "avatar_author_unavailable": "아바타 제작자 정보를 확인할 수 없습니다.",
@@ -1231,6 +1302,12 @@
             },
             "empty": {
                 "no_feed_rows_match_the_current_filters": "현재 필터와 일치하는 피드 항목이 없습니다."
+            },
+            "first_run_tip": {
+                "title": "VRCX-0에 오신 것을 환영합니다",
+                "description": "친구 활동과 게임 기록은 VRCX-0이 실행 중일 때만 저장됩니다. 이전 기록은 VRCX 데이터나 VRChat 로그 파일을 가져와 채울 수 있습니다.",
+                "description_without_logs": "친구 활동은 VRCX-0이 실행 중일 때만 저장됩니다. 이전 기록은 VRCX 데이터를 가져와 채울 수 있습니다.",
+                "dismiss": "확인"
             },
             "toast": {
                 "failed_to_resolve_avatar_author": "아바타 제작자를 찾지 못했습니다.",
@@ -1311,7 +1388,10 @@
                 "expand_session": "세션 펼치기",
                 "collapse_session": "세션 접기",
                 "expand_all": "모두 펼치기",
-                "collapse_all": "모두 접기"
+                "collapse_all": "모두 접기",
+                "players_count": "{count}명",
+                "videos_count": "동영상 {count}개",
+                "latest": "최신"
             },
             "label": {
                 "sessions": "세션",
@@ -1428,6 +1508,10 @@
                 "untitled_avatar": "제목 없는 아바타",
                 "local_test_avatars": "로컬 테스트 아바타",
                 "local_test_avatars_description": "VRChat SDK의 Build & Test로 빌드한 아바타입니다. 게임에서는 본인에게만 보입니다."
+            },
+            "source": {
+                "own": "업로드",
+                "licensed": "구매함"
             },
             "action": {
                 "select_style": "스타일 선택",
@@ -1790,7 +1874,8 @@
                         "closed": "신고 처리 완료"
                     },
                     "contentrestriction": "콘텐츠 제한 조치",
-                    "notice": "관리 알림"
+                    "notice": "관리 알림",
+                    "sanction": "제재 조치"
                 },
                 "instance": {
                     "closed": "인스턴스 종료"
@@ -1866,6 +1951,17 @@
                     "group": "그룹",
                     "moderation": "관리",
                     "other": "기타"
+                },
+                "pending_count": "새 알림 {count}개",
+                "new_this_session": "이번에 새로 온 알림",
+                "expires_in": "{time} 만료",
+                "action_all_done": "모두 처리함",
+                "action_all_done_description": "지금 처리할 알림이 없습니다.",
+                "group": {
+                    "from_actor": "{name}의 알림 {count}개",
+                    "from_people": "{name} 외 알림 {count}개",
+                    "expand": "모두 보기",
+                    "collapse": "접기"
                 }
             },
             "responses": {
@@ -2062,6 +2158,7 @@
                 "last_backup": "마지막 백업 {date}",
                 "connections_configured": "연결 {count}개",
                 "apps_count": "앱 {count}개",
+                "unopened_bundles": "안 연 번들 {count}개",
                 "automatic_backup": "자동 백업",
                 "show_details": "세부 항목 표시"
             },
@@ -2243,7 +2340,11 @@
                 "all_favorite_friends": "즐겨찾기한 친구 전체",
                 "selected_favorite_groups": "선택한 즐겨찾기 그룹",
                 "selected_favorite_groups_label": "선택한 즐겨찾기 그룹",
+                "allowed_statuses_label": "내 상태가 다음일 때만",
+                "allowed_statuses_description": "아무것도 선택하지 않으면 상태와 관계없이 응답합니다.",
                 "automatic_replies_note": "VRChat 실행 중이고 현재 위치에서 초대를 보낼 수 있을 때만 동작합니다. 발신자별로 쿨다운이 있습니다.",
+                "invite_message": "초대 메시지",
+                "invite_message_description": "해당 슬롯의 현재 문구를 보냅니다. 문구를 바꾸면 보내는 내용도 바뀝니다.",
                 "failed_to_load_schedule_rules": "일정 규칙을 불러오지 못했습니다.",
                 "failed_to_save_schedule_rules": "일정 규칙을 저장하지 못했습니다.",
                 "failed_to_load_room_rules": "인스턴스 규칙을 불러오지 못했습니다.",
@@ -2256,7 +2357,9 @@
                 "edit_invite_message": "메시지 템플릿",
                 "edit_invite_message_description": "초대 및 요청 메시지 템플릿 편집",
                 "moderation_reports": "신고 내역",
-                "moderation_reports_description": "제출한 신고를 확인하거나 철회"
+                "moderation_reports_description": "제출한 신고를 확인하거나 철회",
+                "purchase_history": "구매 내역",
+                "purchase_history_description": "구매한 상품과 크레딧 내역 확인"
             },
             "success": {
                 "media_item_deleted": "미디어 항목이 삭제되었습니다.",
@@ -2404,7 +2507,8 @@
         "profile": {
             "game_info": {
                 "online_users": "온라인 사용자 수",
-                "user_online": "{count}명 온라인"
+                "user_online": "{count}명 온라인",
+                "instances_active": "{count}개 인스턴스 활성"
             },
             "config_json": "VRChat 설정 JSON"
         },
@@ -2491,6 +2595,7 @@
                     "style_standard": "기본",
                     "style_compact": "컴팩트",
                     "friend_icons": "친구 아이콘 표시",
+                    "tracker_disconnect": "트래커 연결 끊김 알림",
                     "timeout": "표시 시간",
                     "opacity": "불투명도",
                     "filters": "헤드셋 알림 필터"
@@ -2552,13 +2657,13 @@
                     "port_active_connections": "포트 {port} · 활성 연결 {count}개",
                     "client_config": "클라이언트 설정",
                     "client_config_description": "Claude Code: 한 번 실행하는 터미널 명령어. 일반 (HTTP): 직접 연결용 JSON 설정. 일반 (mcp-remote): 네이티브 HTTP 미지원 클라이언트용 Node.js 프록시 JSON 설정(PATH에 Node.js 필요). LAN 활성화 시 설정에 `YOUR-LAN-IP`가 들어갑니다. 다른 기기에서 사용하기 전에 이 컴퓨터의 로컬 IP로 바꾸세요.",
+                    "view_client_config": "설정 보기",
                     "copy_mcp_remote": "일반 (mcp-remote)",
                     "copy_generic": "일반 (HTTP)",
                     "security_note": "클라이언트 설정에는 일반 텍스트 토큰이 포함됩니다. 신뢰하는 도구나 기기에만 공유하세요.",
                     "rotate_token": "토큰 다시 생성",
                     "rotate_token_description": "다시 생성하면 이전 클라이언트 설정은 더 이상 작동하지 않습니다.",
                     "token_rotated": "MCP 토큰을 다시 생성했습니다",
-                    "copied": "{target} 설정을 복사했습니다",
                     "status": {
                         "loading": "불러오는 중",
                         "disabled": "중지됨",
@@ -3261,6 +3366,17 @@
             "restart_pending": {
                 "description": "일부 설정은 VRCX-0을 다시 시작해야 적용됩니다.",
                 "restart_now": "지금 다시 시작"
+            },
+            "field": {
+                "modified": "변경됨",
+                "reset": "재설정",
+                "restart_required": "다시 시작 필요",
+                "requires_parent": "먼저 \"{name}\"을(를) 켜세요"
+            },
+            "search": {
+                "placeholder": "설정 검색",
+                "results": "설정 검색 결과",
+                "no_results": "일치하는 설정이 없습니다"
             }
         },
         "dashboard": {
@@ -3548,7 +3664,10 @@
                 "accept_friend_request": "친구 요청 수락",
                 "decline_notification": "알림 거절",
                 "decline": "거절",
-                "send_invite": "초대장 보내기"
+                "send_invite": "초대장 보내기",
+                "accept_friend_request_consequence": "상대가 친구 목록에 추가됩니다.",
+                "decline_notification_consequence": "이 알림은 VRChat에서 삭제됩니다.",
+                "send_invite_consequence": "초대는 지금 있는 인스턴스로 보내집니다."
             },
             "dynamic": {
                 "accept_the_friend_request_from_value": "{value}의 친구 요청을 수락하시겠습니까?",
@@ -3563,7 +3682,8 @@
             },
             "status": {
                 "active": "활성",
-                "installed": "설치됨"
+                "installed": "설치됨",
+                "tested_with_older": "{version}에서 테스트됨. 현재 버전에서는 제대로 보이지 않을 수 있습니다"
             },
             "field": {
                 "name": "이름",
@@ -3579,7 +3699,7 @@
             },
             "action": {
                 "install": "설치 및 활성화",
-                "update_enable": "업데이트",
+                "update": "업데이트",
                 "enable_theme": "테마 활성화",
                 "disable_theme": "테마 비활성화",
                 "delete_theme": "테마 삭제",
@@ -3622,7 +3742,10 @@
                 "override_saved": "사용자 정의 CSS를 적용했습니다.",
                 "override_disabled": "사용자 정의 CSS가 비활성화되었습니다.",
                 "override_cleared": "사용자 정의 CSS를 지웠습니다.",
-                "disable_failed": "커뮤니티 테마 설정을 업데이트하지 못했습니다."
+                "disable_failed": "커뮤니티 테마 설정을 업데이트하지 못했습니다.",
+                "update_available": "{{name}} 테마의 새 버전이 있습니다",
+                "theme_updated": "커뮤니티 테마를 {{version}}(으)로 업데이트했습니다.",
+                "update_failed": "커뮤니티 테마를 업데이트하지 못했습니다."
             },
             "confirm": {
                 "delete_theme_title": "이 테마를 삭제할까요?",
@@ -3733,7 +3856,10 @@
             "description": "기간별로 시간을 어디에 썼는지 정리해서 보여줍니다",
             "range": {
                 "all": "전체",
-                "days": "최근 {days}일"
+                "days": "최근 {days}일",
+                "previous": "이전 기간",
+                "next": "다음 기간",
+                "custom": "기간 지정"
             },
             "stat": {
                 "total_time": "총 플레이 시간",
@@ -3769,7 +3895,10 @@
             },
             "empty": {
                 "title": "아직 기록이 없습니다",
-                "description": "VRChat을 잠시 플레이하면 여기에 활동이 표시됩니다."
+                "description": "VRCX-0을 켜 둔 채 VRChat을 플레이하면 여기에 활동이 표시됩니다.",
+                "window_title": "이 기간에는 기록이 없습니다",
+                "unsupported": "이 플랫폼에서는 VRCX-0이 VRChat 게임 로그를 읽을 수 없어 활동이 기록되지 않습니다.",
+                "unavailable": "VRChat 로그 폴더를 찾지 못해 새 활동을 기록할 수 없습니다. 기존 로그 파일로 보충할 수 있습니다."
             },
             "error": {
                 "failed_to_load": "활동을 불러오지 못했습니다"
@@ -3824,11 +3953,23 @@
                 "photo_count_other": "스크린샷 {count}장",
                 "empty": {
                     "title": "아직 방문 기록이 없습니다",
-                    "description": "월드를 나가면 여기에 방문 기록이 표시됩니다.",
+                    "description": "VRCX-0을 켜 둔 채 VRChat을 플레이하세요. 월드를 나가면 방문 기록이 여기에 표시됩니다.",
                     "filtered_title": "이 기간에는 방문 기록이 없습니다"
                 },
                 "all_dates": "전체 기간",
                 "screenshots": "스크린샷"
+            },
+            "previous": {
+                "summary": "이전 {days}일: {hours} · 플레이한 날 {activeDays}일",
+                "none": "이전 {days}일 동안 기록이 없습니다",
+                "more": "이전 기간보다 많음",
+                "less": "이전 기간보다 적음",
+                "same": "이전 기간과 같음"
+            },
+            "stale": "최신 데이터가 아닐 수 있습니다",
+            "chart": {
+                "series_summary": "{label}, {from}~{to}: 총 {total}. 가장 많은 구간: {peak}, {peakHours}.",
+                "heatmap_summary": "요일·시간대별 플레이 시간. 가장 많이 플레이한 시간대: {peak}."
             }
         },
         "my_groups": {
@@ -3839,6 +3980,8 @@
             "exit_edit_mode": "완료",
             "section_own": "소유한 그룹",
             "section_joined": "가입한 그룹",
+            "section_pending": "초대 및 가입 요청",
+            "section_blocked": "차단한 그룹",
             "order_hint": "그룹을 드래그하여 VRChat에 표시되는 순서를 변경하세요.",
             "order_game_running": "VRChat이 실행 중입니다. 순서 변경이 게임 종료 시 덮어써질 수 있습니다.",
             "order_unavailable": "그룹 순서를 변경할 수 없습니다: {reason}",
@@ -3846,6 +3989,15 @@
             "order_save_failed": "게임 내 그룹 순서를 저장하지 못했습니다.",
             "row_actions": "그룹 작업",
             "leave": "탈퇴",
+            "accept_invite": "수락",
+            "decline_invite": "거절",
+            "block": "차단",
+            "unblock": "차단 해제",
+            "cancel_request": "요청 취소",
+            "confirm_block_title": "이 그룹을 차단하시겠습니까?",
+            "invite_accepted": "그룹에 가입했습니다.",
+            "membership_load_failed": "그룹 초대를 불러오지 못했습니다.",
+            "membership_action_failed": "그룹 작업에 실패했습니다.",
             "leave_partial": "{count}개 탈퇴",
             "leave_owner_locked": "소유한 그룹에서는 탈퇴할 수 없습니다.",
             "leave_completed": "그룹 {count}개에서 탈퇴했습니다.",
@@ -3961,11 +4113,11 @@
                 "moderation_enable_chatbox": "채팅창 음소거 해제",
                 "moderation_disable_chatbox": "채팅창 음소거",
                 "edit_status": "소셜 상태 수정",
-                "edit_profile_details": "프로필 세부정보 수정",
-                "edit_profile_media": "배너 및 아이콘 수정",
-                "report_hacking": "불법 프로그램 신고",
+                "report_user": "사용자 신고…",
                 "unfriend": "친구 삭제",
-                "edit_note_memo": "메모 및 로컬 메모 편집"
+                "edit_note_memo": "메모 및 로컬 메모 편집",
+                "edit_profile": "프로필 편집",
+                "account_standing": "계정 상태"
             },
             "group_invite": {
                 "select_group": "그룹 선택",
@@ -4026,6 +4178,7 @@
                 "join_count": "방문 횟수",
                 "time_together": "함께한 시간",
                 "play_time": "플레이 시간",
+                "vrc_credits": "VRChat 크레딧",
                 "estimated_online_for": "온라인 시간 약 {duration}",
                 "last_activity": "마지막 활동",
                 "date_joined": "계정 생성일",
@@ -4089,7 +4242,8 @@
                 "sort_by_uploaded": "업로드순",
                 "all": "전체",
                 "public": "공개",
-                "private": "비공개"
+                "private": "비공개",
+                "licensed": "구매함"
             },
             "json": {
                 "header": "JSON"
@@ -4153,6 +4307,14 @@
             },
             "note_memo": {
                 "header": "메모 및 로컬 메모 편집"
+            },
+            "report": {
+                "header": "사용자 신고",
+                "category": "분류",
+                "reason": "사유",
+                "description": "상세 내용(선택)",
+                "description_placeholder": "어떤 일이 있었는지 적어 주세요",
+                "no_options": "VRChat에서 신고 항목을 아직 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
             },
             "action": {
                 "open_user_icon": "사용자 아이콘 열기",
@@ -4237,9 +4399,7 @@
             "description": {
                 "update_your_social_status_and_status_description": "소셜 상태 및 상태 메시지 업데이트",
                 "status_description": "상태 메시지",
-                "clear_status_description": "상태 메시지 지우기",
-                "edit_profile_details": "프로필 세부정보 편집",
-                "update_your_profile_details": "카드에 표시된 프로필 세부정보를 편집하세요."
+                "clear_status_description": "상태 메시지 지우기"
             },
             "toast": {
                 "memo_saved": "로컬 메모가 저장되었습니다.",
@@ -4282,7 +4442,6 @@
                 "failed_to_update_group_order": "그룹 순서를 업데이트하지 못했습니다."
             },
             "modal": {
-                "report_hacking": "해킹을 신고하시겠습니까?",
                 "report": "신고",
                 "send_invite": "초대장을 보내시겠습니까?",
                 "request_invite": "참가를 요청하시겠습니까?",
@@ -4310,6 +4469,42 @@
                 "left_value_groups": "그룹 {value}개에서 탈퇴했습니다",
                 "enable_value": "{value} 활성화",
                 "disable_value": "{value} 비활성화"
+            },
+            "profile_edit": {
+                "details": "기본 정보",
+                "avatar_image": "아바타 이미지",
+                "solid_color": "단색",
+                "apply_color": "색상 적용"
+            },
+            "account_standing": {
+                "header": "계정 상태",
+                "description": "VRChat에서 받은 계정 상태입니다.",
+                "status": "상태",
+                "issue_clear_days": "문제 해소까지 남은 일수",
+                "sanctions": "제재",
+                "load_failed": "계정 상태를 불러오지 못했습니다"
+            },
+            "relationship": {
+                "friend": "친구",
+                "request_received": "친구 요청 받음",
+                "request_sent": "친구 요청 보냄",
+                "avatar_hidden": "아바타 숨김",
+                "interaction_off": "아바타 상호작용 거부",
+                "chatbox_muted": "채팅창 음소거됨"
+            },
+            "friend_request": {
+                "incoming_banner": "친구 요청을 보냈습니다"
+            },
+            "consequence": {
+                "block_on": "VRChat에서 {name} 님과 서로 보거나 들을 수 없게 됩니다.",
+                "block_off": "VRChat에서 {name} 님과 다시 서로 보고 들을 수 있게 됩니다.",
+                "mute_on": "VRChat에서 {name} 님의 음성이 들리지 않게 됩니다.",
+                "mute_off": "VRChat에서 {name} 님의 음성이 다시 들리게 됩니다.",
+                "interactOff_on": "VRChat에서 {name} 님이 내 아바타와 상호작용할 수 없게 됩니다.",
+                "interactOff_off": "VRChat에서 {name} 님이 다시 내 아바타와 상호작용할 수 있게 됩니다.",
+                "muteChat_on": "VRChat에서 {name} 님의 채팅창 메시지가 보이지 않게 됩니다.",
+                "muteChat_off": "VRChat에서 {name} 님의 채팅창 메시지가 다시 보이게 됩니다.",
+                "unfriend": "{name} 님이 친구 목록에서 삭제됩니다. 다시 친구가 되려면 둘 중 한 명이 친구 요청을 새로 보내야 합니다."
             }
         },
         "world": {
@@ -4355,6 +4550,7 @@
             },
             "instances": {
                 "header": "인스턴스",
+                "closed": "닫힘",
                 "public_count": "공개 {count}",
                 "private_count": "비공개 {count}",
                 "capacity_count": "인원 제한 {count} (최대 {max})",
@@ -4604,6 +4800,9 @@
                 "memo_placeholder": "클릭하여 로컬 메모 추가",
                 "listings": "판매 목록",
                 "gallery": "갤러리",
+                "gallery_move_earlier": "앞으로 이동",
+                "gallery_move_later": "뒤로 이동",
+                "gallery_delete_image": "이미지 삭제",
                 "attributes": "속성"
             },
             "performance": {
@@ -4691,6 +4890,7 @@
             },
             "label": {
                 "avatar_gallery_image_uploaded": "아바타 갤러리 이미지가 업로드되었습니다.",
+                "avatar_gallery_image_deleted": "갤러리 이미지를 삭제했습니다.",
                 "local_tags": "로컬 태그",
                 "vrchat_tags": "VRChat 태그",
                 "built_in_content_tags": "내장 콘텐츠 태그",
@@ -4728,6 +4928,8 @@
                 "selected_file_is_not_an_image": "선택한 파일은 이미지가 아닙니다",
                 "failed_to_upload_avatar_image": "아바타 이미지를 업로드하지 못했습니다.",
                 "failed_to_upload_avatar_gallery_image": "아바타 갤러리 이미지를 업로드하지 못했습니다.",
+                "failed_to_reorder_avatar_gallery": "갤러리 순서를 바꾸지 못했습니다.",
+                "failed_to_delete_avatar_gallery_image": "갤러리 이미지를 삭제하지 못했습니다.",
                 "impostor_queued_for_creation": "임포스터가 생성 대기 중입니다.",
                 "failed_to_create_impostor": "임포스터를 생성하지 못했습니다.",
                 "impostor_deleted": "임포스터가 삭제되었습니다.",
@@ -4740,6 +4942,7 @@
                 "select_fallback_avatar": "대체 아바타를 선택하시겠습니까?",
                 "select_fallback": "대체 아바타로 설정",
                 "delete_avatar": "아바타를 삭제하시겠습니까?",
+                "delete_gallery_image": "이 갤러리 이미지를 삭제하시겠습니까?",
                 "edit_local_memo": "로컬 메모 수정",
                 "create_impostor_title": "임포스터를 만드시겠습니까?",
                 "create": "만들기",
@@ -4775,6 +4978,9 @@
                 "visibility_friends": "친구에게 보임",
                 "visibility_hidden": "보이지 않음",
                 "create_post": "게시물 작성",
+                "create_event": "이벤트 만들기",
+                "manage_roles": "역할 관리",
+                "view_roles": "역할 보기",
                 "moderation_tools": "관리 도구",
                 "leave": "그룹 탈퇴",
                 "block": "그룹 차단",
@@ -4826,7 +5032,10 @@
                 "edited_at": "편집 날짜:",
                 "created_at": "생성일:",
                 "edited_by": "편집자:",
-                "search_placeholder": "검색"
+                "search_placeholder": "검색",
+                "expand": "더 보기",
+                "collapse": "접기",
+                "edited": "수정됨"
             },
             "members": {
                 "header": "멤버",
@@ -5029,6 +5238,18 @@
                 "self_invite": "셀프 초대"
             },
             "subtitle_fallback": "VRChat 인스턴스",
+            "avatar_switch": {
+                "toggle": "입장 전에 아바타 변경",
+                "placeholder": "아바타 선택",
+                "search_placeholder": "아바타 검색",
+                "hint": "아바타는 VRChat API로 변경되며, 적용 시간은 VRChat 서버에 따라 달라 바로 반영되지 않을 수 있습니다.",
+                "timeout": "VRChat 서버가 아바타 변경에 응답하지 않아 입장을 중단했습니다",
+                "group": {
+                    "current": "현재 아바타",
+                    "own": "내 아바타",
+                    "favorite": "즐겨찾기 아바타"
+                }
+            },
             "tile": {
                 "vr": "VR",
                 "desktop": "데스크톱",
@@ -5085,7 +5306,10 @@
             },
             "dynamic": {
                 "edit_slot_value": "슬롯 {value} 수정"
-            }
+            },
+            "no_message": "메시지 없음",
+            "slot_value": "슬롯 {value}",
+            "attach_image": "이미지 첨부"
         },
         "invite_request_message": {
             "header": "메시지로 요청"
@@ -5113,16 +5337,11 @@
             }
         },
         "edit_invite_message": {
-            "header": "메시지 템플릿 편집",
             "save": "저장"
         },
         "edit_send_invite_message": {
-            "header": "메시지 템플릿 편집 및 보내기",
             "description": "한번 바꾸면 1시간 쿨타임이 생깁니다",
             "send": "보내기"
-        },
-        "edit_send_invite_response_message": {
-            "description": "한번 바꾸면 1시간 쿨타임이 생깁니다"
         },
         "export_friends_list": {
             "header": "친구 목록 내보내기",
@@ -5169,6 +5388,7 @@
             "inventory": "인벤토리",
             "refresh": "새로고침",
             "upload": "업로드",
+            "paste_upload": "이미지 붙여넣기",
             "clear": "해제",
             "banner": "배너",
             "profile_photo": "배너",
@@ -5207,7 +5427,9 @@
                 "compact": "콤팩트",
                 "dense": "조밀"
             },
-            "crop_image": "업로드 확인"
+            "crop_image": "업로드 확인",
+            "locked_title": "업로드한 이미지가 일시적으로 잠겨 있습니다",
+            "locked_description": "이미지는 그대로 저장되어 있습니다. VRC+에 가입하면 다시 사용할 수 있습니다."
         },
         "inventory": {
             "header": "인벤토리",
@@ -5313,6 +5535,15 @@
             "result_count": "결과 {count}개",
             "gallery": "갤러리",
             "folders": "폴더",
+            "favorites": "즐겨찾기",
+            "favorite": "즐겨찾기에 추가",
+            "unfavorite": "즐겨찾기에서 제거",
+            "favorites_missing": "즐겨찾기 중 {count}장을 찾을 수 없습니다",
+            "forget_missing_favorites": "찾을 수 없는 항목 제거",
+            "forget_missing_favorites_confirm_title": "찾을 수 없는 즐겨찾기를 제거할까요?",
+            "forget_missing_favorites_confirm_description": "즐겨찾기 중 {count}장은 원래 위치에 파일이 없습니다. 제거하면 지금 연결되지 않은 드라이브에 파일이 있더라도 나중에 자동으로 다시 찾지 않습니다.",
+            "empty_favorites": "즐겨찾기가 없습니다",
+            "empty_favorites_description": "스크린샷에 별표를 누르면 여기에 모입니다.",
             "scanning": "스크린샷 스캔 중",
             "image_count": "이미지 {count}장",
             "feeling_lucky": "랜덤으로 한 장",
@@ -5653,6 +5884,118 @@
         "group_post_edit": {
             "title": "제목"
         },
+        "group_event_edit": {
+            "create_header": "그룹 이벤트 만들기",
+            "edit_header": "그룹 이벤트 편집",
+            "title": "제목",
+            "description": "설명",
+            "starts_at": "시작 시간",
+            "ends_at": "종료 시간",
+            "start_in_past": "이벤트는 현재 이후에 시작해야 합니다.",
+            "invalid_date_range": "종료 시간은 시작 시간 이후여야 합니다.",
+            "repeat": "반복",
+            "repeat_values": {
+                "none": "반복 안 함",
+                "weekly": "매주",
+                "monthly": "매월",
+                "yearly": "매년"
+            },
+            "repeat_every": "반복 간격",
+            "weekly_pattern": "매주 반복 방식",
+            "weekly_pattern_values": {
+                "every_week": "매주",
+                "weekdays": "평일마다",
+                "weekend": "주말마다",
+                "custom": "요일 지정"
+            },
+            "ends": "종료",
+            "ends_values": {
+                "never": "종료 안 함",
+                "afterOccurrences": "지정한 횟수 후",
+                "afterDate": "지정한 날짜에"
+            },
+            "occurrence_count": "반복 횟수",
+            "end_date": "종료 날짜",
+            "access_type": "공개 범위",
+            "access_group": "그룹 멤버",
+            "access_public": "전체 공개",
+            "category": "카테고리",
+            "categories": {
+                "arts": "예술",
+                "avatars": "아바타",
+                "dance": "댄스",
+                "education": "교육",
+                "exploration": "탐험",
+                "film_media": "영상·미디어",
+                "gaming": "게임",
+                "hangout": "친목",
+                "music": "음악",
+                "other": "기타",
+                "performance": "공연",
+                "roleplaying": "롤플레이",
+                "wellness": "웰니스"
+            },
+            "tags": "태그",
+            "tags_help": "쉼표로 구분해 최대 5개까지 입력하세요.",
+            "platforms": "플랫폼",
+            "platform_values": {
+                "standalonewindows": "PC",
+                "android": "Android",
+                "ios": "iOS"
+            },
+            "roles": "역할",
+            "roles_help": "아무것도 선택하지 않으면 모든 멤버가 대상입니다.",
+            "host_early_join": "호스트 사전 입장(분)",
+            "guest_early_join": "참가자 사전 입장(분)",
+            "close_after_end": "종료 후 인스턴스 닫기(분)",
+            "send_notification": "만들 때 멤버에게 알림 보내기",
+            "delete": "이벤트 삭제",
+            "save": "변경 사항 저장",
+            "create": "이벤트 만들기",
+            "create_success": "그룹 이벤트를 만들었습니다.",
+            "edit_success": "그룹 이벤트를 수정했습니다.",
+            "delete_success": "그룹 이벤트를 삭제했습니다.",
+            "save_error": "그룹 이벤트를 저장하지 못했습니다.",
+            "delete_error": "그룹 이벤트를 삭제하지 못했습니다.",
+            "delete_confirm": "이 그룹 이벤트를 삭제하시겠습니까?"
+        },
+        "group_roles": {
+            "header": "그룹 역할 관리",
+            "view_header": "그룹 역할",
+            "new_role": "새 역할",
+            "no_roles": "역할이 없습니다",
+            "no_role_selected": "편집할 역할을 선택하거나 새로 만드세요",
+            "name": "이름",
+            "description": "설명",
+            "self_assignable": "직접 부여 가능",
+            "self_assignable_description": "멤버가 스스로 이 역할을 받을 수 있습니다",
+            "added_on_join": "가입 시 부여",
+            "added_on_join_description": "새 멤버에게 자동으로 부여됩니다",
+            "requires_two_factor": "2단계 인증 필요",
+            "requires_two_factor_description": "이 역할을 쓰려면 2단계 인증이 필요합니다",
+            "requires_purchase": "구매 필요",
+            "requires_purchase_description": "그룹 구독을 구매하면 부여됩니다",
+            "permissions": "권한",
+            "management_permissions": "관리 권한",
+            "default_role": "기본",
+            "management_roles": "관리 역할",
+            "member_roles": "멤버 역할",
+            "assigned_to_you": "내 역할",
+            "delete": "역할 삭제",
+            "delete_confirm": "이 역할을 삭제하시겠습니까? 되돌릴 수 없습니다.",
+            "create": "역할 만들기",
+            "save": "저장",
+            "saved": "역할을 저장했습니다.",
+            "save_failed": "역할을 저장하지 못했습니다.",
+            "deleted": "역할을 삭제했습니다.",
+            "delete_failed": "역할을 삭제하지 못했습니다.",
+            "add_self": "나에게 부여",
+            "remove_self": "나에게서 제거",
+            "self_role_added": "역할을 부여했습니다.",
+            "self_role_removed": "역할을 제거했습니다.",
+            "self_role_failed": "내 역할을 업데이트하지 못했습니다.",
+            "load_failed": "그룹 역할을 불러오지 못했습니다."
+        },
         "group_calendar": {
             "header": "그룹 캘린더",
             "loading_events": "이벤트를 불러오는 중",
@@ -5842,6 +6185,7 @@
                 "android": "안드로이드:",
                 "ios": "iOS:",
                 "game_version": "게임 버전",
+                "languages": "언어:",
                 "instance_queuing_enabled": "인스턴스 대기열 활성화",
                 "disabled_content": "비활성화된 콘텐츠",
                 "instance_closed": "인스턴스가 닫혔습니다.",
@@ -5903,7 +6247,31 @@
             "withdraw_description": "이 작업은 되돌릴 수 없습니다.",
             "failed_to_withdraw": "신고를 철회하지 못했습니다",
             "status_open": "처리 중",
-            "status_closed": "종료됨"
+            "status_closed": "종료됨",
+            "type_filter": {
+                "all": "전체",
+                "user": "사용자",
+                "world": "월드",
+                "avatar": "아바타",
+                "group": "그룹"
+            }
+        },
+        "purchase_history": {
+            "header": "구매 내역",
+            "description": "구매한 상품과 VRChat 크레딧 내역",
+            "purchases": "구매",
+            "transactions": "크레딧 내역",
+            "all_types": "모든 유형",
+            "gift": "선물",
+            "inactive": "만료됨",
+            "seller": "판매자 {name}",
+            "ends": "{date} 종료",
+            "from": "보낸 사람",
+            "to": "받는 사람",
+            "balance": "잔액 {value}",
+            "failed_to_load": "구매 내역을 불러오지 못했습니다",
+            "empty_purchases": "구매 내역이 없습니다",
+            "empty_transactions": "크레딧 내역이 없습니다"
         }
     },
     "confirm": {
@@ -6076,6 +6444,7 @@
         "file": {
             "not_image": "파일이 이미지가 아닙니다",
             "too_large": "파일 크기가 너무 큼",
+            "clipboard_no_image": "클립보드에 이미지가 없습니다. 먼저 이미지나 이미지 파일을 복사하세요",
             "folder_opened": "폴더가 열렸습니다.",
             "folder_missing": "폴더가 존재하지 않습니다"
         },
@@ -6210,6 +6579,10 @@
         "event_title": "이벤트",
         "external_title": "외부 앱",
         "video_play_title": "비디오 재생",
+        "tracker_title": "트래커",
+        "tracker_disconnected": "연결이 끊겼습니다",
+        "tracker_disconnected_battery": "연결이 끊겼습니다 · 마지막 배터리 {percent}%",
+        "trackers_disconnected": "{count}개의 연결이 끊겼습니다",
         "avatar_change": "{avatar} 아바타로 변경했습니다",
         "blocked_player_joined": "차단한 사용자가 입장했습니다",
         "blocked_player_left": "차단한 사용자가 퇴장했습니다.",
@@ -6300,10 +6673,7 @@
         },
         "profile": {
             "invite_messages": {
-                "slot": "슬롯",
-                "message": "메시지",
-                "cool_down": "쿨타임",
-                "action": "작업"
+                "cool_down": "쿨타임"
             }
         },
         "import": {
@@ -6329,13 +6699,28 @@
             "table_layout": "테이블 레이아웃",
             "columns": "열",
             "lock_column_order": "열 순서 잠금",
-            "unlock_column_order": "열 순서 잠금 해제"
+            "unlock_column_order": "열 순서 잠금 해제",
+            "new_items_count": "새 항목 {count}개"
         },
         "action": {
-            "reset_columns": "열 재설정"
+            "reset_columns": "열 재설정",
+            "sort_ascending": "오름차순 정렬",
+            "sort_descending": "내림차순 정렬",
+            "clear_sort": "정렬 해제",
+            "hide_column": "열 숨기기",
+            "move_column_left": "왼쪽으로 이동",
+            "move_column_right": "오른쪽으로 이동"
         },
         "empty": {
             "no_rows_yet": "아직 항목이 없습니다."
+        },
+        "filter_action": {
+            "label": "필터",
+            "only_user": "{value}만 보기",
+            "add_user_to_scope": "{value}을(를) 필터에 추가",
+            "only_type": "'{value}'만 보기",
+            "exclude_type": "'{value}' 제외",
+            "only_world": "{value}만 보기"
         }
     },
     "accessibility": {
@@ -6360,7 +6745,8 @@
         "open_player": "플레이어 프로필 열기: {player}",
         "player": "플레이어",
         "remove_value": "{value} 삭제",
-        "add_table_page_size": "표 페이지 크기 추가"
+        "add_table_page_size": "표 페이지 크기 추가",
+        "column_width_value": "{value}픽셀"
     },
     "status_bar": {
         "do_not_disturb": "방해 금지",
@@ -6370,6 +6756,8 @@
         "do_not_disturb_three_hours": "3시간 동안",
         "do_not_disturb_until_stopped": "직접 끌 때까지",
         "do_not_disturb_turn_off": "방해 금지 끄기",
+        "game_isolation": "게임 분리 모드",
+        "game_isolation_active": "게임 분리 모드 켜짐 · 클릭하면 끕니다",
         "do_not_disturb_failed": "방해 금지를 변경하지 못했습니다",
         "world_collection_importing": "월드 컬렉션 가져오는 중 ({progress}/{total})",
         "game": "게임",
@@ -6383,6 +6771,14 @@
         "realtime_connection": "실시간",
         "ws_connected": "연결됨",
         "ws_disconnected": "연결이 끊김",
+        "realtime_connecting": "연결 중",
+        "realtime_reconnecting": "재연결 중",
+        "realtime_retry_in": "{seconds}초 후 재시도",
+        "realtime_retry_soon": "곧 재시도",
+        "realtime_last_connected": "마지막 연결: {time}",
+        "realtime_disconnected_since": "{time}부터 연결 끊김",
+        "realtime_reason": "원인: {reason}",
+        "realtime_retry_now": "클릭하면 바로 재시도",
         "zoom": "줌",
         "zoom_tooltip": "확대/축소 수준을 조정하려면 클릭하세요.",
         "app_uptime": "애플리케이션 가동 시간",
@@ -6412,7 +6808,8 @@
         "desktop_widget_off": "데스크톱 오버레이가 꺼져 있습니다",
         "desktop_widget_on": "데스크톱 오버레이가 켜져 있습니다",
         "desktop_widget_click_through": "데스크톱 오버레이가 켜져 있습니다(마우스 클릭 통과)",
-        "desktop_widget_failed": "데스크톱 오버레이를 변경하지 못했습니다"
+        "desktop_widget_failed": "데스크톱 오버레이를 변경하지 못했습니다",
+        "desktop_widget_menu_hint": "오른쪽 클릭으로 메뉴 열기"
     },
     "component": {
         "favorite_action_menu": {
@@ -6465,6 +6862,23 @@
                 "failed_to_refresh_instance": "인스턴스를 새로고침하지 못했습니다.",
                 "failed_to_close_instance": "인스턴스를 닫지 못했습니다.",
                 "failed_to_launch_instance": "인스턴스를 시작하지 못했습니다."
+            },
+            "calendar_link": {
+                "header": "그룹 이벤트 연결",
+                "event": "이벤트",
+                "no_events": "앞뒤 6시간 이내에 연결할 수 있는 그룹 이벤트가 없습니다.",
+                "assign": "연결",
+                "remove": "연결 해제",
+                "linked": "이 인스턴스에 그룹 이벤트를 연결했습니다.",
+                "unlinked": "이 인스턴스의 그룹 이벤트 연결을 해제했습니다.",
+                "failed": "인스턴스의 그룹 이벤트를 업데이트하지 못했습니다."
+            },
+            "calendar_event": "연결된 그룹 이벤트",
+            "rename": {
+                "header": "인스턴스 이름 변경",
+                "description": "비워 두면 이름이 지워집니다.",
+                "renamed": "인스턴스 이름을 변경했습니다.",
+                "failed": "인스턴스 이름을 변경하지 못했습니다."
             },
             "modal": {
                 "close_instance": "인스턴스를 닫으시겠어요?"
@@ -6572,6 +6986,7 @@
         "vrc_notification_center": {
             "toast": {
                 "failed_to_mark_notifications_as_seen": "알림을 읽음으로 표시하지 못했습니다.",
+                "mark_all_seen_partially_failed": "일부 알림을 읽음으로 표시하지 못했습니다",
                 "failed_to_accept_friend_request": "친구 요청을 수락하지 못했습니다.",
                 "failed_to_decline_notification": "알림을 거절하지 못했습니다.",
                 "failed_to_send_invite": "초대장을 보내지 못했습니다.",

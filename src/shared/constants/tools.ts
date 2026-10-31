@@ -27,6 +27,7 @@ export type ToolDialogKey =
     | 'export-avatars-list'
     | 'edit-invite-messages'
     | 'moderation-reports'
+    | 'purchase-history'
     | 'llm-endpoints'
     | 'profile-backup'
     | 'offline-record';
@@ -234,8 +235,8 @@ const toolDefinitions: ToolDefinition[] = [
     {
         key: 'offline-record',
         category: 'data',
-        iconKey: 'radio-tower',
-        navIcon: 'lucide:RadioTower',
+        iconKey: 'server',
+        navIcon: 'lucide:Server',
         titleKey: 'offline_record.header',
         descriptionKey: 'offline_record.tools_description',
         navEligible: true,
@@ -458,6 +459,16 @@ const toolDefinitions: ToolDefinition[] = [
         descriptionKey: 'view.tools.other.moderation_reports_description',
         navEligible: true,
         action: { type: 'dialog', dialogKey: 'moderation-reports' }
+    },
+    {
+        key: 'purchase-history',
+        category: 'other',
+        iconKey: 'receipt',
+        navIcon: 'lucide:Receipt',
+        titleKey: 'view.tools.other.purchase_history',
+        descriptionKey: 'view.tools.other.purchase_history_description',
+        navEligible: true,
+        action: { type: 'dialog', dialogKey: 'purchase-history' }
     }
 ];
 

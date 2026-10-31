@@ -1,3 +1,8 @@
+import {
+    DEFAULT_TABLE_PAGE_SIZE,
+    DEFAULT_TRANSLATION_ENDPOINT,
+    DEFAULT_TRANSLATION_MODEL
+} from '@/shared/constants/settings';
 import { DEFAULT_GENERIC_WEBHOOK_FIELDS } from '@/shared/constants/webhook';
 
 type ConfigValueType = 'string' | 'int' | 'bool' | 'float';
@@ -50,14 +55,14 @@ export const ConfigKeys = defineConfigKeys({
 
     // ── Nav ──────────────────────────────────────────
     navIsCollapsed: { type: 'bool', default: false },
-    navPanelWidth: { type: 'int', default: null },
+    navPanelWidth: { type: 'int', default: 240 },
 
     // ── Settings - General ───────────────────────────
     StartAtWindowsStartup: { type: 'bool', default: false },
     CloseToTray: { type: 'bool', default: false },
     backgroundModeDelayEnabled: { type: 'bool', default: false },
     backgroundModeDelayMinutes: { type: 'int', default: 60 },
-    weekStartsOn: { type: 'int', default: null },
+    weekStartsOn: { type: 'int', default: 1 },
 
     // ── Settings - Appearance ────────────────────────
     ThemeMode: { type: 'string', default: null },
@@ -94,9 +99,9 @@ export const ConfigKeys = defineConfigKeys({
     hideUserNotes: { type: 'bool', default: false },
     compactTableMode: { type: 'bool', default: false },
     dataTableStriped: { type: 'bool', default: false },
-    tableDensity: { type: 'string', default: null },
+    tableDensity: { type: 'string', default: 'standard' },
     reducedMotionAndBlur: { type: 'bool', default: false },
-    tablePageSize: { type: 'int', default: null },
+    tablePageSize: { type: 'int', default: DEFAULT_TABLE_PAGE_SIZE },
     randomUserColours: { type: 'bool', default: false },
     randomUserColourStyle: { type: 'string', default: 'classic' },
     backgroundImageEnabled: { type: 'bool', default: false },
@@ -120,7 +125,7 @@ export const ConfigKeys = defineConfigKeys({
     themeMarketplaceCatalogUrl: { type: 'string', default: '' },
 
     // ── Settings - Advanced ──────────────────────────
-    bioLanguage: { type: 'string', default: null },
+    bioLanguage: { type: 'string', default: 'en' },
     relaunchVRChatAfterCrash: { type: 'bool', default: false },
     vrcQuitFix: { type: 'bool', default: true },
     focusVrchatOnJoin: { type: 'bool', default: false },
@@ -153,8 +158,11 @@ export const ConfigKeys = defineConfigKeys({
     translationAPIKey: { type: 'string', default: '' },
     translationAPIType: { type: 'string', default: 'google' },
     translationEndpointId: { type: 'string', default: '' },
-    translationAPIEndpoint: { type: 'string', default: '' },
-    translationAPIModel: { type: 'string', default: '' },
+    translationAPIEndpoint: {
+        type: 'string',
+        default: DEFAULT_TRANSLATION_ENDPOINT
+    },
+    translationAPIModel: { type: 'string', default: DEFAULT_TRANSLATION_MODEL },
     translationAPIPrompt: { type: 'string', default: '' },
     translationAPIReasoningEffort: { type: 'string', default: '' },
 
@@ -167,7 +175,7 @@ export const ConfigKeys = defineConfigKeys({
     notificationDoNotDisturbEndOnGameStart: { type: 'bool', default: true },
     busyStatusDoNotDisturb: { type: 'bool', default: true },
     hideVideoErrorNotifications: { type: 'bool', default: false },
-    notificationLayout: { type: 'string', default: null },
+    notificationLayout: { type: 'string', default: 'notification-center' },
     notificationTTS: { type: 'string', default: 'Never' },
     notificationTTSVoiceNative: { type: 'string', default: '' },
     notificationTTSVolume: { type: 'int', default: 100 },
@@ -189,6 +197,7 @@ export const ConfigKeys = defineConfigKeys({
     hmdNotificationPosition: { type: 'string', default: 'bottom' },
     hmdNotificationStyle: { type: 'string', default: 'standard' },
     hmdNotificationAvatars: { type: 'bool', default: true },
+    hmdNotificationTrackerDisconnect: { type: 'bool', default: true },
     desktopWidgetOpacity: { type: 'int', default: 55 },
     desktopWidgetNewestOnTop: { type: 'bool', default: true },
     webhookEnabled: { type: 'bool', default: false },
@@ -216,6 +225,8 @@ export const ConfigKeys = defineConfigKeys({
     autoAcceptInviteRequests: { type: 'string', default: 'Off' },
     autoDeclineFriendRequests: { type: 'bool', default: false },
     autoAcceptInviteGroups: { type: 'string', default: '[]' },
+    autoAcceptInviteStatuses: { type: 'string', default: '[]' },
+    autoAcceptInviteMessageSlot: { type: 'string', default: '' },
     presenceAutomationTimeRules: { type: 'string', default: '[]' },
     presenceAutomationContextRules: { type: 'string', default: '[]' },
     presenceAutomationMinStatusWriteIntervalMs: {
@@ -361,6 +372,11 @@ export const FAVORITES_LAYOUT_CONFIG_KEYS = Object.freeze({
         friend: 'VRCX_FavoritesFriendSort',
         world: 'VRCX_FavoritesWorldSort',
         avatar: 'VRCX_FavoritesAvatarSort'
+    }),
+    selectedGroup: Object.freeze({
+        friend: 'VRCX_FavoritesFriendSelectedGroup',
+        world: 'VRCX_FavoritesWorldSelectedGroup',
+        avatar: 'VRCX_FavoritesAvatarSelectedGroup'
     })
 });
 

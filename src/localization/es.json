@@ -11,8 +11,14 @@
         "app_launcher_description": "Añade una aplicación o un acceso directo y elige cuándo quieres que se abra.",
         "app_launcher_selection_title": "Elige una aplicación o un acceso directo",
         "app_launcher_selection_description": "Selecciona una app para editar cuándo se inicia.",
+        "feed_title": "Todavía no hay actividad de amigos",
+        "feed_description": "Mientras VRCX-0 esté en ejecución, aquí aparecerá cuando tus amigos se conecten, cambien de mundo o actualicen su perfil.",
         "game_log_title": "Todavía no hay actividad de VRChat",
-        "game_log_description": "Los mundos que visites, los jugadores y otras actividades de VRChat aparecerán aquí mientras juegas.",
+        "game_log_description": "Mantén VRCX-0 en ejecución e inicia VRChat. Los mundos que visites, los jugadores y otras actividades aparecerán aquí mientras juegas.",
+        "game_log_disabled_description": "El guardado del registro del juego está desactivado, así que la nueva actividad no se guarda.",
+        "game_log_enable_action": "Activar en Ajustes",
+        "game_log_unavailable_description": "VRCX-0 no encontró la carpeta de logs de VRChat en este equipo, así que no se está registrando la nueva actividad. Aun así, puedes importar archivos de log manualmente.",
+        "game_log_unsupported_description": "Este sistema no permite leer los logs de VRChat, así que aquí no se puede registrar la actividad del juego.",
         "my_avatars_title": "Todavía no has subido avatares",
         "my_avatars_description": "Los avatares que subas a VRChat aparecerán aquí.",
         "search_no_results": "No se encontraron resultados",
@@ -134,6 +140,10 @@
         "untitled": "Nueva conversación",
         "close": "Cerrar",
         "thinking": "Generando respuesta",
+        "trace": {
+            "working": "Revisando tus datos",
+            "done": "Datos revisados"
+        },
         "scroll_to_latest": "Desplazarse hasta el final",
         "connection": {
             "checking": "Comprobando conexión",
@@ -169,7 +179,10 @@
         "in_private_world": "En un mundo privado",
         "mutual_friends": "{count} amigos en común",
         "no_mutual_friends": "Sin amigos en común",
-        "name_separator": ", "
+        "name_separator": ", ",
+        "open_world": "Abrir mundo",
+        "unknown_user": "Usuario desconocido",
+        "load_failed": "No se pudo cargar este perfil"
     },
     "group_event_hover_card": {
         "following": "Siguiendo",
@@ -562,7 +575,8 @@
             "view_options": "Opciones de vista",
             "cut": "Cortar",
             "paste": "Pegar",
-            "select_all": "Seleccionar todo"
+            "select_all": "Seleccionar todo",
+            "more_actions": "Más acciones"
         },
         "sort_by": "Ordenar por:",
         "time_units": {
@@ -599,6 +613,7 @@
             "database_initialization_is_still_pending": "La base de datos aún se está iniciando. Inténtalo de nuevo en un momento."
         },
         "label": {
+            "terminal": "Terminal",
             "authenticated_and_prepared_the_session": "Sesión iniciada",
             "vrchat_launched": "VRChat iniciado"
         },
@@ -623,10 +638,32 @@
             "label_count": "Filtros ({count})"
         }
     },
+    "economy": {
+        "free": "Gratis",
+        "vrc_plus_price": "{price} con VRC+",
+        "subscription_term": "Suscripción · {duration}",
+        "permanent": "Permanente",
+        "owned": "Adquirido",
+        "store_header": "Tienda",
+        "store_read_only_hint": "Para comprar, usa VRChat o el sitio web.",
+        "store_failed_to_load": "No se pudo cargar la tienda",
+        "store_empty": "No hay nada a la venta",
+        "duration": {
+            "day_one": "{count} día",
+            "day_other": "{count} días",
+            "week_one": "{count} semana",
+            "week_other": "{count} semanas",
+            "month_one": "{count} mes",
+            "month_other": "{count} meses",
+            "year_one": "{count} año",
+            "year_other": "{count} años"
+        }
+    },
     "overlay": {
         "footer": {
             "players": "{count} jugadores",
-            "instance_duration": "Instancia {duration}"
+            "instance_duration": "Instancia {duration}",
+            "online_duration": "En línea {duration}"
         },
         "generic_instance_location": "una instancia",
         "discord": {
@@ -655,6 +692,29 @@
             "show": "Traer al frente"
         }
     },
+    "game_isolation": {
+        "confirm_title": "¿Activar el aislamiento del juego?",
+        "active_title": "Aislamiento del juego activado",
+        "summary": "Esta cuenta no es la que está jugando a VRChat en este PC.",
+        "effect_game_log": "No se guarda el Registro del juego",
+        "effect_presence": "Tu ubicación y estado solo se toman de los servidores de VRChat",
+        "effect_vr": "Se desactivan el overlay de VR, XSOverlay, OVR Toolkit y Texto a voz",
+        "effect_automation": "Se desactivan las automatizaciones que dependen del juego, el estado de Discord, los datos de capturas y el reinicio tras un fallo",
+        "unchanged": "Las notificaciones de escritorio y el Overlay de escritorio siguen funcionando.",
+        "hint_before_launch": "Actívalo antes de abrir VRChat. También se recomienda si usas más de un cliente del juego.",
+        "hint_running_enable": "VRChat está abierto: la sala actual se sigue guardando y el registro se detiene a partir de la siguiente sala.",
+        "hint_running_active": "VRChat está abierto: al desactivarlo, el registro se reanuda a partir de la siguiente sala.",
+        "cancel": "Cancelar",
+        "confirm": "Activar",
+        "close": "Cerrar",
+        "turn_off": "Desactivar aislamiento del juego",
+        "toast_on": "Aislamiento del juego activado",
+        "toast_off": "Aislamiento del juego desactivado",
+        "toast_off_running": "Aislamiento del juego desactivado · El registro se reanuda en la siguiente sala",
+        "failed": "No se pudo cambiar el aislamiento del juego",
+        "badge": "Aislado",
+        "menu_item": "Aislamiento del juego…"
+    },
     "nativeShell": {
         "tray": {
             "open": "Abrir VRCX-0",
@@ -665,10 +725,12 @@
             "doNotDisturbThreeHours": "3 horas",
             "doNotDisturbUntilStopped": "Hasta desactivarlo",
             "doNotDisturbTurnOff": "Desactivar",
+            "gameIsolation": "Aislamiento del juego",
             "rebuildUi": "Recargar interfaz",
             "sidebarMode": "Modo barra lateral",
             "disableTheme": "Desactivar tema",
-            "exit": "Salir"
+            "exit": "Salir",
+            "realtimeReconnecting": "Se perdió la conexión en tiempo real; reconectando"
         },
         "notification": {
             "backgroundModeStarted": {
@@ -728,7 +790,6 @@
                 "keyboardShortcuts": "Atajos de teclado",
                 "sendFeedback": "Enviar comentarios",
                 "reportIssue": "Reportar problema en GitHub",
-                "qqGroup": "Grupo de QQ (comunidad china)",
                 "openDevtools": "Abrir DevTools",
                 "supportVrcx": "Apoyar a VRCX-0"
             }
@@ -760,7 +821,6 @@
         "toggle_theme": "Alternar tema"
     },
     "nav_menu": {
-        "qq_group": "Grupo de QQ (comunidad china)",
         "changelog": "Registro de cambios",
         "update": "Actualizar",
         "update_downloading": "Descargando",
@@ -869,6 +929,8 @@
             "notification_center_page": "Todas tus notificaciones.",
             "my_avatars": "Mis avatares",
             "avatar_collection_page": "Avatares que has subido.",
+            "vrchat_log": "Visor de registros de VRChat",
+            "vrchat_log_page": "Consulta y filtra en directo el registro de salida de VRChat.",
             "tools": "Herramientas",
             "tools_launcher_page": "Todas las herramientas en un solo lugar."
         }
@@ -949,12 +1011,16 @@
             "pagination": "Paginación de búsquedas y tablas",
             "screenshots": "Detalles de capturas",
             "image_viewer": "Visor de imágenes a pantalla completa",
-            "selection": "Selección en capturas y favoritos"
+            "selection": "Selección en capturas y favoritos",
+            "gallery_inventory": "Galería e inventario"
         },
         "navigation_items": "Abrir el elemento de navegación 1–9",
         "hold_for_hints": "Mostrar atajos (mantener pulsado)",
         "toggle_details": "Mostrar / ocultar detalles",
-        "clear_selection": "Borrar selección"
+        "clear_selection": "Borrar selección",
+        "toggle_theme_safe_mode": "Desactivar temporalmente los temas de la comunidad",
+        "theme_safe_mode_on": "Temas de la comunidad desactivados en esta sesión",
+        "theme_safe_mode_off": "Temas de la comunidad restaurados"
     },
     "privacy_lock": {
         "locked_title": "Bloqueado",
@@ -1134,6 +1200,8 @@
             "title": "Centro de notificaciones",
             "view_more": "Ver más",
             "mark_all_read": "Marcar todo como leído",
+            "marking_all_read": "Marcando como leídas…",
+            "mark_read_failed": "No se pudo marcar como leída",
             "mark_as_read": "Marcar como leído",
             "more_actions": "Más acciones",
             "join_now": "Unirse ahora",
@@ -1142,7 +1210,8 @@
             "group_system": "Sistema",
             "tab_friend": "Amigo",
             "no_new_notifications": "No hay notificaciones nuevas en las últimas 24 horas",
-            "no_unseen_notifications": "No hay notificaciones sin leer"
+            "no_unseen_notifications": "No hay notificaciones sin leer",
+            "title_with_count": "Notificaciones, {count} sin leer"
         },
         "success": {
             "vrchat_launch_request_sent": "Abierto en VRChat",
@@ -1261,7 +1330,9 @@
                 "restore_preset": "Restaurar preajuste",
                 "restore_preset_title": "¿Restaurar el preajuste de columnas del feed?",
                 "restore_preset_description": "Esto restaura las columnas predefinidas: Favoritos, Ubicación, Perfil, Presencia.",
-                "restore_preset_confirm": "Restaurar preajuste"
+                "restore_preset_confirm": "Restaurar preajuste",
+                "empty_title": "Esta columna todavía está vacía",
+                "empty_description": "Aquí aparecerá la actividad que coincida con los amigos y tipos de esta columna."
             },
             "error": {
                 "avatar_author_unavailable": "Autor del avatar no disponible",
@@ -1290,6 +1361,12 @@
             },
             "empty": {
                 "no_feed_rows_match_the_current_filters": "Ninguna entrada del feed coincide con los filtros actuales"
+            },
+            "first_run_tip": {
+                "title": "Te damos la bienvenida a VRCX-0",
+                "description": "La actividad de amigos y el historial del juego solo se guardan mientras VRCX-0 está en ejecución. Para traer tu historial anterior, importa tus datos de VRCX o los archivos de log de VRChat.",
+                "description_without_logs": "La actividad de amigos solo se guarda mientras VRCX-0 está en ejecución. Para traer tu historial anterior, importa tus datos de VRCX.",
+                "dismiss": "Entendido"
             },
             "toast": {
                 "failed_to_resolve_avatar_author": "No se pudo identificar al autor del avatar",
@@ -1370,7 +1447,10 @@
                 "expand_session": "Expandir sesión",
                 "collapse_session": "Contraer sesión",
                 "expand_all": "Expandir todo",
-                "collapse_all": "Contraer todo"
+                "collapse_all": "Contraer todo",
+                "players_count": "{count} jugadores",
+                "videos_count": "{count} vídeos",
+                "latest": "Más reciente"
             },
             "label": {
                 "sessions": "Sesiones",
@@ -1489,6 +1569,10 @@
                 "untitled_avatar": "Avatar sin título",
                 "local_test_avatars": "Avatares de prueba locales",
                 "local_test_avatars_description": "Avatares creados con Build & Test en el SDK de VRChat. En el juego solo los ves tú."
+            },
+            "source": {
+                "own": "Subidos",
+                "licensed": "Comprados"
             },
             "action": {
                 "select_style": "Seleccionar estilo",
@@ -1852,7 +1936,8 @@
                         "closed": "Denuncia de moderación cerrada"
                     },
                     "contentrestriction": "Restricción de contenido por moderación",
-                    "notice": "Aviso de moderación"
+                    "notice": "Aviso de moderación",
+                    "sanction": "Sanción de moderación"
                 },
                 "instance": {
                     "closed": "Instancia cerrada"
@@ -1928,6 +2013,17 @@
                     "group": "Grupos",
                     "moderation": "Moderación",
                     "other": "Otros"
+                },
+                "pending_count": "{count} notificaciones nuevas",
+                "new_this_session": "Nueva en esta sesión",
+                "expires_in": "Caduca {time}",
+                "action_all_done": "Todo al día",
+                "action_all_done_description": "Ahora mismo nada necesita tu respuesta.",
+                "group": {
+                    "from_actor": "{count} de {name}",
+                    "from_people": "{name} y otros ({count})",
+                    "expand": "Ver todo",
+                    "collapse": "Ver menos"
                 }
             },
             "responses": {
@@ -2125,6 +2221,7 @@
                 "last_backup": "Última copia: {date}",
                 "connections_configured": "{count} conexiones",
                 "apps_count": "{count} apps",
+                "unopened_bundles": "{count} sin abrir",
                 "automatic_backup": "Copia automática",
                 "show_details": "Mostrar detalles"
             },
@@ -2306,7 +2403,11 @@
                 "all_favorite_friends": "Todos los amigos favoritos",
                 "selected_favorite_groups": "Grupos de favoritos seleccionados",
                 "selected_favorite_groups_label": "Grupos de favoritos seleccionados",
+                "allowed_statuses_label": "Solo cuando mi estado sea",
+                "allowed_statuses_description": "Si no marcas ninguno, se responde con cualquier estado.",
                 "automatic_replies_note": "Solo funciona mientras VRChat esté abierto y tu ubicación permita enviar invitaciones. Cada remitente tiene un tiempo de espera.",
+                "invite_message": "Mensaje de invitación",
+                "invite_message_description": "Envía el texto actual del espacio; si lo editas, cambia lo que se envía.",
                 "failed_to_load_schedule_rules": "No se pudieron cargar las reglas de programación.",
                 "failed_to_save_schedule_rules": "No se pudieron guardar las reglas de programación.",
                 "failed_to_load_room_rules": "No se pudieron cargar las reglas de instancia.",
@@ -2319,7 +2420,9 @@
                 "edit_invite_message": "Plantillas de mensajes",
                 "edit_invite_message_description": "Editar plantillas de mensajes de invitación y solicitud",
                 "moderation_reports": "Mis denuncias",
-                "moderation_reports_description": "Consulta o retira las denuncias que has enviado"
+                "moderation_reports_description": "Consulta o retira las denuncias que has enviado",
+                "purchase_history": "Historial de compras",
+                "purchase_history_description": "Consulta tus compras y movimientos de Credits"
             },
             "success": {
                 "media_item_deleted": "Elemento multimedia eliminado",
@@ -2467,7 +2570,8 @@
         "profile": {
             "game_info": {
                 "online_users": "Usuarios en línea",
-                "user_online": "{count} usuarios en línea."
+                "user_online": "{count} usuarios en línea.",
+                "instances_active": "{count} instancias activas."
             },
             "config_json": "JSON de configuración"
         },
@@ -2554,6 +2658,7 @@
                     "style_standard": "Estándar",
                     "style_compact": "Compacto",
                     "friend_icons": "Mostrar iconos de amigos",
+                    "tracker_disconnect": "Avisar si se desconecta un tracker",
                     "timeout": "Duración",
                     "opacity": "Opacidad",
                     "filters": "Filtros de notificaciones del visor"
@@ -2615,13 +2720,13 @@
                     "port_active_connections": "Puerto {port} · {count} conexiones activas",
                     "client_config": "Configuración del cliente",
                     "client_config_description": "Claude Code: un comando de terminal de una sola vez. Genérico (HTTP): configuración JSON para una conexión directa. Genérico (mcp-remote): configuración JSON mediante proxy Node.js para clientes sin HTTP nativo; requiere Node.js en el PATH. Con LAN activado, las configuraciones usan `YOUR-LAN-IP` — sustitúyelo por la IP local de este equipo.",
+                    "view_client_config": "Ver configuración",
                     "copy_mcp_remote": "Genérico (mcp-remote)",
                     "copy_generic": "Genérico (HTTP)",
                     "security_note": "Las configuraciones del cliente contienen un token en texto plano. Compártelas solo con herramientas o dispositivos en los que confíes.",
                     "rotate_token": "Rotar token",
                     "rotate_token_description": "Las configuraciones de cliente antiguas dejan de funcionar tras la rotación.",
                     "token_rotated": "Token de MCP rotado",
-                    "copied": "Configuración de {target} copiada",
                     "status": {
                         "loading": "Cargando",
                         "disabled": "Detenido",
@@ -3324,6 +3429,17 @@
             "restart_pending": {
                 "description": "Algunos cambios se aplicarán cuando reinicies VRCX-0.",
                 "restart_now": "Reiniciar ahora"
+            },
+            "field": {
+                "modified": "Modificado",
+                "reset": "Restablecer",
+                "restart_required": "Requiere reiniciar",
+                "requires_parent": "Activa primero «{name}»"
+            },
+            "search": {
+                "placeholder": "Buscar ajustes",
+                "results": "Resultados de búsqueda de ajustes",
+                "no_results": "No hay ajustes que coincidan"
             }
         },
         "dashboard": {
@@ -3611,7 +3727,10 @@
                 "accept_friend_request": "Aceptar solicitud de amistad",
                 "decline_notification": "Rechazar notificación",
                 "decline": "Rechazar",
-                "send_invite": "Enviar invitación"
+                "send_invite": "Enviar invitación",
+                "accept_friend_request_consequence": "Se añadirá a tu lista de amigos.",
+                "decline_notification_consequence": "La notificación se eliminará en VRChat.",
+                "send_invite_consequence": "La invitación se envía a la instancia en la que estás."
             },
             "dynamic": {
                 "accept_the_friend_request_from_value": "¿Aceptar la solicitud de amistad de {value}?",
@@ -3626,7 +3745,8 @@
             },
             "status": {
                 "active": "Activo",
-                "installed": "Instalado"
+                "installed": "Instalado",
+                "tested_with_older": "Probado con {version}; puede verse mal en esta versión"
             },
             "field": {
                 "name": "Nombre",
@@ -3642,7 +3762,7 @@
             },
             "action": {
                 "install": "Instalar y activar",
-                "update_enable": "Actualizar",
+                "update": "Actualizar",
                 "enable_theme": "Activar tema",
                 "disable_theme": "Desactivar tema",
                 "delete_theme": "Eliminar tema",
@@ -3685,7 +3805,10 @@
                 "override_saved": "CSS personalizado aplicado.",
                 "override_disabled": "CSS personalizado desactivado.",
                 "override_cleared": "CSS personalizado borrado.",
-                "disable_failed": "No se pudieron actualizar los ajustes de tema de la comunidad."
+                "disable_failed": "No se pudieron actualizar los ajustes de tema de la comunidad.",
+                "update_available": "Hay una nueva versión de {{name}}",
+                "theme_updated": "Tema de la comunidad actualizado a {{version}}.",
+                "update_failed": "No se pudo actualizar el tema de la comunidad."
             },
             "confirm": {
                 "delete_theme_title": "¿Eliminar este tema?",
@@ -3796,7 +3919,10 @@
             "description": "En qué se fue tu tiempo, resumido por periodo",
             "range": {
                 "all": "Todo",
-                "days": "Últimos {days} días"
+                "days": "Últimos {days} días",
+                "previous": "Periodo anterior",
+                "next": "Periodo siguiente",
+                "custom": "Rango personalizado"
             },
             "stat": {
                 "total_time": "Tiempo total",
@@ -3832,7 +3958,10 @@
             },
             "empty": {
                 "title": "Aún no hay registros",
-                "description": "Juega un rato a VRChat y tu actividad aparecerá aquí."
+                "description": "Deja VRCX-0 abierto mientras juegas a VRChat y tu actividad aparecerá aquí.",
+                "window_title": "Nada registrado en este periodo",
+                "unsupported": "En esta plataforma VRCX-0 no puede leer los registros del juego de VRChat, así que aquí no se registra actividad.",
+                "unavailable": "VRCX-0 no encontró la carpeta de logs de VRChat, así que ahora no puede registrar actividad nueva. Puedes importar archivos de log existentes."
             },
             "error": {
                 "failed_to_load": "No se pudo cargar tu actividad"
@@ -3891,11 +4020,23 @@
                 "photo_count_other": "{count} capturas",
                 "empty": {
                     "title": "Aún no hay visitas",
-                    "description": "Una visita aparece aquí cuando sales del mundo.",
+                    "description": "Deja VRCX-0 abierto mientras juegas a VRChat. Cada visita aparece aquí cuando sales del mundo.",
                     "filtered_title": "Sin visitas en este periodo"
                 },
                 "all_dates": "Todas las fechas",
                 "screenshots": "Capturas"
+            },
+            "previous": {
+                "summary": "{days} días anteriores: {hours} · días jugados: {activeDays}",
+                "none": "Nada registrado en los {days} días anteriores",
+                "more": "Más que en el periodo anterior",
+                "less": "Menos que en el periodo anterior",
+                "same": "Igual que en el periodo anterior"
+            },
+            "stale": "Puede que no esté actualizado",
+            "chart": {
+                "series_summary": "{label}, del {from} al {to}: {total} en total. Máximo: {peak}, {peakHours}.",
+                "heatmap_summary": "Tiempo de juego por día de la semana y hora. Hora con más juego: {peak}."
             }
         },
         "my_groups": {
@@ -3906,6 +4047,8 @@
             "exit_edit_mode": "Listo",
             "section_own": "Grupos propios",
             "section_joined": "Grupos a los que te uniste",
+            "section_pending": "Invitaciones y solicitudes",
+            "section_blocked": "Grupos bloqueados",
             "order_hint": "Arrastra los grupos para definir el orden en que aparecen en VRChat.",
             "order_game_running": "VRChat está en ejecución. Los cambios de orden pueden sobrescribirse al cerrar el juego.",
             "order_unavailable": "No se puede cambiar el orden de los grupos: {reason}",
@@ -3913,6 +4056,15 @@
             "order_save_failed": "No se pudo guardar el orden de los grupos en el juego.",
             "row_actions": "Acciones del grupo",
             "leave": "Abandonar",
+            "accept_invite": "Aceptar",
+            "decline_invite": "Rechazar",
+            "block": "Bloquear",
+            "unblock": "Desbloquear",
+            "cancel_request": "Retirar solicitud",
+            "confirm_block_title": "¿Bloquear este grupo?",
+            "invite_accepted": "Te uniste al grupo",
+            "membership_load_failed": "No se pudieron cargar las invitaciones de grupo",
+            "membership_action_failed": "La acción del grupo falló",
             "leave_partial": "Abandonar {count}",
             "leave_owner_locked": "No puedes abandonar un grupo que te pertenece.",
             "leave_completed": "Has abandonado {count} grupo(s).",
@@ -4028,11 +4180,11 @@
                 "moderation_enable_chatbox": "Dejar de silenciar el chatbox",
                 "moderation_disable_chatbox": "Silenciar el chatbox",
                 "edit_status": "Editar estado social",
-                "edit_profile_details": "Editar detalles del perfil",
-                "edit_profile_media": "Editar banner e icono",
-                "report_hacking": "Denunciar por trampas",
+                "report_user": "Denunciar usuario…",
                 "unfriend": "Eliminar amigo",
-                "edit_note_memo": "Editar nota y nota local"
+                "edit_note_memo": "Editar nota y nota local",
+                "edit_profile": "Editar perfil",
+                "account_standing": "Estado de la cuenta"
             },
             "group_invite": {
                 "select_group": "Selecciona un grupo",
@@ -4093,6 +4245,7 @@
                 "join_count": "Encuentros",
                 "time_together": "Tiempo juntos",
                 "play_time": "Tiempo de juego",
+                "vrc_credits": "VRChat Credits",
                 "estimated_online_for": "En línea desde hace unos {duration}",
                 "last_activity": "Última actividad",
                 "date_joined": "Fecha de ingreso",
@@ -4156,7 +4309,8 @@
                 "sort_by_uploaded": "Subido",
                 "all": "Todos",
                 "public": "Público",
-                "private": "Privado"
+                "private": "Privado",
+                "licensed": "Comprados"
             },
             "json": {
                 "header": "JSON"
@@ -4220,6 +4374,14 @@
             },
             "note_memo": {
                 "header": "Editar nota y nota local"
+            },
+            "report": {
+                "header": "Denunciar usuario",
+                "category": "Categoría",
+                "reason": "Motivo",
+                "description": "Detalles (opcional)",
+                "description_placeholder": "Describe lo que pasó",
+                "no_options": "Aún no se han cargado las opciones de denuncia de VRChat. Inténtalo más tarde."
             },
             "action": {
                 "open_user_icon": "Abrir icono de usuario",
@@ -4304,9 +4466,7 @@
             "description": {
                 "update_your_social_status_and_status_description": "Actualiza tu estado social y tu mensaje de estado",
                 "status_description": "Mensaje de estado",
-                "clear_status_description": "Borrar el mensaje de estado",
-                "edit_profile_details": "Editar detalles del perfil",
-                "update_your_profile_details": "Edita los detalles del perfil que se muestran en tu tarjeta."
+                "clear_status_description": "Borrar el mensaje de estado"
             },
             "toast": {
                 "memo_saved": "Nota local guardada",
@@ -4349,7 +4509,6 @@
                 "failed_to_update_group_order": "No se pudo actualizar el orden de los grupos"
             },
             "modal": {
-                "report_hacking": "¿Denunciar trampas?",
                 "report": "Denunciar",
                 "send_invite": "¿Enviar invitación?",
                 "request_invite": "¿Solicitar invitación?",
@@ -4377,6 +4536,42 @@
                 "left_value_groups": "Has abandonado {value} grupos",
                 "enable_value": "Activar {value}",
                 "disable_value": "Desactivar {value}"
+            },
+            "profile_edit": {
+                "details": "Información básica",
+                "avatar_image": "Imagen del avatar",
+                "solid_color": "Color sólido",
+                "apply_color": "Aplicar color"
+            },
+            "account_standing": {
+                "header": "Estado de la cuenta",
+                "description": "El estado de tu cuenta según VRChat.",
+                "status": "Estado",
+                "issue_clear_days": "Días hasta que se resuelva",
+                "sanctions": "Sanciones",
+                "load_failed": "No se pudo cargar el estado de la cuenta"
+            },
+            "relationship": {
+                "friend": "Amigo",
+                "request_received": "Solicitud de amistad recibida",
+                "request_sent": "Solicitud de amistad enviada",
+                "avatar_hidden": "Avatar oculto",
+                "interaction_off": "Interacción con el avatar desactivada",
+                "chatbox_muted": "Chatbox silenciado"
+            },
+            "friend_request": {
+                "incoming_banner": "Te envió una solicitud de amistad"
+            },
+            "consequence": {
+                "block_on": "Tú y {name} dejarán de verse y oírse en VRChat.",
+                "block_off": "Tú y {name} podrán volver a verse y oírse en VRChat.",
+                "mute_on": "Dejarás de oír la voz de {name} en VRChat.",
+                "mute_off": "Volverás a oír la voz de {name} en VRChat.",
+                "interactOff_on": "{name} no podrá interactuar con tu avatar en VRChat.",
+                "interactOff_off": "{name} podrá volver a interactuar con tu avatar en VRChat.",
+                "muteChat_on": "Dejarás de ver los mensajes del chatbox de {name} en VRChat.",
+                "muteChat_off": "Volverás a ver los mensajes del chatbox de {name} en VRChat.",
+                "unfriend": "{name} se eliminará de tu lista de amigos. Para volver a ser amigos, uno de los dos tendrá que enviar una nueva solicitud de amistad."
             }
         },
         "world": {
@@ -4422,6 +4617,7 @@
             },
             "instances": {
                 "header": "Instancias",
+                "closed": "Cerrada",
                 "public_count": "Público {count}",
                 "private_count": "Privado {count}",
                 "capacity_count": "Capacidad {count} (máx. {max})",
@@ -4671,6 +4867,9 @@
                 "memo_placeholder": "Haz clic para agregar una nota local",
                 "listings": "Listados",
                 "gallery": "Galería",
+                "gallery_move_earlier": "Mover antes",
+                "gallery_move_later": "Mover después",
+                "gallery_delete_image": "Eliminar imagen",
                 "attributes": "Atributos"
             },
             "performance": {
@@ -4758,6 +4957,7 @@
             },
             "label": {
                 "avatar_gallery_image_uploaded": "Imagen subida a la galería del avatar",
+                "avatar_gallery_image_deleted": "Imagen de la galería eliminada",
                 "local_tags": "Etiquetas locales",
                 "vrchat_tags": "Etiquetas de VRChat",
                 "built_in_content_tags": "Etiquetas de contenido integradas",
@@ -4795,6 +4995,8 @@
                 "selected_file_is_not_an_image": "El archivo seleccionado no es una imagen",
                 "failed_to_upload_avatar_image": "No se pudo subir la imagen del avatar",
                 "failed_to_upload_avatar_gallery_image": "No se pudo subir la imagen a la galería del avatar",
+                "failed_to_reorder_avatar_gallery": "No se pudo reordenar la galería",
+                "failed_to_delete_avatar_gallery_image": "No se pudo eliminar la imagen de la galería",
                 "impostor_queued_for_creation": "Impostor en cola para su creación",
                 "failed_to_create_impostor": "No se pudo crear el impostor",
                 "impostor_deleted": "Impostor eliminado",
@@ -4807,6 +5009,7 @@
                 "select_fallback_avatar": "¿Seleccionar avatar de respaldo?",
                 "select_fallback": "Seleccionar respaldo",
                 "delete_avatar": "¿Eliminar avatar?",
+                "delete_gallery_image": "¿Eliminar esta imagen de la galería?",
                 "edit_local_memo": "Editar nota local",
                 "create_impostor_title": "¿Crear impostor?",
                 "create": "Crear",
@@ -4842,6 +5045,9 @@
                 "visibility_friends": "Amigos",
                 "visibility_hidden": "Oculta",
                 "create_post": "Crear publicación",
+                "create_event": "Crear evento",
+                "manage_roles": "Administrar roles",
+                "view_roles": "Ver roles",
                 "moderation_tools": "Herramientas de moderación",
                 "leave": "Abandonar grupo",
                 "block": "Bloquear grupo",
@@ -4893,7 +5099,10 @@
                 "edited_at": "Editado el:",
                 "created_at": "Creado el:",
                 "edited_by": "Editado por:",
-                "search_placeholder": "Buscar"
+                "search_placeholder": "Buscar",
+                "expand": "Ver más",
+                "collapse": "Ver menos",
+                "edited": "Editado"
             },
             "role_name": {
                 "group_owner": "Propietario del grupo",
@@ -5095,6 +5304,18 @@
                 "self_invite": "Autoinvitación"
             },
             "subtitle_fallback": "Instancia de VRChat",
+            "avatar_switch": {
+                "toggle": "Cambiar de avatar antes de entrar",
+                "placeholder": "Elige un avatar",
+                "search_placeholder": "Buscar avatares",
+                "hint": "El avatar se cambia mediante la API de VRChat. Lo que tarda en aplicarse depende de VRChat, así que puede no ser inmediato.",
+                "timeout": "El servidor de VRChat no respondió al cambio de avatar. Se pausó la entrada.",
+                "group": {
+                    "current": "Avatar actual",
+                    "own": "Mis avatares",
+                    "favorite": "Avatares favoritos"
+                }
+            },
             "tile": {
                 "vr": "VR",
                 "desktop": "Escritorio",
@@ -5151,7 +5372,10 @@
             },
             "dynamic": {
                 "edit_slot_value": "Editar ranura {value}"
-            }
+            },
+            "no_message": "Sin mensaje",
+            "slot_value": "Espacio {value}",
+            "attach_image": "Adjuntar imagen"
         },
         "invite_request_message": {
             "header": "Solicitar con mensaje"
@@ -5179,16 +5403,11 @@
             }
         },
         "edit_invite_message": {
-            "header": "Editar plantilla de mensaje",
             "save": "Guardar"
         },
         "edit_send_invite_message": {
-            "header": "Editar y enviar plantilla de mensaje",
             "description": "Tiempo de espera de edición de 1 hora.",
             "send": "Enviar"
-        },
-        "edit_send_invite_response_message": {
-            "description": "Tiempo de espera de edición de 1 hora."
         },
         "export_friends_list": {
             "header": "Exportar lista de amigos",
@@ -5235,6 +5454,7 @@
             "inventory": "Inventario",
             "refresh": "Actualizar",
             "upload": "Subir",
+            "paste_upload": "Pegar imagen",
             "clear": "Limpiar",
             "banner": "Banner",
             "profile_photo": "Banner",
@@ -5273,7 +5493,9 @@
                 "compact": "Compacta",
                 "dense": "Densa"
             },
-            "crop_image": "Confirmar subida"
+            "crop_image": "Confirmar subida",
+            "locked_title": "Tus imágenes subidas están bloqueadas temporalmente",
+            "locked_description": "Siguen guardadas. Únete a VRC+ para volver a usarlas."
         },
         "inventory": {
             "header": "Inventario",
@@ -5379,6 +5601,15 @@
             "result_count": "{count} resultados",
             "gallery": "Galería",
             "folders": "Carpetas",
+            "favorites": "Favoritos",
+            "favorite": "Añadir a favoritos",
+            "unfavorite": "Quitar de favoritos",
+            "favorites_missing": "No se encuentran {count} favoritos",
+            "forget_missing_favorites": "Quitar los que faltan",
+            "forget_missing_favorites_confirm_title": "¿Quitar los favoritos que no se encuentran?",
+            "forget_missing_favorites_confirm_description": "{count} favoritos apuntan a archivos que ya no están. Si los quitas, no se volverán a encontrar automáticamente, aunque los archivos estén en una unidad que ahora no está conectada.",
+            "empty_favorites": "Aún no hay favoritos",
+            "empty_favorites_description": "Marca una captura con la estrella para guardarla aquí.",
             "scanning": "Escaneando capturas",
             "image_count": "{count} imágenes",
             "feeling_lucky": "Voy a tener suerte",
@@ -5719,6 +5950,118 @@
         "group_post_edit": {
             "title": "Título"
         },
+        "group_event_edit": {
+            "create_header": "Crear evento del grupo",
+            "edit_header": "Editar evento del grupo",
+            "title": "Título",
+            "description": "Descripción",
+            "starts_at": "Inicio",
+            "ends_at": "Fin",
+            "start_in_past": "El evento debe empezar en el futuro.",
+            "invalid_date_range": "El evento debe terminar después de empezar.",
+            "repeat": "Repetir",
+            "repeat_values": {
+                "none": "No se repite",
+                "weekly": "Cada semana",
+                "monthly": "Cada mes",
+                "yearly": "Cada año"
+            },
+            "repeat_every": "Repetir cada",
+            "weekly_pattern": "Patrón semanal",
+            "weekly_pattern_values": {
+                "every_week": "Todas las semanas",
+                "weekdays": "Cada día laborable",
+                "weekend": "Cada fin de semana",
+                "custom": "Días personalizados"
+            },
+            "ends": "Termina",
+            "ends_values": {
+                "never": "Nunca",
+                "afterOccurrences": "Tras varias repeticiones",
+                "afterDate": "En una fecha"
+            },
+            "occurrence_count": "Número de repeticiones",
+            "end_date": "Fecha de fin",
+            "access_type": "Acceso",
+            "access_group": "Miembros del grupo",
+            "access_public": "Público",
+            "category": "Categoría",
+            "categories": {
+                "arts": "Arte",
+                "avatars": "Avatares",
+                "dance": "Baile",
+                "education": "Educación",
+                "exploration": "Exploración",
+                "film_media": "Cine y medios",
+                "gaming": "Videojuegos",
+                "hangout": "Pasar el rato",
+                "music": "Música",
+                "other": "Otros",
+                "performance": "Actuaciones",
+                "roleplaying": "Rol",
+                "wellness": "Bienestar"
+            },
+            "tags": "Etiquetas",
+            "tags_help": "Hasta cinco etiquetas separadas por comas.",
+            "platforms": "Plataformas",
+            "platform_values": {
+                "standalonewindows": "PC",
+                "android": "Android",
+                "ios": "iOS"
+            },
+            "roles": "Roles",
+            "roles_help": "Si no marcas ninguno, se incluye a todos los miembros.",
+            "host_early_join": "Entrada anticipada del anfitrión (min)",
+            "guest_early_join": "Entrada anticipada de invitados (min)",
+            "close_after_end": "Cerrar tras terminar (min)",
+            "send_notification": "Avisar a los miembros al crear el evento",
+            "delete": "Eliminar evento",
+            "save": "Guardar cambios",
+            "create": "Crear evento",
+            "create_success": "Evento del grupo creado",
+            "edit_success": "Evento del grupo actualizado",
+            "delete_success": "Evento del grupo eliminado",
+            "save_error": "No se pudo guardar el evento del grupo",
+            "delete_error": "No se pudo eliminar el evento del grupo",
+            "delete_confirm": "¿Eliminar este evento del grupo?"
+        },
+        "group_roles": {
+            "header": "Administrar roles del grupo",
+            "view_header": "Roles del grupo",
+            "new_role": "Nuevo rol",
+            "no_roles": "No hay roles",
+            "no_role_selected": "Elige un rol para editarlo o crea uno nuevo",
+            "name": "Nombre",
+            "description": "Descripción",
+            "self_assignable": "Autoasignable",
+            "self_assignable_description": "Los miembros pueden asignarse este rol",
+            "added_on_join": "Al unirse",
+            "added_on_join_description": "Los nuevos miembros reciben este rol automáticamente",
+            "requires_two_factor": "Requiere 2FA",
+            "requires_two_factor_description": "Los miembros necesitan verificación en dos pasos para usar este rol",
+            "requires_purchase": "Requiere compra",
+            "requires_purchase_description": "Los miembros lo obtienen al comprar una suscripción del grupo",
+            "permissions": "Permisos",
+            "management_permissions": "Permisos de administración",
+            "default_role": "Predeterminado",
+            "management_roles": "Roles de administración",
+            "member_roles": "Roles de miembros",
+            "assigned_to_you": "Tuyo",
+            "delete": "Eliminar rol",
+            "delete_confirm": "¿Eliminar este rol? No se puede deshacer.",
+            "create": "Crear rol",
+            "save": "Guardar",
+            "saved": "Rol guardado",
+            "save_failed": "No se pudo guardar el rol",
+            "deleted": "Rol eliminado",
+            "delete_failed": "No se pudo eliminar el rol",
+            "add_self": "Asignármelo",
+            "remove_self": "Quitármelo",
+            "self_role_added": "Rol asignado",
+            "self_role_removed": "Rol quitado",
+            "self_role_failed": "No se pudieron actualizar tus roles",
+            "load_failed": "No se pudieron cargar los roles del grupo"
+        },
         "group_calendar": {
             "header": "Calendario del grupo",
             "loading_events": "Cargando eventos",
@@ -5908,6 +6251,7 @@
                 "android": "Android:",
                 "ios": "iOS:",
                 "game_version": "Versión del juego",
+                "languages": "Idiomas:",
                 "instance_queuing_enabled": "Cola de instancia habilitada",
                 "disabled_content": "Contenido deshabilitado",
                 "instance_closed": "Instancia cerrada",
@@ -5969,7 +6313,31 @@
             "withdraw_description": "Esta acción no se puede deshacer.",
             "failed_to_withdraw": "No se pudo retirar la denuncia",
             "status_open": "Abierta",
-            "status_closed": "Cerrada"
+            "status_closed": "Cerrada",
+            "type_filter": {
+                "all": "Todo",
+                "user": "Usuarios",
+                "world": "Mundos",
+                "avatar": "Avatares",
+                "group": "Grupos"
+            }
+        },
+        "purchase_history": {
+            "header": "Historial de compras",
+            "description": "Artículos que compraste y movimientos de VRChat Credits",
+            "purchases": "Compras",
+            "transactions": "Movimientos",
+            "all_types": "Todos los tipos",
+            "gift": "Regalo",
+            "inactive": "Caducado",
+            "seller": "Vendedor {name}",
+            "ends": "Termina {date}",
+            "from": "De",
+            "to": "Para",
+            "balance": "Saldo {value}",
+            "failed_to_load": "No se pudo cargar el historial de compras",
+            "empty_purchases": "Aún no hay compras",
+            "empty_transactions": "Aún no hay movimientos"
         }
     },
     "confirm": {
@@ -6142,6 +6510,7 @@
         "file": {
             "not_image": "El archivo no es una imagen",
             "too_large": "El archivo es demasiado grande",
+            "clipboard_no_image": "No hay ninguna imagen en el portapapeles. Copia primero una imagen o un archivo de imagen.",
             "folder_opened": "Carpeta abierta",
             "folder_missing": "La carpeta no existe"
         },
@@ -6276,6 +6645,10 @@
         "event_title": "Evento",
         "external_title": "App externa",
         "video_play_title": "Reproducción de vídeo",
+        "tracker_title": "Tracker",
+        "tracker_disconnected": "desconectado",
+        "tracker_disconnected_battery": "desconectado · última batería {percent}%",
+        "trackers_disconnected": "{count} desconectados",
         "avatar_change": "cambió al avatar {avatar}",
         "blocked_player_joined": "Un usuario bloqueado se ha unido",
         "blocked_player_left": "Un usuario bloqueado se ha ido",
@@ -6366,10 +6739,7 @@
         },
         "profile": {
             "invite_messages": {
-                "slot": "Espacio",
-                "message": "Mensaje",
-                "cool_down": "Tiempo de espera",
-                "action": "Acción"
+                "cool_down": "Tiempo de espera"
             }
         },
         "import": {
@@ -6395,13 +6765,28 @@
             "table_layout": "Diseño de tabla",
             "columns": "Columnas",
             "lock_column_order": "Bloquear orden de columnas",
-            "unlock_column_order": "Desbloquear orden de columnas"
+            "unlock_column_order": "Desbloquear orden de columnas",
+            "new_items_count": "{count} nuevos"
         },
         "action": {
-            "reset_columns": "Restablecer columnas"
+            "reset_columns": "Restablecer columnas",
+            "sort_ascending": "Orden ascendente",
+            "sort_descending": "Orden descendente",
+            "clear_sort": "Quitar orden",
+            "hide_column": "Ocultar columna",
+            "move_column_left": "Mover a la izquierda",
+            "move_column_right": "Mover a la derecha"
         },
         "empty": {
             "no_rows_yet": "Aún no hay entradas."
+        },
+        "filter_action": {
+            "label": "Filtrar",
+            "only_user": "Mostrar solo a {value}",
+            "add_user_to_scope": "Añadir a {value} al filtro",
+            "only_type": "Mostrar solo «{value}»",
+            "exclude_type": "Ocultar «{value}»",
+            "only_world": "Mostrar solo {value}"
         }
     },
     "accessibility": {
@@ -6426,7 +6811,8 @@
         "open_player": "Abrir perfil del jugador: {player}",
         "player": "jugador",
         "remove_value": "Eliminar {value}",
-        "add_table_page_size": "Añadir tamaño de página de tabla"
+        "add_table_page_size": "Añadir tamaño de página de tabla",
+        "column_width_value": "{value} píxeles"
     },
     "status_bar": {
         "do_not_disturb": "No molestar",
@@ -6436,6 +6822,8 @@
         "do_not_disturb_three_hours": "Durante 3 horas",
         "do_not_disturb_until_stopped": "Hasta que lo desactive",
         "do_not_disturb_turn_off": "Desactivar No molestar",
+        "game_isolation": "Aislamiento del juego",
+        "game_isolation_active": "Aislamiento del juego activado · Haz clic para desactivarlo",
         "do_not_disturb_failed": "No se pudo cambiar No molestar",
         "world_collection_importing": "Importando colección de mundos ({progress}/{total})",
         "game": "Juego",
@@ -6449,6 +6837,14 @@
         "realtime_connection": "Tiempo real",
         "ws_connected": "Conectado",
         "ws_disconnected": "Desconectado",
+        "realtime_connecting": "Conectando",
+        "realtime_reconnecting": "Reconectando",
+        "realtime_retry_in": "Reintento en {seconds} s",
+        "realtime_retry_soon": "Reintentando en breve",
+        "realtime_last_connected": "Última conexión: {time}",
+        "realtime_disconnected_since": "Desconectado desde {time}",
+        "realtime_reason": "Motivo: {reason}",
+        "realtime_retry_now": "Haz clic para reintentar ahora",
         "zoom": "Zoom",
         "zoom_tooltip": "Haz clic para ajustar el nivel de zoom",
         "app_uptime": "Tiempo de actividad de la aplicación",
@@ -6478,7 +6874,8 @@
         "desktop_widget_off": "El overlay de escritorio está desactivado",
         "desktop_widget_on": "El overlay de escritorio está activado",
         "desktop_widget_click_through": "El overlay de escritorio está activado (deja pasar los clics)",
-        "desktop_widget_failed": "No se pudo actualizar el overlay de escritorio"
+        "desktop_widget_failed": "No se pudo actualizar el overlay de escritorio",
+        "desktop_widget_menu_hint": "Clic derecho para más opciones"
     },
     "component": {
         "favorite_action_menu": {
@@ -6531,6 +6928,23 @@
                 "failed_to_refresh_instance": "No se pudo actualizar la instancia",
                 "failed_to_close_instance": "No se pudo cerrar la instancia",
                 "failed_to_launch_instance": "No se pudo iniciar la instancia"
+            },
+            "calendar_link": {
+                "header": "Asignar evento de grupo",
+                "event": "Evento",
+                "no_events": "No hay eventos de grupo que empiecen en las próximas 6 horas o hayan terminado en las últimas 6 horas.",
+                "assign": "Asignar",
+                "remove": "Quitar vínculo",
+                "linked": "Evento de grupo asignado a esta instancia",
+                "unlinked": "Evento de grupo quitado de esta instancia",
+                "failed": "No se pudo actualizar el evento de grupo de la instancia"
+            },
+            "calendar_event": "Evento de grupo vinculado",
+            "rename": {
+                "header": "Renombrar instancia",
+                "description": "Déjalo vacío para quitar el nombre.",
+                "renamed": "Instancia renombrada",
+                "failed": "No se pudo renombrar la instancia"
             },
             "modal": {
                 "close_instance": "¿Cerrar la instancia?"
@@ -6638,6 +7052,7 @@
         "vrc_notification_center": {
             "toast": {
                 "failed_to_mark_notifications_as_seen": "Error al marcar las notificaciones como vistas",
+                "mark_all_seen_partially_failed": "No se pudieron marcar algunas notificaciones como leídas",
                 "failed_to_accept_friend_request": "Error al aceptar la solicitud de amistad",
                 "failed_to_decline_notification": "Error al rechazar la notificación",
                 "failed_to_send_invite": "Error al enviar la invitación",

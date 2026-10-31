@@ -1,7 +1,7 @@
 {
     "$schema": "https://schema.tauri.app/config/2",
     "productName": "VRCX-0",
-    "version": "2.32.0",
+    "version": "2.33.0",
     "identifier": "com.vrcx-0.app",
     "build": {
         "frontendDist": "../dist",
@@ -68,7 +68,6 @@
         ],
         "windows": {
             "digestAlgorithm": "sha256",
-            "certificateThumbprint": "CF3C4BD75C0B82455ABEBFF09A2127FA92F6C140",
             "timestampUrl": "http://time.certum.pl",
             "nsis": {
                 "installerIcon": "icons/icon.ico",
@@ -85,10 +84,9 @@
             }
         },
         "updater": {
-            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEIwQTA3NTFDOTAxM0E3MjYKUldRbXB4T1FISFdnc0dXNWJhUEVNUVNNcm5ubytmR3lEdTBCUzJPUFY0dHpLcW1UdldwUFB4OWEK",
+            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMxODcxRkNDQUZBMzUzNUMKUldSY1U2T3Z6QitId1lkMGtiVW1TbllIYitDREE3YnZycUJJQkIwajVTY04zWng5QTRCWlRWWVEK",
             "endpoints": [
-                "https://github.com/Map1en/VRCX-0/releases/latest/download/latest_linux_and_macos.json",
-                "https://github.com/Map1en/VRCX-0/releases/latest/download/latest_windows.json"
+                "https://github.com/LittleApple-fp16/VRCX-0/releases/latest/download/latest_windows.json"
             ],
             "windows": {
                 "installMode": "passive"

@@ -14,7 +14,7 @@ mod request;
 pub use params::GroupMemberSort;
 pub use request::{
     GroupMemberPatch, GroupMemberVisibility, GroupPostMutation, GroupPostVisibility,
-    GroupProfileJoinState, GroupProfileUpdate,
+    GroupProfileJoinState, GroupProfileUpdate, GroupRoleMutation,
 };
 
 fn group_path(group_id: &str, suffix: &str) -> String {
@@ -54,6 +54,26 @@ pub fn user_groups_get_input(
         get_input(
             endpoint,
             format!("users/{}/groups", encode_path_segment(&user_id)),
+            HashMap::new(),
+        ),
+    ))
+}
+
+pub fn user_groups_by_membership_get_input(
+    endpoint: String,
+    user_id: String,
+    membership_status: &str,
+) -> Result<(String, HttpApiRequestInput), HttpApiError> {
+    let user_id = require_text(user_id, "VrchatGroupMembershipListGet requires userId.")?;
+    Ok((
+        user_id.clone(),
+        get_input(
+            endpoint,
+            format!(
+                "users/{}/groups/{}",
+                encode_path_segment(&user_id),
+                membership_status
+            ),
             HashMap::new(),
         ),
     ))
@@ -448,6 +468,17 @@ pub fn group_block_input(group_id: String) -> Result<(String, HttpApiRequestInpu
     )
 }
 
+enum UserActionTarget {
+    Collection(&'static str),
+    Item(&'static str),
+}
+
+enum UserActionBody {
+    Empty,
+    UserId,
+    Json(Value),
+}
+
 struct GroupUserActionInput<'a> {
     endpoint: String,
     group_id: String,
@@ -455,8 +486,8 @@ struct GroupUserActionInput<'a> {
     group_message: &'a str,
     user_message: &'a str,
     method: &'a str,
-    suffix: String,
-    body: Option<Value>,
+    target: UserActionTarget,
+    body: UserActionBody,
 }
 
 fn group_user_action_input(
@@ -464,14 +495,23 @@ fn group_user_action_input(
 ) -> Result<(String, String, HttpApiRequestInput), HttpApiError> {
     let group_id = require_text(input.group_id, input.group_message)?;
     let user_id = require_text(input.user_id, input.user_message)?;
+    let suffix = match input.target {
+        UserActionTarget::Collection(name) => name.to_string(),
+        UserActionTarget::Item(name) => format!("{name}/{}", encode_path_segment(&user_id)),
+    };
+    let body = match input.body {
+        UserActionBody::Empty => None,
+        UserActionBody::UserId => Some(serde_json::json!({ "userId": user_id })),
+        UserActionBody::Json(body) => Some(body),
+    };
     Ok((
         group_id.clone(),
         user_id.clone(),
         api_input(
             input.endpoint,
             input.method,
-            group_path(&group_id, &input.suffix),
-            input.body,
+            group_path(&group_id, &suffix),
+            body,
         ),
     ))
 }
@@ -480,7 +520,6 @@ pub fn invite_send_input(
     group_id: String,
     user_id: String,
 ) -> Result<(String, String, HttpApiRequestInput), HttpApiError> {
-    let body_user_id = user_id.clone();
     group_user_action_input(GroupUserActionInput {
         endpoint: VRCHAT_API_DEFAULT_ENDPOINT.into(),
         group_id,
@@ -488,8 +527,8 @@ pub fn invite_send_input(
         group_message: "VrchatGroupInviteSend requires groupId.",
         user_message: "VrchatGroupInviteSend requires userId.",
         method: "POST",
-        suffix: "invites".into(),
-        body: Some(serde_json::json!({ "userId": body_user_id })),
+        target: UserActionTarget::Collection("invites"),
+        body: UserActionBody::UserId,
     })
 }
 
@@ -498,7 +537,6 @@ pub fn member_kick_input(
     group_id: String,
     user_id: String,
 ) -> Result<(String, String, HttpApiRequestInput), HttpApiError> {
-    let suffix_user_id = user_id.clone();
     group_user_action_input(GroupUserActionInput {
         endpoint,
         group_id,
@@ -506,8 +544,8 @@ pub fn member_kick_input(
         group_message: "VrchatGroupMemberKick requires groupId.",
         user_message: "VrchatGroupMemberKick requires userId.",
         method: "DELETE",
-        suffix: format!("members/{}", encode_path_segment(&suffix_user_id)),
-        body: None,
+        target: UserActionTarget::Item("members"),
+        body: UserActionBody::Empty,
     })
 }
 
@@ -516,7 +554,6 @@ pub fn member_ban_input(
     group_id: String,
     user_id: String,
 ) -> Result<(String, String, HttpApiRequestInput), HttpApiError> {
-    let body_user_id = user_id.clone();
     group_user_action_input(GroupUserActionInput {
         endpoint,
         group_id,
@@ -524,8 +561,8 @@ pub fn member_ban_input(
         group_message: "VrchatGroupMemberBan requires groupId.",
         user_message: "VrchatGroupMemberBan requires userId.",
         method: "POST",
-        suffix: "bans".into(),
-        body: Some(serde_json::json!({ "userId": body_user_id })),
+        target: UserActionTarget::Collection("bans"),
+        body: UserActionBody::UserId,
     })
 }
 
@@ -533,7 +570,6 @@ pub fn member_unban_input(
     group_id: String,
     user_id: String,
 ) -> Result<(String, String, HttpApiRequestInput), HttpApiError> {
-    let suffix_user_id = user_id.clone();
     group_user_action_input(GroupUserActionInput {
         endpoint: VRCHAT_API_DEFAULT_ENDPOINT.into(),
         group_id,
@@ -541,8 +577,8 @@ pub fn member_unban_input(
         group_message: "VrchatGroupMemberUnban requires groupId.",
         user_message: "VrchatGroupMemberUnban requires userId.",
         method: "DELETE",
-        suffix: format!("bans/{}", encode_path_segment(&suffix_user_id)),
-        body: None,
+        target: UserActionTarget::Item("bans"),
+        body: UserActionBody::Empty,
     })
 }
 
@@ -550,7 +586,6 @@ pub fn invite_delete_input(
     group_id: String,
     user_id: String,
 ) -> Result<(String, String, HttpApiRequestInput), HttpApiError> {
-    let suffix_user_id = user_id.clone();
     group_user_action_input(GroupUserActionInput {
         endpoint: VRCHAT_API_DEFAULT_ENDPOINT.into(),
         group_id,
@@ -558,8 +593,8 @@ pub fn invite_delete_input(
         group_message: "VrchatGroupInviteDelete requires groupId.",
         user_message: "VrchatGroupInviteDelete requires userId.",
         method: "DELETE",
-        suffix: format!("invites/{}", encode_path_segment(&suffix_user_id)),
-        body: None,
+        target: UserActionTarget::Item("invites"),
+        body: UserActionBody::Empty,
     })
 }
 
@@ -567,7 +602,6 @@ pub fn unblock_input(
     group_id: String,
     user_id: String,
 ) -> Result<(String, String, HttpApiRequestInput), HttpApiError> {
-    let suffix_user_id = user_id.clone();
     group_user_action_input(GroupUserActionInput {
         endpoint: VRCHAT_API_DEFAULT_ENDPOINT.into(),
         group_id,
@@ -575,8 +609,75 @@ pub fn unblock_input(
         group_message: "VrchatGroupUnblock requires groupId.",
         user_message: "VrchatGroupUnblock requires userId.",
         method: "DELETE",
-        suffix: format!("members/{}", encode_path_segment(&suffix_user_id)),
-        body: None,
+        target: UserActionTarget::Item("members"),
+        body: UserActionBody::Empty,
+    })
+}
+
+pub fn role_create_input(
+    group_id: String,
+    role: GroupRoleMutation,
+) -> Result<(String, HttpApiRequestInput), HttpApiError> {
+    let role = request::validated_role(role, true)?;
+    simple_group_action_input(
+        VRCHAT_API_DEFAULT_ENDPOINT.into(),
+        group_id,
+        "VrchatGroupRoleCreate requires groupId.",
+        "POST",
+        "roles",
+        Some(serde_json::to_value(role).map_err(|error| HttpApiError::Custom(error.to_string()))?),
+    )
+}
+
+pub fn role_update_input(
+    group_id: String,
+    role_id: String,
+    role: GroupRoleMutation,
+) -> Result<(String, String, HttpApiRequestInput), HttpApiError> {
+    let role = request::validated_role(role, false)?;
+    group_user_action_input(GroupUserActionInput {
+        endpoint: VRCHAT_API_DEFAULT_ENDPOINT.into(),
+        group_id,
+        user_id: role_id,
+        group_message: "VrchatGroupRoleUpdate requires groupId.",
+        user_message: "VrchatGroupRoleUpdate requires roleId.",
+        method: "PUT",
+        target: UserActionTarget::Item("roles"),
+        body: UserActionBody::Json(
+            serde_json::to_value(role).map_err(|error| HttpApiError::Custom(error.to_string()))?,
+        ),
+    })
+}
+
+pub fn role_delete_input(
+    group_id: String,
+    role_id: String,
+) -> Result<(String, String, HttpApiRequestInput), HttpApiError> {
+    group_user_action_input(GroupUserActionInput {
+        endpoint: VRCHAT_API_DEFAULT_ENDPOINT.into(),
+        group_id,
+        user_id: role_id,
+        group_message: "VrchatGroupRoleDelete requires groupId.",
+        user_message: "VrchatGroupRoleDelete requires roleId.",
+        method: "DELETE",
+        target: UserActionTarget::Item("roles"),
+        body: UserActionBody::Empty,
+    })
+}
+
+pub fn invite_decline_input(
+    group_id: String,
+    user_id: String,
+) -> Result<(String, String, HttpApiRequestInput), HttpApiError> {
+    group_user_action_input(GroupUserActionInput {
+        endpoint: VRCHAT_API_DEFAULT_ENDPOINT.into(),
+        group_id,
+        user_id,
+        group_message: "VrchatGroupInviteDecline requires groupId.",
+        user_message: "VrchatGroupInviteDecline requires userId.",
+        method: "DELETE",
+        target: UserActionTarget::Item("members"),
+        body: UserActionBody::Empty,
     })
 }
 
@@ -880,6 +981,124 @@ mod tests {
             request.body.as_json(),
             Some(&serde_json::json!({ "visibility": "friends" }))
         );
+    }
+
+    #[test]
+    fn role_mutations_send_only_the_changed_fields() {
+        let (_, create) = role_create_input(
+            "grp_1".into(),
+            GroupRoleMutation {
+                name: Some(" Staff ".into()),
+                permissions: Some(vec!["group-members-manage".into()]),
+                ..GroupRoleMutation::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(create.method.as_deref(), Some("POST"));
+        assert_eq!(create.path.as_deref(), Some("groups/grp%5F1/roles"));
+        assert_eq!(
+            create.body.as_json(),
+            Some(&serde_json::json!({
+                "name": "Staff",
+                "permissions": ["group-members-manage"],
+            }))
+        );
+        assert!(role_create_input("grp_1".into(), GroupRoleMutation::default()).is_err());
+
+        let (_, role_id, reorder) = role_update_input(
+            "grp_1".into(),
+            "grol_1".into(),
+            GroupRoleMutation {
+                order: Some(3),
+                ..GroupRoleMutation::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(role_id, "grol_1");
+        assert_eq!(reorder.method.as_deref(), Some("PUT"));
+        assert_eq!(
+            reorder.path.as_deref(),
+            Some("groups/grp%5F1/roles/grol%5F1")
+        );
+        assert_eq!(
+            reorder.body.as_json(),
+            Some(&serde_json::json!({ "order": 3 }))
+        );
+
+        let (_, _, delete) = role_delete_input("grp_1".into(), "grol_1".into()).unwrap();
+        assert_eq!(delete.method.as_deref(), Some("DELETE"));
+        assert_eq!(
+            delete.path.as_deref(),
+            Some("groups/grp%5F1/roles/grol%5F1")
+        );
+    }
+
+    #[test]
+    fn user_actions_send_the_trimmed_target_id_in_path_and_body() {
+        let padded = || " usr_1 ".to_string();
+        let group = || " grp_1 ".to_string();
+        for (request, path) in [
+            (
+                invite_send_input(group(), padded()).unwrap().2,
+                "groups/grp%5F1/invites",
+            ),
+            (
+                member_kick_input(endpoint(), group(), padded()).unwrap().2,
+                "groups/grp%5F1/members/usr%5F1",
+            ),
+            (
+                member_ban_input(endpoint(), group(), padded()).unwrap().2,
+                "groups/grp%5F1/bans",
+            ),
+            (
+                member_unban_input(group(), padded()).unwrap().2,
+                "groups/grp%5F1/bans/usr%5F1",
+            ),
+            (
+                invite_delete_input(group(), padded()).unwrap().2,
+                "groups/grp%5F1/invites/usr%5F1",
+            ),
+            (
+                unblock_input(group(), padded()).unwrap().2,
+                "groups/grp%5F1/members/usr%5F1",
+            ),
+            (
+                invite_decline_input(group(), padded()).unwrap().2,
+                "groups/grp%5F1/members/usr%5F1",
+            ),
+            (
+                role_delete_input(group(), " grol_1 ".into()).unwrap().2,
+                "groups/grp%5F1/roles/grol%5F1",
+            ),
+        ] {
+            assert_eq!(request.path.as_deref(), Some(path));
+            if let Some(body) = request.body.as_json() {
+                assert_eq!(
+                    body.get("userId"),
+                    Some(&serde_json::json!("usr_1")),
+                    "{path}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn membership_list_and_invite_decline_target_the_current_user() {
+        let (_, invited) =
+            user_groups_by_membership_get_input(endpoint(), "usr me".into(), "invited").unwrap();
+        assert_eq!(invited.method.as_deref(), Some("GET"));
+        assert_eq!(
+            invited.path.as_deref(),
+            Some("users/usr%20me/groups/invited")
+        );
+
+        let (_, _, decline) = invite_decline_input("grp 1".into(), "usr me".into()).unwrap();
+        assert_eq!(decline.method.as_deref(), Some("DELETE"));
+        assert_eq!(
+            decline.path.as_deref(),
+            Some("groups/grp%201/members/usr%20me")
+        );
+        assert!(invite_decline_input("grp_1".into(), " ".into()).is_err());
     }
 
     #[test]

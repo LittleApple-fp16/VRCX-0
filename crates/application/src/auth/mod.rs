@@ -33,14 +33,15 @@ pub use login_session::{
     TwoFactorMethod,
 };
 pub use noninteractive_auth::{
-    auth_response_error_message, current_user_from_cookie, parse_current_user_response,
-    AuthenticatedRuntimeSession, NonInteractiveAuthError,
+    current_user_from_cookie, parse_current_user_response, AuthenticatedRuntimeSession,
+    NonInteractiveAuthError,
 };
 pub use privacy_lock::{
     verify_saved_account_password, PrivacyLockPasswordCheck, PrivacyLockRecord, PrivacyLockStore,
 };
 pub use runtime_phase::{
-    AuthenticatedRuntimePhase, AuthenticatedRuntimePhaseSnapshot, AuthenticatedRuntimeStepSnapshot,
+    AuthenticatedRuntimePhase, AuthenticatedRuntimePhaseSnapshot,
+    AuthenticatedRuntimeRealtimeHealth, AuthenticatedRuntimeStepSnapshot,
     AuthenticatedRuntimeStepStatus,
 };
 pub use session_projection::{

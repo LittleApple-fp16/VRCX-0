@@ -10,6 +10,7 @@ use sha2::{Digest, Sha256};
 use tauri::{Emitter, Manager, Url};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_updater::{Update, UpdaterExt};
+use vrcx_0_application::auth::AuthenticatedRuntimePhaseSnapshot;
 use vrcx_0_application_core::RuntimeEventSink;
 use vrcx_0_application_core::{format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputMode};
 use vrcx_0_application_core::{
@@ -46,8 +47,29 @@ impl TauriRuntimeEventSink {
 impl RuntimeEventSink for TauriRuntimeEventSink {
     fn emit(&self, event: &str, payload: serde_json::Value) {
         log_gui_background_runtime_info(&self.app_handle, event, &payload);
+        if event == AuthenticatedRuntimePhaseSnapshot::EVENT_NAME {
+            crate::commands::host::window::set_tray_realtime_interrupted(
+                &self.app_handle,
+                realtime_interrupted(&payload),
+            );
+        }
         emit_to_main_window_if_visible(&self.app_handle, event, payload);
     }
+}
+
+fn realtime_interrupted(phase_snapshot: &serde_json::Value) -> bool {
+    matches!(
+        phase_snapshot
+            .get("phase")
+            .and_then(serde_json::Value::as_str),
+        Some("starting" | "ready")
+    ) && phase_snapshot
+        .pointer("/realtimeHealth/interrupted")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
+        && phase_snapshot
+            .pointer("/realtimeHealth/disconnectedAt")
+            .is_some_and(serde_json::Value::is_string)
 }
 
 #[derive(Clone)]
@@ -344,7 +366,7 @@ impl RuntimeTaskHandle for TauriRuntimeTaskHandle {
     }
 }
 
-fn block_on_runtime_task<F>(future: F) -> Option<F::Output>
+pub(crate) fn block_on_runtime_task<F>(future: F) -> Option<F::Output>
 where
     F: std::future::Future,
 {
@@ -508,8 +530,13 @@ async fn find_update(
         ));
     }
     let expected_manifest_version = expected_version.clone();
+    let exit_app_handle = app_handle.clone();
     let mut builder = app_handle
         .updater_builder()
+        .on_before_exit(move || {
+            crate::commands::host::window::stop_runtime_services(&exit_app_handle);
+            exit_app_handle.cleanup_before_exit();
+        })
         .endpoints(vec![endpoint])
         .map_err(|error| {
             ApplicationError::Custom(format!("Failed to configure update endpoint: {error}"))

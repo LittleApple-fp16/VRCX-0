@@ -7,12 +7,14 @@ use vrcx_0_application_core::{vrchat_api::VrchatApiRequest, Result};
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 use vrcx_0_vrchat_client::groups::{
     current_user_group_instances_get_input, delete_input, gallery_get_input, group_block_input,
-    group_get_no_params_input, group_paged_get_input, invite_delete_input, invite_send_input,
-    join_input, join_request_respond_input, join_requests_get_input, leave_input, logs_get_input,
-    member_ban_input, member_kick_input, member_props_set_input, member_role_add_input,
-    member_role_remove_input, member_unban_input, members_get_input, members_search_input,
-    post_create_input, post_delete_input, post_edit_input, profile_get_input, profile_update_input,
-    representation_set_input, request_cancel_input, unblock_input, user_groups_get_input,
+    group_get_no_params_input, group_paged_get_input, invite_decline_input, invite_delete_input,
+    invite_send_input, join_input, join_request_respond_input, join_requests_get_input,
+    leave_input, logs_get_input, member_ban_input, member_kick_input, member_props_set_input,
+    member_role_add_input, member_role_remove_input, member_unban_input, members_get_input,
+    members_search_input, post_create_input, post_delete_input, post_edit_input, profile_get_input,
+    profile_update_input, representation_set_input, request_cancel_input, role_create_input,
+    role_delete_input, role_update_input, unblock_input, user_groups_by_membership_get_input,
+    user_groups_get_input,
 };
 
 pub struct VrchatGroupRemoteRequests;
@@ -31,6 +33,14 @@ impl GroupRemoteRequests for VrchatGroupRemoteRequests {
             GroupRemoteRequest::GetUserGroups(input) => {
                 let (user_id, request) =
                     user_groups_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.user_id)?;
+                Ok(built1(user_id, request))
+            }
+            GroupRemoteRequest::GetMembershipList(input) => {
+                let (user_id, request) = user_groups_by_membership_get_input(
+                    VRCHAT_API_DEFAULT_ENDPOINT.into(),
+                    input.user_id,
+                    input.status.as_str(),
+                )?;
                 Ok(built1(user_id, request))
             }
             GroupRemoteRequest::GetPosts(input) => {
@@ -227,6 +237,41 @@ impl GroupRemoteRequests for VrchatGroupRemoteRequests {
                 let (group_id, user_id, request) = unblock_input(input.group_id, input.user_id)?;
                 Ok(built2(group_id, user_id, request))
             }
+            GroupRemoteRequest::GetRoles(input) => {
+                let (group_id, request) = group_get_no_params_input(
+                    input.group_id,
+                    "roles",
+                    "VrchatGroupRolesGet requires groupId.",
+                )?;
+                Ok(built1(group_id, request))
+            }
+            GroupRemoteRequest::GetPermissions(input) => {
+                let (group_id, request) = group_get_no_params_input(
+                    input.group_id,
+                    "permissions",
+                    "VrchatGroupPermissionsGet requires groupId.",
+                )?;
+                Ok(built1(group_id, request))
+            }
+            GroupRemoteRequest::CreateRole(input) => {
+                let (group_id, request) = role_create_input(input.group_id, input.params)?;
+                Ok(built1(group_id, request))
+            }
+            GroupRemoteRequest::UpdateRole(input) => {
+                let (group_id, role_id, request) =
+                    role_update_input(input.group_id, input.role_id, input.params)?;
+                Ok(built2(group_id, role_id, request))
+            }
+            GroupRemoteRequest::DeleteRole(input) => {
+                let (group_id, role_id, request) =
+                    role_delete_input(input.group_id, input.role_id)?;
+                Ok(built2(group_id, role_id, request))
+            }
+            GroupRemoteRequest::DeclineInvite(input) => {
+                let (group_id, user_id, request) =
+                    invite_decline_input(input.group_id, input.user_id)?;
+                Ok(built2(group_id, user_id, request))
+            }
         }
     }
 }
@@ -327,5 +372,131 @@ fn built3(
         secondary_id: Some(secondary_id),
         tertiary_id: Some(tertiary_id),
         request,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde::de::DeserializeOwned;
+    use serde_json::{json, Value};
+
+    use super::*;
+
+    fn input<T: DeserializeOwned>(value: Value) -> T {
+        serde_json::from_value(value).unwrap()
+    }
+
+    fn built(action: GroupRemoteRequest) -> (String, String, Option<Value>) {
+        let request = VrchatGroupRemoteRequests.build(action).unwrap().request;
+        (
+            request.method.unwrap_or_default(),
+            request.path.unwrap_or_default(),
+            request.body.as_json().cloned(),
+        )
+    }
+
+    #[test]
+    fn role_and_permission_lists_read_their_own_group_collections() {
+        let group = || input(json!({ "groupId": "grp_1" }));
+
+        assert_eq!(
+            built(GroupRemoteRequest::GetRoles(group())),
+            ("GET".into(), "groups/grp%5F1/roles".into(), None)
+        );
+        assert_eq!(
+            built(GroupRemoteRequest::GetPermissions(group())),
+            ("GET".into(), "groups/grp%5F1/permissions".into(), None)
+        );
+    }
+
+    #[test]
+    fn role_writes_carry_every_role_field() {
+        let role = json!({
+            "name": "Staff",
+            "description": "Runs events",
+            "isSelfAssignable": true,
+            "isAddedOnJoin": false,
+            "requiresTwoFactor": true,
+            "requiresPurchase": false,
+            "permissions": ["group-members-manage"],
+            "order": 2,
+        });
+
+        let (method, path, body) = built(GroupRemoteRequest::CreateRole(input(
+            json!({ "groupId": "grp_1", "params": role }),
+        )));
+        assert_eq!(
+            (method.as_str(), path.as_str()),
+            ("POST", "groups/grp%5F1/roles")
+        );
+        assert_eq!(body, Some(role.clone()));
+
+        let (method, path, body) = built(GroupRemoteRequest::UpdateRole(input(
+            json!({ "groupId": "grp_1", "roleId": "grol_1", "params": role }),
+        )));
+        assert_eq!(
+            (method.as_str(), path.as_str()),
+            ("PUT", "groups/grp%5F1/roles/grol%5F1")
+        );
+        assert_eq!(body, Some(role));
+    }
+
+    #[test]
+    fn member_props_carry_every_patched_field() {
+        let patch = json!({
+            "isSubscribedToAnnouncements": true,
+            "isSubscribedToEventAnnouncements": false,
+            "managerNotes": "trusted",
+            "visibility": "friends",
+        });
+
+        let (method, path, body) = built(GroupRemoteRequest::SetMemberProps(input(
+            json!({ "groupId": "grp_1", "userId": "usr_1", "params": patch }),
+        )));
+
+        assert_eq!(
+            (method.as_str(), path.as_str()),
+            ("PUT", "groups/grp%5F1/members/usr%5F1")
+        );
+        assert_eq!(body, Some(patch));
+    }
+
+    #[test]
+    fn profile_updates_and_posts_carry_every_field() {
+        let profile = json!({
+            "name": "Group",
+            "shortCode": "GRP",
+            "description": "About",
+            "joinState": "invite",
+            "languages": ["eng"],
+            "rules": "Be kind",
+            "links": ["https://example.com"],
+            "iconId": "file_icon",
+            "bannerId": "file_banner",
+            "allowGroupJoinPrompt": true,
+        });
+        let (_, _, body) = built(GroupRemoteRequest::Update(input(
+            json!({ "groupId": "grp_1", "params": profile }),
+        )));
+        let body = body.unwrap();
+        for key in profile.as_object().unwrap().keys() {
+            assert!(body.get(key).is_some(), "profile update dropped {key}");
+        }
+
+        let post = json!({
+            "title": "News",
+            "text": "Hello",
+            "sendNotification": true,
+            "visibility": "group",
+            "roleIds": ["grol_1"],
+            "imageId": "file_post",
+        });
+        let (_, _, body) = built(GroupRemoteRequest::CreatePost(input(
+            json!({ "groupId": "grp_1", "params": post }),
+        )));
+        let body = body.unwrap();
+        for key in post.as_object().unwrap().keys() {
+            assert!(body.get(key).is_some(), "post dropped {key}");
+        }
     }
 }

@@ -149,6 +149,22 @@
                     "source": "notifications.video_play_title"
                 },
                 {
+                    "key": "notifications.tracker_title",
+                    "source": "notifications.tracker_title"
+                },
+                {
+                    "key": "notifications.tracker_disconnected",
+                    "source": "notifications.tracker_disconnected"
+                },
+                {
+                    "key": "notifications.tracker_disconnected_battery",
+                    "source": "notifications.tracker_disconnected_battery"
+                },
+                {
+                    "key": "notifications.trackers_disconnected",
+                    "source": "notifications.trackers_disconnected"
+                },
+                {
                     "key": "notifications.blocked_player_joined",
                     "source": "notifications.blocked_player_joined"
                 },
@@ -171,6 +187,10 @@
                 {
                     "key": "overlay.footer.instance_duration",
                     "source": "overlay.footer.instance_duration"
+                },
+                {
+                    "key": "overlay.footer.online_duration",
+                    "source": "overlay.footer.online_duration"
                 },
                 {
                     "key": "overlay.generic_instance_location",
@@ -403,6 +423,10 @@
                     "source": "nativeShell.tray.doNotDisturbTurnOff"
                 },
                 {
+                    "key": "nativeShell.tray.gameIsolation",
+                    "source": "nativeShell.tray.gameIsolation"
+                },
+                {
                     "key": "nativeShell.tray.rebuildUi",
                     "source": "nativeShell.tray.rebuildUi"
                 },
@@ -417,6 +441,10 @@
                 {
                     "key": "nativeShell.tray.exit",
                     "source": "nativeShell.tray.exit"
+                },
+                {
+                    "key": "nativeShell.tray.realtimeReconnecting",
+                    "source": "nativeShell.tray.realtimeReconnecting"
                 },
                 {
                     "key": "nativeShell.notification.backgroundModeStarted.title",
@@ -577,10 +605,6 @@
                 {
                     "key": "nativeShell.menu.help.reportIssue",
                     "source": "nativeShell.menu.help.reportIssue"
-                },
-                {
-                    "key": "nativeShell.menu.help.qqGroup",
-                    "source": "nativeShell.menu.help.qqGroup"
                 },
                 {
                     "key": "nativeShell.menu.help.openDevtools",

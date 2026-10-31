@@ -260,7 +260,7 @@ impl LoginSessionRuntime {
                         clear_last_user_logged_in: true,
                     },
                 );
-                cookies.clear();
+                cookies.clear_everywhere();
                 cookies.save();
                 snapshot
             }
@@ -710,7 +710,7 @@ pub(super) fn apply_login_failure_cleanup(
     };
 
     if kind == LoginFailureKind::InvalidCredentials {
-        cookies.clear();
+        cookies.clear_everywhere();
         cookies.save();
         return if user_id.trim().is_empty() {
             saved_snapshot(config)

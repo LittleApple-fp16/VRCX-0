@@ -4,7 +4,8 @@ use vrcx_0_application::auth::AuthCredentialStore;
 use vrcx_0_application_activity::notification::{
     apply_location_notification_rules, extract_file_version, fallback_file_version,
     load_overlay_activity_filters, rename_local_favorite_group_in_activity_filters,
-    CachedNotificationUserImageResolver, NotificationConfig, NotificationResolver,
+    CachedNotificationUserImageResolver, NotificationConfig, NotificationRemoteFuture,
+    NotificationResolver,
 };
 use vrcx_0_application_activity::{ActivityRouter, ActivitySink, ActivitySinkRegistry};
 use vrcx_0_application_core::{
@@ -24,6 +25,7 @@ use vrcx_0_host_desktop::tts::{SystemTtsEngine, TtsEngine};
 use vrcx_0_overlay_runtime::VrOverlayRuntimeServices;
 use vrcx_0_persistence::{config::ConfigRepository, DatabaseService};
 
+use crate::game_isolation::GameIsolationRuntime;
 use crate::host_actions::RuntimeHost;
 use crate::notification::{
     migrate_legacy_overlay_notification_keys, seed_hmd_notifications_default, DesktopNotifier,
@@ -65,6 +67,7 @@ pub struct DesktopRuntimeServices {
     activity_router: ActivityRouter,
     activity_sinks: ActivitySinkRegistry,
     notification_do_not_disturb: NotificationDoNotDisturbRuntime,
+    game_isolation: GameIsolationRuntime,
     notification_indicator: Arc<RealtimeNotificationIndicator>,
     privacy_lock: Arc<PrivacyLockRuntime>,
     notification_policy: Arc<LocalNotificationPolicy>,
@@ -96,6 +99,8 @@ impl DesktopRuntimeServices {
             host.clone(),
             deps.tasks.clone(),
         )?;
+        let game_isolation =
+            GameIsolationRuntime::new(deps.config.clone(), deps.event_bus.clone(), host.clone())?;
         let privacy_lock = Arc::new(PrivacyLockRuntime::new(
             deps.auth_credentials,
             deps.event_bus.clone(),
@@ -106,6 +111,7 @@ impl DesktopRuntimeServices {
             deps.session.clone(),
             notification_do_not_disturb.clone(),
             privacy_lock.clone(),
+            game_isolation.clone(),
         ));
         let notification_indicator = Arc::new(RealtimeNotificationIndicator::new(
             Arc::clone(&deps.db),
@@ -142,6 +148,7 @@ impl DesktopRuntimeServices {
             activity_router: deps.activity_router,
             activity_sinks: deps.activity_sinks,
             notification_do_not_disturb,
+            game_isolation,
             notification_indicator,
             privacy_lock,
             notification_policy,
@@ -233,6 +240,10 @@ impl DesktopRuntimeServices {
 
     pub fn notification_do_not_disturb(&self) -> NotificationDoNotDisturbRuntime {
         self.notification_do_not_disturb.clone()
+    }
+
+    pub fn game_isolation(&self) -> GameIsolationRuntime {
+        self.game_isolation.clone()
     }
 
     pub fn event_bus(&self) -> RuntimeEventBus {
@@ -357,6 +368,18 @@ impl VrOverlayRuntimeServices for DesktopRuntimeServices {
         self.notification_resolver.friend_image(endpoint, user_id)
     }
 
+    fn cached_notification_group_name(&self, group_id: &str) -> Option<String> {
+        self.notification_resolver.cached_group_name(group_id)
+    }
+
+    fn notification_group_name<'a>(
+        &'a self,
+        endpoint: &'a str,
+        group_id: &'a str,
+    ) -> NotificationRemoteFuture<'a, String> {
+        Box::pin(self.notification_resolver.group_name(endpoint, group_id))
+    }
+
     fn set_hmd_afk(&self, is_hmd_afk: bool) {
         self.session.set_hmd_afk(is_hmd_afk);
     }
@@ -369,6 +392,13 @@ impl VrOverlayRuntimeServices for DesktopRuntimeServices {
 
     fn now_playing(&self) -> NowPlayingSnapshot {
         DesktopRuntimeServices::now_playing(self).as_ref().clone()
+    }
+
+    fn game_started_at(&self) -> Option<String> {
+        let session = self.session.snapshot();
+        session
+            .last_game_started_at
+            .filter(|_| session.is_game_running)
     }
 }
 

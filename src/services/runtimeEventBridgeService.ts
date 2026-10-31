@@ -3,6 +3,7 @@ import type {
     AncillaryRuntimeSnapshot,
     BackendRuntimeCombinedSnapshot
 } from '@/platform/tauri/bindings';
+import vrchatEconomyRepository from '@/repositories/vrchatEconomyRepository';
 import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -35,6 +36,7 @@ import {
     hydrateFavoriteImportRuntimeStatus
 } from './favoriteImportService';
 import { applyFriendProfileLoadStatusPayload } from './friendProfileLoadService';
+import { applyGameIsolationSnapshot } from './gameIsolationService';
 import { handleGroupBanImportStatusEvent } from './groupBanImportService';
 import { isHostCapabilityAvailable } from './hostCapabilityService';
 import {
@@ -120,6 +122,14 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
         return;
     }
 
+    if (event.name === 'realtimeEconomyBalance') {
+        vrchatEconomyRepository.setBalance(
+            event.payload.userId,
+            event.payload.walletBalance
+        );
+        return;
+    }
+
     if (event.name === 'printsAutoCleanup') {
         runtimeStore.recordRuntimeEvent(event.name, event.payload);
         handlePrintCleanupEvent(event.payload);
@@ -174,6 +184,11 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
 
     if (event.name === 'notificationDoNotDisturbState') {
         runtimeStore.setNotificationDoNotDisturb(event.payload);
+        return;
+    }
+
+    if (event.name === 'gameIsolationState') {
+        applyGameIsolationSnapshot(event.payload);
         return;
     }
 
@@ -445,6 +460,9 @@ async function hydrateAncillaryRuntimeState(): Promise<void> {
                     snapshot.notificationDoNotDisturbState
                 );
         }),
+        hydrateRuntimeState('Failed to hydrate game isolation state:', () => {
+            applyGameIsolationSnapshot(snapshot.gameIsolationState);
+        }),
         hydrateRuntimeState('Failed to hydrate privacy lock state:', () => {
             useRuntimeStore
                 .getState()
@@ -482,6 +500,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'backgroundImageState',
         'communityThemeState',
         'notificationDoNotDisturbState',
+        'gameIsolationState',
         'privacyLockState',
         'desktopWidgetState',
         'gameLogProjection',
@@ -514,6 +533,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'realtimeCurrentUserProjection',
         'realtimeInstanceClosedProjection',
         'realtimeInstanceQueueProjection',
+        'realtimeEconomyBalance',
         'realtimeProjectionSync',
         'updateIsGameRunning',
         'integrationApiStartFailed',

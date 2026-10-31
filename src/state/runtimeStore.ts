@@ -10,6 +10,7 @@ import type {
     DatabaseUpgradeStage,
     DesktopWidgetSnapshot,
     FriendProfileBulkLoadStatus,
+    GameIsolationSnapshot,
     HostCapabilities,
     MutualGraphFetchStatus,
     NotificationDoNotDisturbSnapshot,
@@ -37,6 +38,12 @@ type TransportState = {
     websocketDomain: string;
     lastConnectedAt: string | null;
     lastDisconnectedAt: string | null;
+    interrupted: boolean;
+    retryWaiting: boolean;
+    retryAt: string | null;
+    retryAttempt: number;
+    lastError: string | null;
+    outageStartedAt: string | null;
 };
 
 export type MutualGraphState = Omit<
@@ -217,6 +224,7 @@ type RuntimeStore = {
     runtimeEvents: Record<string, RuntimeEventState>;
     backendRuntime: BackendRuntimeSnapshot | null;
     notificationDoNotDisturb: NotificationDoNotDisturbSnapshot;
+    gameIsolation: GameIsolationSnapshot;
     privacyLock: PrivacyLockSnapshot;
     desktopWidget: DesktopWidgetSnapshot;
     authenticatedSession: AuthenticatedSessionProjection;
@@ -242,6 +250,7 @@ type RuntimeStore = {
     setNotificationDoNotDisturb(
         snapshot: NotificationDoNotDisturbSnapshot
     ): void;
+    setGameIsolation(snapshot: GameIsolationSnapshot): void;
     setPrivacyLock(snapshot: PrivacyLockSnapshot): void;
     setDesktopWidget(snapshot: DesktopWidgetSnapshot): void;
     setAuthenticatedSessionProjection(
@@ -359,7 +368,13 @@ function createTransportState(): TransportState {
         websocketConnected: false,
         websocketDomain: '',
         lastConnectedAt: null,
-        lastDisconnectedAt: null
+        lastDisconnectedAt: null,
+        interrupted: false,
+        retryWaiting: false,
+        retryAt: null,
+        retryAttempt: 0,
+        lastError: null,
+        outageStartedAt: null
     };
 }
 
@@ -488,6 +503,7 @@ type RuntimeStoreState = Omit<
     | 'setGameState'
     | 'setBackendRuntimeSnapshot'
     | 'setNotificationDoNotDisturb'
+    | 'setGameIsolation'
     | 'setPrivacyLock'
     | 'setDesktopWidget'
     | 'setAuthenticatedSessionProjection'
@@ -594,6 +610,7 @@ const initialState: RuntimeStoreState = {
         exportAvatarsListOpen: false,
         editInviteMessagesOpen: false,
         moderationReportsOpen: false,
+        purchaseHistoryOpen: false,
         llmEndpointsOpen: false,
         profileBackupOpen: false,
         offlineRecordOpen: false
@@ -621,6 +638,10 @@ const initialState: RuntimeStoreState = {
         revision: 0,
         mode: 'off',
         endsAt: null
+    },
+    gameIsolation: {
+        revision: 0,
+        enabled: false
     },
     privacyLock: {
         revision: 0,
@@ -784,6 +805,12 @@ export const useRuntimeStore = create<RuntimeStore>((set, get) => ({
             return;
         }
         set({ notificationDoNotDisturb: snapshot });
+    },
+    setGameIsolation(snapshot: GameIsolationSnapshot) {
+        if (snapshot.revision < get().gameIsolation.revision) {
+            return;
+        }
+        set({ gameIsolation: snapshot });
     },
     setPrivacyLock(snapshot: PrivacyLockSnapshot) {
         if (snapshot.revision < get().privacyLock.revision) {

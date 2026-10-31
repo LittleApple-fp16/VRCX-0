@@ -23,16 +23,18 @@ use vrcx_0_persistence::screenshot_cache::{
 };
 
 mod export;
+mod favorites;
 mod library;
 mod metadata;
 mod paths;
 mod thumbnail;
 
 pub use export::{total_screenshot_export_bytes, write_screenshots_zip, ScreenshotExportOutcome};
+pub use favorites::{LocalScreenshotFavoriteStore, LocalScreenshotLibraryAdapter};
 pub use library::{
     find_screenshots, forget_screenshot_file, list_screenshot_folder_images,
-    list_screenshots_in_windows, list_world_screenshots, screenshot_folder_tree,
-    start_screenshot_library_scan,
+    list_screenshots_in_windows, list_world_screenshots, random_screenshot_path_in_folder_tree,
+    screenshot_folder_tree, start_screenshot_library_scan,
 };
 pub use metadata::{
     add_screenshot_metadata, delete_all_screenshot_metadata, extra_screenshot_data,

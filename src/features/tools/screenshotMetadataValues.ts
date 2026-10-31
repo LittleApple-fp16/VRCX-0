@@ -188,6 +188,8 @@ export function resolvePathAfterScreenshotDelete(
     return null;
 }
 
+export const SCREENSHOT_FAVORITES_FOLDER = '::favorites';
+
 export function resolveGalleryFolder(
     folderTree: ScreenshotFolderTree | null | undefined,
     preferredFolders: string | readonly string[]
@@ -198,8 +200,9 @@ export function resolveGalleryFolder(
         : [preferredFolders];
     for (const preferredFolder of preferredList) {
         if (
-            preferredFolder &&
-            folders.some((folder) => folder.path === preferredFolder)
+            preferredFolder === SCREENSHOT_FAVORITES_FOLDER ||
+            (preferredFolder &&
+                folders.some((folder) => folder.path === preferredFolder))
         ) {
             return preferredFolder;
         }
@@ -379,20 +382,6 @@ export function normalizeScreenshotSearchResult(
         creationDate: result.creationDate || '',
         resolution: width > 0 && height > 0 ? `${width}x${height}` : ''
     });
-}
-
-export function pickRandomScreenshotPath(
-    images: readonly { path: string }[],
-    random: number
-) {
-    if (images.length === 0) {
-        return '';
-    }
-    const index = Math.min(
-        images.length - 1,
-        Math.max(0, Math.floor(random * images.length))
-    );
-    return images[index].path;
 }
 
 function getFolderPathFromPath(path: unknown) {
