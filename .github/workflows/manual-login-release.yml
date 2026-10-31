@@ -83,6 +83,7 @@ jobs:
                   delete config.bundle.windows.signCommand;
                   fs.writeFileSync('src-tauri/tauri.manual-login.conf.json', JSON.stringify(config, null, 4));
                   NODE
+                  node scripts/prepare-release-version.ts --version "$(node -p "require('./src-tauri/tauri.conf.json').version")"
 
             - name: Build release installer
               run: npm run tauri:build -- --config src-tauri/tauri.manual-login.conf.json --bundles nsis
