@@ -673,10 +673,11 @@ mod tests {
     #[test]
     fn nickname_is_required_for_both_rank_and_mark() {
         let mut settings = HighRiskDetectionSettings::default();
-        settings.marks.push(HighRiskMark::Troll);
         let troll = ["system_trust_veteran".into(), "system_troll".into()];
+        let probable_troll = ["system_trust_veteran".into(), "system_probable_troll".into()];
         assert!(profile_matches(&settings, "Player a1b2", &[]));
         assert!(profile_matches(&settings, "Player", &troll));
+        assert!(profile_matches(&settings, "Player", &probable_troll));
         assert!(!profile_matches(&settings, "玩家 a1b2", &troll));
         assert!(!profile_matches(
             &settings,

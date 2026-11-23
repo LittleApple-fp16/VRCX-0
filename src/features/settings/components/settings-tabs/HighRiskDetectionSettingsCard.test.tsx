@@ -22,7 +22,7 @@ const defaults: HighRiskDetectionSettings = {
     rooms: ['public', 'groupPublic', 'groupPlus'],
     nickname: 'english',
     ranks: ['newUser', 'visitor'],
-    marks: [],
+    marks: ['probableTroll', 'troll'],
     autoBlock: true,
     shortcut: { key: 'KeyF', control: true, alt: false, shift: false }
 };
@@ -59,11 +59,19 @@ it('saves room and mark selections independently', async () => {
     const mark = screen.getByRole('checkbox', {
         name: 'high_risk.options.probableTroll'
     });
+    expect(mark.getAttribute('aria-checked')).toBe('true');
+    expect(
+        screen
+            .getByRole('checkbox', { name: 'high_risk.options.troll' })
+            .getAttribute('aria-checked')
+    ).toBe('true');
     fireEvent.click(mark);
 
-    await waitFor(() => expect(mark.getAttribute('aria-checked')).toBe('true'));
+    await waitFor(() =>
+        expect(mark.getAttribute('aria-checked')).toBe('false')
+    );
     expect(save).toHaveBeenNthCalledWith(2, {
         ...withFriends,
-        marks: ['probableTroll']
+        marks: ['troll']
     });
 });

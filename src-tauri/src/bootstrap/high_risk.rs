@@ -67,7 +67,7 @@ impl Default for HighRiskDetectionSettings {
             ],
             nickname: HighRiskNickname::English,
             ranks: vec![HighRiskRank::NewUser, HighRiskRank::Visitor],
-            marks: Vec::new(),
+            marks: vec![HighRiskMark::ProbableTroll, HighRiskMark::Troll],
             auto_block: true,
             shortcut: TrayShortcutBinding {
                 control: true,
