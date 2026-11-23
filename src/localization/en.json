@@ -547,6 +547,39 @@
             "skipped": "{count} recorded events could not be filled in because the recorder had no friend list to start from"
         }
     },
+    "high_risk": {
+        "title": "High-risk player detection",
+        "description": "Alert when a player in a selected instance matches the nickname rule and either a selected trust rank or a selected mark.",
+        "rooms": "Instance types",
+        "nickname": "Additional nickname match",
+        "nickname_description": "Suffix only looks for a space followed by four hexadecimal characters at the end of a display name.",
+        "ranks": "Trust ranks",
+        "marks": "Player marks",
+        "auto_block": "Automatically block",
+        "shortcut": "Handling shortcut",
+        "shortcut_description": "Use the shortcut in any window while a detection is pending.",
+        "load_error": "Could not load high-risk player detection settings.",
+        "save_error": "Could not save high-risk player detection settings.",
+        "options": {
+            "public": "Public",
+            "groupPublic": "Group Public",
+            "groupPlus": "Group+",
+            "friendsPlus": "Friends+",
+            "friends": "Friends Only",
+            "invitePlus": "Invite+",
+            "invite": "Invite Only",
+            "english": "All English",
+            "suffix": "Suffix only",
+            "ignore": "Ignore nickname",
+            "visitor": "Visitor",
+            "newUser": "New User",
+            "user": "User",
+            "knownUser": "Known User",
+            "trustedUser": "Trusted User",
+            "probableTroll": "Possible Nuisance",
+            "troll": "Nuisance"
+        }
+    },
     "common": {
         "no_data": "No data",
         "no_matching_records": "No matching records",

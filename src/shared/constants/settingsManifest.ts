@@ -648,6 +648,19 @@ defineCard(
     ]
 );
 
+defineCard('notifications', 'high-risk', 'high_risk.title', [
+    { key: 'rooms', labelKey: 'high_risk.rooms', platforms: ['windows'] },
+    { key: 'nickname', labelKey: 'high_risk.nickname', platforms: ['windows'] },
+    { key: 'ranks', labelKey: 'high_risk.ranks', platforms: ['windows'] },
+    { key: 'marks', labelKey: 'high_risk.marks', platforms: ['windows'] },
+    {
+        key: 'auto-block',
+        labelKey: 'high_risk.auto_block',
+        platforms: ['windows']
+    },
+    { key: 'shortcut', labelKey: 'high_risk.shortcut', platforms: ['windows'] }
+]);
+
 defineCard(
     'notifications',
     'tts',

@@ -26,6 +26,7 @@ import { SettingsCard } from '../SettingsCard';
 import { Field } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
 import { useSettingsNotificationsTabState } from '../useSettingsNotificationsTabState';
+import { HighRiskDetectionSettingsCard } from './HighRiskDetectionSettingsCard';
 import { NotificationWebhookSettings } from './NotificationWebhookSettings';
 import { SettingsNotificationsInAppCard } from './SettingsNotificationsInAppCard';
 
@@ -158,6 +159,7 @@ export function SettingsNotificationsTabContent({
 
     return (
         <SettingsTabContent value="notifications">
+            <HighRiskDetectionSettingsCard />
             <SettingsNotificationsInAppCard
                 prefs={prefs}
                 showTaskbarIconDot={showTaskbarIconDot}

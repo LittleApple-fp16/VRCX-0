@@ -20,7 +20,7 @@ pub(crate) fn setup(app: &AppHandle, state: &AppState) {
 }
 
 #[cfg(windows)]
-async fn on_main_thread<T: Send + 'static>(
+pub(super) async fn on_main_thread<T: Send + 'static>(
     app: &AppHandle,
     action: impl FnOnce(&AppHandle) -> T + Send + 'static,
 ) -> Result<T, AppError> {
@@ -105,6 +105,18 @@ pub(crate) fn take_startup_failure(app: &AppHandle) -> bool {
 }
 
 #[cfg(windows)]
+pub(super) fn is_recording(app: &AppHandle) -> bool {
+    app.try_state::<native::Shared>()
+        .is_some_and(|shared| shared.recording.load(std::sync::atomic::Ordering::Acquire))
+}
+
+#[cfg(windows)]
+pub(super) fn probe(binding: &TrayShortcutBinding) -> Result<(), TrayShortcutError> {
+    binding.validate()?;
+    native::check_windows_shortcut(binding)
+}
+
+#[cfg(windows)]
 mod native {
     use super::*;
     use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -129,7 +141,9 @@ mod native {
 
     struct Registrar<'a>(&'a AppHandle);
 
-    fn check_windows_shortcut(binding: &TrayShortcutBinding) -> Result<(), TrayShortcutError> {
+    pub(super) fn check_windows_shortcut(
+        binding: &TrayShortcutBinding,
+    ) -> Result<(), TrayShortcutError> {
         use vrcx_0_host_desktop::shortcut_recorder::{
             self, ProbeError, MOD_ALT, MOD_CONTROL, MOD_SHIFT,
         };

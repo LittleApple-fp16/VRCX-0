@@ -547,6 +547,39 @@
             "skipped": "{count} 条记录缺少好友列表起点，未能补回"
         }
     },
+    "high_risk": {
+        "title": "高危人员检测",
+        "description": "在所选房间中，昵称符合规则且信誉或标记匹配的在场玩家会触发提醒。",
+        "rooms": "房间类型",
+        "nickname": "额外昵称匹配",
+        "nickname_description": "仅后缀匹配以空格分隔的四位十六进制后缀。",
+        "ranks": "信誉匹配",
+        "marks": "标记匹配",
+        "auto_block": "自动拉黑",
+        "shortcut": "处理快捷键",
+        "shortcut_description": "有待处理事件时，可在任意窗口按下此快捷键。",
+        "load_error": "无法加载高危人员检测设置。",
+        "save_error": "无法保存高危人员检测设置。",
+        "options": {
+            "public": "公开",
+            "groupPublic": "群组公开",
+            "groupPlus": "群组+",
+            "friendsPlus": "好友+",
+            "friends": "仅限好友",
+            "invitePlus": "邀请+",
+            "invite": "仅限邀请",
+            "english": "全英文",
+            "suffix": "仅后缀",
+            "ignore": "无视昵称",
+            "visitor": "游客",
+            "newUser": "新用户",
+            "user": "玩家",
+            "knownUser": "长期玩家",
+            "trustedUser": "资深玩家",
+            "probableTroll": "疑似劣迹玩家",
+            "troll": "劣迹玩家"
+        }
+    },
     "common": {
         "no_data": "这里空空如也~",
         "no_matching_records": "无匹配记录",

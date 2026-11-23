@@ -1,6 +1,7 @@
 mod adapters;
 mod autostart;
 mod background_delay;
+pub(crate) mod high_risk;
 pub(crate) mod linux_rendering;
 mod notification;
 mod protocol;

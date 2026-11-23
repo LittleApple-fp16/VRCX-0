@@ -153,7 +153,7 @@ export function TrayShortcutSetting() {
                 </div>
             </Field>
             {editing ? (
-                <TrayShortcutRecorder
+                <GlobalShortcutRecorder
                     initialBinding={snapshot?.binding ?? null}
                     pending={pending}
                     error={error}
@@ -171,7 +171,9 @@ export function TrayShortcutSetting() {
     );
 }
 
-function TrayShortcutRecorder({
+export function GlobalShortcutRecorder({
+    title,
+    checkBinding = checkTrayShortcut,
     initialBinding,
     pending,
     error,
@@ -179,6 +181,10 @@ function TrayShortcutRecorder({
     onClose,
     onSave
 }: {
+    title?: string;
+    checkBinding?: (
+        binding: TrayShortcutBinding
+    ) => Promise<TrayShortcutError | null>;
     initialBinding: TrayShortcutBinding | null;
     pending: boolean;
     error: TrayShortcutError | null;
@@ -255,7 +261,7 @@ function TrayShortcutRecorder({
         if (!binding) return;
         let disposed = false;
         setChecking(true);
-        void checkTrayShortcut(binding)
+        void checkBinding(binding)
             .then((failure) => {
                 if (!disposed) onErrorChange(failure);
             })
@@ -268,7 +274,7 @@ function TrayShortcutRecorder({
         return () => {
             disposed = true;
         };
-    }, [binding, onErrorChange]);
+    }, [binding, checkBinding, onErrorChange]);
 
     const message = recordingFailed
         ? t('shortcuts.tray.recording_failed')
@@ -282,7 +288,9 @@ function TrayShortcutRecorder({
         >
             <DialogContent className="sm:max-w-md" initialFocus={inputRef}>
                 <DialogHeader>
-                    <DialogTitle>{t('shortcuts.tray.configure')}</DialogTitle>
+                    <DialogTitle>
+                        {title ?? t('shortcuts.tray.configure')}
+                    </DialogTitle>
                     <DialogDescription>
                         {t('shortcuts.tray.record_description')}
                     </DialogDescription>

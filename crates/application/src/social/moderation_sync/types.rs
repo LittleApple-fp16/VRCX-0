@@ -139,6 +139,17 @@ pub struct ModerationSyncMutationInput {
     pub(super) enabled: bool,
 }
 
+impl ModerationSyncMutationInput {
+    pub fn block(target_user_id: String, target_display_name: String) -> Self {
+        Self {
+            target_user_id,
+            target_display_name,
+            r#type: ModerationMutationType::Block,
+            enabled: true,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ModerationSyncRefreshOutput {

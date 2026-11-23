@@ -2629,6 +2629,19 @@ const generatedCommands = {
     async appGetTrayShortcut(): Promise<TrayShortcutSnapshot> {
         return await TAURI_INVOKE('app__get_tray_shortcut');
     },
+    async appGetHighRiskDetection(): Promise<HighRiskDetectionSettings | null> {
+        return await TAURI_INVOKE('app__get_high_risk_detection');
+    },
+    async appSetHighRiskDetection(
+        settings: HighRiskDetectionSettings
+    ): Promise<TrayShortcutError | null> {
+        return await TAURI_INVOKE('app__set_high_risk_detection', { settings });
+    },
+    async appCheckHighRiskShortcut(
+        binding: TrayShortcutBinding
+    ): Promise<TrayShortcutError | null> {
+        return await TAURI_INVOKE('app__check_high_risk_shortcut', { binding });
+    },
     async appSetTrayShortcut(
         binding: TrayShortcutBinding | null
     ): Promise<TrayShortcutUpdate> {
@@ -5418,6 +5431,30 @@ export type GroupSearchParams = {
     offset?: number | null;
     n?: number | null;
 };
+export type HighRiskDetectionSettings = {
+    rooms: HighRiskRoom[];
+    nickname: HighRiskNickname;
+    ranks: HighRiskRank[];
+    marks: HighRiskMark[];
+    autoBlock: boolean;
+    shortcut: TrayShortcutBinding;
+};
+export type HighRiskMark = 'probableTroll' | 'troll';
+export type HighRiskNickname = 'english' | 'suffix' | 'ignore';
+export type HighRiskRank =
+    | 'visitor'
+    | 'newUser'
+    | 'user'
+    | 'knownUser'
+    | 'trustedUser';
+export type HighRiskRoom =
+    | 'public'
+    | 'groupPublic'
+    | 'groupPlus'
+    | 'friendsPlus'
+    | 'friends'
+    | 'invitePlus'
+    | 'invite';
 export type HostArchitecture = 'x86_64' | 'aarch64' | 'unknown';
 export type HostCapabilities = {
     platform: HostPlatform;

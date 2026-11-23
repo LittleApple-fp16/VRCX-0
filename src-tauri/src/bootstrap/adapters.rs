@@ -159,7 +159,7 @@ fn show_actionable_windows_notification(
 }
 
 #[cfg(windows)]
-fn windows_notification_app_id(app: &tauri::AppHandle) -> Result<String, String> {
+pub(super) fn windows_notification_app_id(app: &tauri::AppHandle) -> Result<String, String> {
     use tauri_winrt_notification::Toast;
 
     let executable = tauri::utils::platform::current_exe()
