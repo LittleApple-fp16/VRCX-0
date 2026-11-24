@@ -315,7 +315,7 @@ async fn headless_start_requires_manual_login_even_with_saved_credentials() -> R
         RuntimeHostProfile::HeadlessData,
         None,
     ))?;
-    let config = &state.runtime_context.config;
+    let config = state.runtime_context.config_store();
     config.set_string("lastUserLoggedIn", "usr_saved")?;
     config.set_string("autoLoginDelayEnabled", "true")?;
     config.set_string("autoLoginDelaySeconds", "0")?;
