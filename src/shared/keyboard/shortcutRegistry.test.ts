@@ -43,7 +43,10 @@ describe('shortcut help derivation', () => {
                     {
                         labelKey: 'app_menu.hide_friends_sidebar',
                         keys: ['Mod', 'Shift', 'B']
-                    }
+                    },
+                    { labelKey: 'app_menu.zoom_in', keys: ['Mod', '='] },
+                    { labelKey: 'app_menu.zoom_out', keys: ['Mod', '-'] },
+                    { labelKey: 'app_menu.reset_zoom', keys: ['Mod', '0'] }
                 ]
             },
             {
@@ -59,9 +62,22 @@ describe('shortcut help derivation', () => {
             {
                 titleKey: 'shortcuts.group.screenshots',
                 items: [
-                    { labelKey: 'view.tools.label.prev', keys: ['ArrowLeft'] },
-                    { labelKey: 'table.pagination.next', keys: ['ArrowRight'] },
-                    { labelKey: 'shortcuts.toggle_details', keys: ['I'] }
+                    { labelKey: 'message.image.previous', keys: ['ArrowLeft'] },
+                    { labelKey: 'message.image.next', keys: ['ArrowRight'] },
+                    { labelKey: 'shortcuts.toggle_details', keys: ['I'] },
+                    {
+                        labelKey: 'dialog.screenshot_metadata.fullscreen',
+                        keys: ['Space']
+                    },
+                    { labelKey: 'shortcuts.toggle_favorite', keys: ['F'] },
+                    {
+                        labelKey: 'dialog.screenshot_metadata.copy_image',
+                        keys: ['Mod', 'C']
+                    },
+                    {
+                        labelKey: 'dialog.screenshot_metadata.delete_file',
+                        keys: ['Delete']
+                    }
                 ]
             },
             {

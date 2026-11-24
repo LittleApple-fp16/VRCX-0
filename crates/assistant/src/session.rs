@@ -2,8 +2,11 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{Arc, Mutex, Weak};
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use specta::Type;
 
+use crate::approvals::AssistantApproval;
+use crate::charts::AssistantChart;
 use crate::config::PlaybookMode;
 use crate::endpoints::AssistantRuntimeSelection;
 use crate::entities::Entity;
@@ -11,9 +14,11 @@ use crate::ports::{
     AssistantMessageInsert, AssistantPortResult, AssistantSessionPersistence,
     AssistantSessionRuntimeUpdate, AssistantSessionUpsert,
 };
+use crate::screenshots::AssistantScreenshots;
 use vrcx_0_core::OwnerId;
 
 const SESSION_CONTENT_CACHE_CAPACITY: usize = 8;
+const RENAMED_TITLE_LIMIT: usize = 80;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
@@ -30,6 +35,8 @@ pub struct ToolCallRecord {
     pub id: String,
     pub name: String,
     pub arguments: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub extra_content: Option<Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -40,6 +47,13 @@ pub struct ToolResultRecord {
     pub ok: bool,
     pub summary: String,
     pub entities: Vec<Entity>,
+    #[serde(default)]
+    pub charts: Vec<AssistantChart>,
+    /// The user declined the approval card, so the call never ran.
+    #[serde(default)]
+    pub denied: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub screenshots: Option<AssistantScreenshots>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -116,7 +130,7 @@ impl Message {
 enum MessageBody {
     Text(String),
     ToolCall(ToolCallRecord),
-    ToolResult(ToolResultRecord, String),
+    ToolResult(Box<ToolResultRecord>, String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
@@ -142,9 +156,9 @@ pub struct Session {
     pub title: String,
     pub messages: Vec<Message>,
     pub active_turn: Option<ActiveTurn>,
+    pub pending_approval: Option<AssistantApproval>,
     pub endpoint_id: Option<String>,
     pub model: Option<String>,
-    pub allow_writes: bool,
     pub playbook_mode: PlaybookMode,
     pub entity_panel_open: bool,
     pub surfaced_entities: Vec<Entity>,
@@ -157,6 +171,7 @@ pub struct Session {
 pub struct SessionSummary {
     pub id: String,
     pub title: String,
+    pub pinned: bool,
     pub busy: bool,
     pub updated_at: String,
 }
@@ -165,10 +180,11 @@ pub struct SessionSummary {
 struct StoredSession {
     owner_user_id: OwnerId,
     title: String,
+    pinned: bool,
     active_turn: Option<ActiveTurn>,
+    pending_approval: Option<AssistantApproval>,
     endpoint_id: Option<String>,
     model: Option<String>,
-    allow_writes: bool,
     playbook_mode: PlaybookMode,
     entity_panel_open: bool,
     surfaced_entities: Vec<Entity>,
@@ -183,9 +199,9 @@ impl StoredSession {
             title: self.title.clone(),
             messages,
             active_turn: self.active_turn.clone(),
+            pending_approval: self.pending_approval.clone(),
             endpoint_id: self.endpoint_id.clone(),
             model: self.model.clone(),
-            allow_writes: self.allow_writes,
             playbook_mode: self.playbook_mode,
             entity_panel_open: self.entity_panel_open,
             surfaced_entities: self.surfaced_entities.clone(),
@@ -306,10 +322,11 @@ impl SessionStore {
                         StoredSession {
                             owner_user_id: entry.owner_user_id,
                             title: entry.title,
+                            pinned: entry.pinned,
                             active_turn: None,
+                            pending_approval: None,
                             endpoint_id: optional_string(entry.endpoint_id),
                             model: optional_string(entry.model),
-                            allow_writes: entry.allow_writes,
                             playbook_mode: PlaybookMode::parse(&entry.playbook_mode),
                             entity_panel_open: entry.entity_panel_open,
                             surfaced_entities: serde_json::from_str(&entry.surfaced_entities)
@@ -485,10 +502,11 @@ impl SessionStore {
         let stored = StoredSession {
             owner_user_id: OwnerId::new(owner_user_id.as_str().trim()),
             title: String::new(),
+            pinned: false,
             active_turn: None,
+            pending_approval: None,
             endpoint_id: normalize_optional(runtime.endpoint_id),
             model: normalize_optional(runtime.model),
-            allow_writes: runtime.allow_writes,
             playbook_mode: runtime.playbook_mode,
             entity_panel_open: false,
             surfaced_entities: Vec::new(),
@@ -593,6 +611,7 @@ impl SessionStore {
             .map(|(id, session)| SessionSummary {
                 id: id.clone(),
                 title: session.title.clone(),
+                pinned: session.pinned,
                 busy: session
                     .active_turn
                     .as_ref()
@@ -602,6 +621,54 @@ impl SessionStore {
             .collect();
         summaries.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
         summaries
+    }
+
+    pub fn rename(
+        &self,
+        owner_user_id: &OwnerId,
+        session_id: &str,
+        title: &str,
+    ) -> AssistantPortResult<()> {
+        let title: String = title.trim().chars().take(RENAMED_TITLE_LIMIT).collect();
+        if title.is_empty() || !self.is_visible_to(session_id, owner_user_id) {
+            return Ok(());
+        }
+        let stored = {
+            let mut state = self.state.lock().unwrap();
+            let Some(session) = state.sessions.get_mut(session_id) else {
+                return Ok(());
+            };
+            session.title = title;
+            session.clone()
+        };
+        if let Some(persistence) = self.persistence.as_ref() {
+            persistence.upsert_session(AssistantSessionUpsert {
+                owner_user_id: &stored.owner_user_id,
+                id: session_id,
+                title: &stored.title,
+                created_at: &stored.created_at,
+                updated_at: &stored.updated_at,
+            })?;
+        }
+        Ok(())
+    }
+
+    pub fn set_pinned(
+        &self,
+        owner_user_id: &OwnerId,
+        session_id: &str,
+        pinned: bool,
+    ) -> AssistantPortResult<()> {
+        if !self.is_visible_to(session_id, owner_user_id) {
+            return Ok(());
+        }
+        if let Some(session) = self.state.lock().unwrap().sessions.get_mut(session_id) {
+            session.pinned = pinned;
+        }
+        if let Some(persistence) = self.persistence.as_ref() {
+            persistence.set_pinned(session_id, pinned)?;
+        }
+        Ok(())
     }
 
     pub fn delete(&self, owner_user_id: &OwnerId, session_id: &str) {
@@ -646,6 +713,26 @@ impl SessionStore {
             .is_some_and(|turn| turn.turn_id == turn_id)
     }
 
+    /// Records the approval card a running turn is waiting on, so a reloaded
+    /// window can show it again.
+    pub(crate) fn set_pending_approval(&self, session_id: &str, approval: AssistantApproval) {
+        if let Some(session) = self.state.lock().unwrap().sessions.get_mut(session_id) {
+            session.pending_approval = Some(approval);
+        }
+    }
+
+    pub(crate) fn clear_pending_approval(&self, session_id: &str, approval_id: &str) {
+        if let Some(session) = self.state.lock().unwrap().sessions.get_mut(session_id) {
+            if session
+                .pending_approval
+                .as_ref()
+                .is_some_and(|approval| approval.id == approval_id)
+            {
+                session.pending_approval = None;
+            }
+        }
+    }
+
     pub fn push_message(
         &self,
         session_id: &str,
@@ -672,7 +759,7 @@ impl SessionStore {
         self.push(
             session_id,
             Role::ToolResult,
-            MessageBody::ToolResult(record, content),
+            MessageBody::ToolResult(Box::new(record), content),
         )
     }
 
@@ -701,7 +788,7 @@ impl SessionStore {
                 }
                 MessageBody::ToolCall(record) => message.tool_call = Some(record),
                 MessageBody::ToolResult(record, content) => {
-                    message.tool_result = Some(record);
+                    message.tool_result = Some(*record);
                     message.tool_content = Some(content);
                 }
             }
@@ -859,7 +946,6 @@ fn persist_runtime(
         id: session_id,
         endpoint_id: session.endpoint_id.as_deref(),
         model: session.model.as_deref(),
-        allow_writes: session.allow_writes,
         playbook_mode: session.playbook_mode.as_config_str(),
     }) {
         tracing::warn!(%error, "assistant: failed to persist runtime selection");
@@ -869,7 +955,6 @@ fn persist_runtime(
 fn apply_runtime(session: &mut StoredSession, runtime: AssistantRuntimeSelection) {
     session.endpoint_id = normalize_optional(runtime.endpoint_id);
     session.model = normalize_optional(runtime.model);
-    session.allow_writes = runtime.allow_writes;
     session.playbook_mode = runtime.playbook_mode;
 }
 
@@ -902,13 +987,40 @@ fn parse_role(role: &str) -> Role {
 }
 
 fn derive_title(content: &str) -> String {
-    let trimmed = content.trim();
+    let plain = plain_mentions(content);
+    let trimmed = plain.trim();
     let title: String = trimmed.chars().take(40).collect();
     if trimmed.chars().count() > 40 {
         format!("{title}…")
     } else {
         title
     }
+}
+
+fn plain_mentions(text: &str) -> String {
+    const MARKERS: [&str; 2] = ["](vrcx-0://user/open?id=", "](vrcx-0://world/open?id="];
+    let mut plain = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some((marker, marker_len)) = MARKERS
+        .iter()
+        .filter_map(|marker| rest.find(marker).map(|index| (index, marker.len())))
+        .min()
+    {
+        let after = &rest[marker + marker_len..];
+        match (rest[..marker].rfind("[@"), after.find(')')) {
+            (Some(open), Some(close)) => {
+                plain.push_str(&rest[..open]);
+                plain.push_str(&rest[open + 1..marker]);
+                rest = &after[close + 1..];
+            }
+            _ => {
+                plain.push_str(&rest[..marker + marker_len]);
+                rest = after;
+            }
+        }
+    }
+    plain.push_str(rest);
+    plain
 }
 
 pub fn random_hex() -> String {

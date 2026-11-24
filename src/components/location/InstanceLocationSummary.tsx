@@ -1,4 +1,4 @@
-import { AlertTriangleIcon, LockIcon, UnlockIcon } from 'lucide-react';
+import { CrownIcon, LockIcon, UnlockIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import type { SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,8 +22,8 @@ import { openGroupDialog, openWorldDialog } from '@/services/dialogService';
 import { accessTypeLocaleKeyMap } from '@/shared/constants/accessType';
 import { translateAccessType } from '@/shared/utils/location';
 import { useLaunchStore } from '@/state/launchStore';
+import { HintTooltip } from '@/ui/hint-tooltip';
 import { Button } from '@/ui/shadcn/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 export type InstanceLocationSummaryProps = {
     locationObject?: LocationObjectRecord | string | null;
@@ -38,11 +38,11 @@ export type InstanceLocationSummaryProps = {
     endpoint?: string;
     hint?: string | null;
     interactive?: boolean;
-    disableTooltip?: boolean;
     instanceClickAction?: 'launch' | 'world';
     showGroupName?: boolean;
     showWorldName?: boolean;
     showPlayerSummary?: boolean;
+    showRegion?: boolean;
     className?: string;
 };
 
@@ -59,11 +59,11 @@ export function InstanceLocationSummary({
     endpoint = '',
     hint = '',
     interactive = true,
-    disableTooltip = false,
     instanceClickAction = 'launch',
     showGroupName = true,
     showWorldName = true,
     showPlayerSummary = true,
+    showRegion = true,
     className = ''
 }: InstanceLocationSummaryProps) {
     const { t } = useTranslation();
@@ -207,7 +207,7 @@ export function InstanceLocationSummary({
                 className
             )}
         >
-            <RegionCodeBadge region={region} />
+            {showRegion ? <RegionCodeBadge region={region} /> : null}
             {interactive ? (
                 <Button
                     type="button"
@@ -263,31 +263,27 @@ export function InstanceLocationSummary({
                 </LocationPendingText>
             ) : null}
             {isClosed ? (
-                disableTooltip ? (
-                    <AlertTriangleIcon
-                        className="text-destructive ml-1 size-4 shrink-0"
-                        title={t('dialog.user.info.instance_closed')}
-                    />
-                ) : (
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={
-                                <AlertTriangleIcon className="text-destructive ml-1 size-4 shrink-0" />
-                            }
-                        />
-                        <TooltipContent>
-                            {t('dialog.user.info.instance_closed')}
-                        </TooltipContent>
-                    </Tooltip>
-                )
+                <span className="text-muted-foreground ml-2 shrink-0 text-xs">
+                    {t('dialog.world.instances.closed')}
+                </span>
             ) : null}
             {locObj.strict ? (
                 <LockIcon className="text-muted-foreground ml-1.5 size-4 shrink-0" />
             ) : null}
             {ownerLabel ? (
-                <span className="text-muted-foreground ml-2 max-w-48 truncate text-xs">
-                    {t('dialog.world.instances.instance_creator')}: {ownerLabel}
-                </span>
+                <HintTooltip
+                    label={t('dialog.world.instances.instance_creator')}
+                >
+                    <span className="text-muted-foreground ml-2 flex max-w-48 min-w-0 items-center gap-1 text-xs">
+                        <CrownIcon
+                            aria-label={t(
+                                'dialog.world.instances.instance_creator'
+                            )}
+                            className="size-3.5 shrink-0"
+                        />
+                        <span className="min-w-0 truncate">{ownerLabel}</span>
+                    </span>
+                </HintTooltip>
             ) : null}
             {showPlayerSummary && playerSummary ? (
                 <span className="text-muted-foreground ml-2 shrink-0 text-xs">

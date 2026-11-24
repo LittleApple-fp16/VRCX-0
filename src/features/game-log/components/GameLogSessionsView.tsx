@@ -1,5 +1,13 @@
 import { ArrowUpToLineIcon, ChevronRightIcon, UserIcon } from 'lucide-react';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    memo,
+    type RefObject,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -33,6 +41,7 @@ import {
 } from '@/ui/shadcn/hover-card';
 import { Separator } from '@/ui/shadcn/separator';
 import { Spinner } from '@/ui/shadcn/spinner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { useGameLogFilterCommands } from '../gameLogFilterCommands';
 import {
@@ -258,7 +267,7 @@ function sessionDayKey(session: GameLogSession) {
 
 function SessionDayDivider({ session }: { session: GameLogSession }) {
     const value = sessionStartValue(session);
-    const label = formatDateFilter(value, 'date');
+    const label = formatDateFilter(value, 'weekdayDate');
 
     return (
         <div className="bg-muted sticky top-0 z-[6] flex h-7 items-center gap-3 px-3">
@@ -326,6 +335,92 @@ function groupSessionsByDay(sessions: readonly GameLogSession[]) {
 const SESSION_HEADER_ESTIMATE_PX = 37;
 const SESSION_EVENT_ESTIMATE_PX = 32;
 const SESSION_EVENT_ESTIMATE_LIMIT = 40;
+const SESSION_BODY_PRELOAD_MARGIN = '100% 0px';
+
+function estimateSessionBodyHeight(session: GameLogSession) {
+    return (
+        Math.min(session.events?.length ?? 0, SESSION_EVENT_ESTIMATE_LIMIT) *
+        SESSION_EVENT_ESTIMATE_PX
+    );
+}
+
+function isNearScrollViewport(element: HTMLElement, root: HTMLElement) {
+    const rootRect = root.getBoundingClientRect();
+    const rect = element.getBoundingClientRect();
+    const margin = root.clientHeight;
+    return (
+        rect.bottom >= rootRect.top - margin &&
+        rect.top <= rootRect.bottom + margin
+    );
+}
+
+function useNearViewportSessionKeys(
+    scrollRef: RefObject<HTMLDivElement | null>,
+    sessions: readonly GameLogSession[]
+) {
+    const [nearKeys, setNearKeys] = useState<ReadonlySet<string>>(
+        () => new Set()
+    );
+    const nearKeysRef = useRef(nearKeys);
+
+    useLayoutEffect(() => {
+        const root = scrollRef.current;
+        if (!root || typeof IntersectionObserver !== 'function') {
+            return undefined;
+        }
+        const addNearKeys = (keys: readonly string[]) => {
+            if (!keys.length) {
+                return;
+            }
+            const next = new Set(nearKeysRef.current);
+            for (const key of keys) {
+                next.add(key);
+            }
+            nearKeysRef.current = next;
+            setNearKeys(next);
+        };
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const reached: string[] = [];
+                for (const entry of entries) {
+                    const key =
+                        entry.target instanceof HTMLElement
+                            ? entry.target.dataset.sessionKey
+                            : undefined;
+                    if (!entry.isIntersecting || !key) {
+                        continue;
+                    }
+                    observer.unobserve(entry.target);
+                    if (!nearKeysRef.current.has(key)) {
+                        reached.push(key);
+                    }
+                }
+                addNearKeys(reached);
+            },
+            { root, rootMargin: SESSION_BODY_PRELOAD_MARGIN }
+        );
+        const reachedNow: string[] = [];
+        for (const element of root.querySelectorAll<HTMLElement>(
+            '[data-session-key]'
+        )) {
+            const key = element.dataset.sessionKey;
+            if (!key || nearKeysRef.current.has(key)) {
+                continue;
+            }
+            if (isNearScrollViewport(element, root)) {
+                reachedNow.push(key);
+            } else {
+                observer.observe(element);
+            }
+        }
+        addNearKeys(reachedNow);
+        return () => {
+            observer.disconnect();
+        };
+    }, [scrollRef, sessions]);
+
+    return typeof IntersectionObserver === 'function' ? nearKeys : null;
+}
 
 function formatSessionEventRange(
     summary: GameLogSessionSummary,
@@ -386,6 +481,7 @@ type GameLogSessionSegmentProps = {
     isLatest: boolean;
     isGameRunning: boolean;
     isOpen?: boolean;
+    bodyMounted: boolean;
     onOpenChange?: (sessionKey: string, nextOpen: boolean) => void;
 };
 
@@ -397,6 +493,7 @@ const GameLogSessionSegment = memo(function GameLogSessionSegment({
     isLatest,
     isGameRunning,
     isOpen = false,
+    bodyMounted,
     onOpenChange
 }: GameLogSessionSegmentProps) {
     const { t } = useTranslation();
@@ -499,29 +596,33 @@ const GameLogSessionSegment = memo(function GameLogSessionSegment({
                 )}
             >
                 <div className="flex min-h-9 w-full items-center gap-2 px-3 py-1.5 text-left">
-                    <CollapsibleTrigger
-                        render={
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-xs"
-                                aria-label={t(
-                                    isOpen
-                                        ? 'view.game_log.sessions.collapse_session'
-                                        : 'view.game_log.sessions.expand_session'
-                                )}
-                                className="-ml-1 shrink-0"
-                            >
-                                <ChevronRightIcon
-                                    data-icon="inline-start"
-                                    className={cn(
-                                        'text-muted-foreground shrink-0 transition-transform duration-150',
-                                        isOpen && 'rotate-90'
+                    {session.remote ? (
+                        <span aria-hidden className="-ml-1 size-6 shrink-0" />
+                    ) : (
+                        <CollapsibleTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    aria-label={t(
+                                        isOpen
+                                            ? 'view.game_log.sessions.collapse_session'
+                                            : 'view.game_log.sessions.expand_session'
                                     )}
-                                />
-                            </Button>
-                        }
-                    />
+                                    className="-ml-1 shrink-0"
+                                >
+                                    <ChevronRightIcon
+                                        data-icon="inline-start"
+                                        className={cn(
+                                            'text-muted-foreground shrink-0 transition-transform duration-150',
+                                            isOpen && 'rotate-90'
+                                        )}
+                                    />
+                                </Button>
+                            }
+                        />
+                    )}
                     <div className="min-w-0 flex-1">
                         {sessionLocation ? (
                             <Location
@@ -545,6 +646,27 @@ const GameLogSessionSegment = memo(function GameLogSessionSegment({
                             <span className="truncate text-sm" />
                         )}
                     </div>
+                    {session.remote ? (
+                        <Tooltip>
+                            <TooltipTrigger
+                                render={
+                                    <Badge
+                                        variant="outline"
+                                        className="text-muted-foreground h-4 shrink-0 px-1 text-xs"
+                                    >
+                                        {t(
+                                            'view.game_log.sessions.other_device'
+                                        )}
+                                    </Badge>
+                                }
+                            />
+                            <TooltipContent>
+                                {t(
+                                    'view.game_log.sessions.other_device_description'
+                                )}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : null}
                     {sessionFriends.length ? (
                         <SessionFriendFacepile friends={sessionFriends} />
                     ) : null}
@@ -563,10 +685,17 @@ const GameLogSessionSegment = memo(function GameLogSessionSegment({
             </div>
 
             <CollapsibleContent>
-                <SessionEventGroups
-                    durationByKey={durationByKey}
-                    events={session.events}
-                />
+                {bodyMounted ? (
+                    <SessionEventGroups
+                        durationByKey={durationByKey}
+                        events={session.events}
+                    />
+                ) : (
+                    <div
+                        aria-hidden="true"
+                        style={{ height: estimateSessionBodyHeight(session) }}
+                    />
+                )}
             </CollapsibleContent>
         </Collapsible>
     );
@@ -675,6 +804,7 @@ export function GameLogSessionsView({
     ]);
 
     const dayGroups = useMemo(() => groupSessionsByDay(sessions), [sessions]);
+    const nearSessionKeys = useNearViewportSessionKeys(scrollRef, sessions);
     const { scrolledAway, scrollToLatest } = useSessionScrollAnchor(
         scrollRef,
         sessions,
@@ -688,7 +818,7 @@ export function GameLogSessionsView({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="bg-popover/95 absolute top-9 left-1/2 z-20 h-7 -translate-x-1/2 rounded-full border px-3 text-xs shadow-md backdrop-blur"
+                    className="bg-popover/95 absolute top-18 left-1/2 z-20 h-7 -translate-x-1/2 rounded-full border px-3 text-xs shadow-md backdrop-blur"
                     onClick={scrollToLatest}
                 >
                     <ArrowUpToLineIcon data-icon="inline-start" />
@@ -716,6 +846,8 @@ export function GameLogSessionsView({
                                 {group.entries.map(({ index, session }) => {
                                     const sessionKey =
                                         getGameLogSessionKey(session);
+                                    const elementKey =
+                                        sessionKey || `session:${index}`;
                                     const isOpen = sessionKey
                                         ? (sessionOpenOverrides.get(
                                               sessionKey
@@ -724,19 +856,12 @@ export function GameLogSessionsView({
                                     const estimatedHeight =
                                         SESSION_HEADER_ESTIMATE_PX +
                                         (isOpen
-                                            ? Math.min(
-                                                  session.events?.length ?? 0,
-                                                  SESSION_EVENT_ESTIMATE_LIMIT
-                                              ) * SESSION_EVENT_ESTIMATE_PX
+                                            ? estimateSessionBodyHeight(session)
                                             : 0);
                                     return (
                                         <div
-                                            key={
-                                                sessionKey || `session:${index}`
-                                            }
-                                            data-session-key={
-                                                sessionKey || `session:${index}`
-                                            }
+                                            key={elementKey}
+                                            data-session-key={elementKey}
                                             style={{
                                                 contentVisibility: 'auto',
                                                 containIntrinsicSize: `auto ${estimatedHeight}px`
@@ -755,6 +880,12 @@ export function GameLogSessionsView({
                                                 }
                                                 isGameRunning={isGameRunning}
                                                 isOpen={isOpen}
+                                                bodyMounted={
+                                                    !nearSessionKeys ||
+                                                    nearSessionKeys.has(
+                                                        elementKey
+                                                    )
+                                                }
                                                 onOpenChange={
                                                     onSessionOpenChange
                                                 }

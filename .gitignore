@@ -11,6 +11,7 @@ docs/
 src-tauri/resources/licenses/THIRD_PARTY_NOTICES.txt
 
 # Misc
+.env.local
 AGENTS.md
 CLAUDE.md
 coverage/

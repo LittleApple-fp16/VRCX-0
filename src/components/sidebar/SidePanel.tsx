@@ -27,6 +27,7 @@ import {
     hydrateSidebarTabLayout,
     saveSidebarTabLayout
 } from '@/state/sidebarTabStore';
+import { HintTooltip } from '@/ui/hint-tooltip';
 import { Button } from '@/ui/shadcn/button';
 import {
     ContextMenu,
@@ -66,6 +67,7 @@ const defaultPrefs: SidePanelPreferences = {
     isHideFriendsInSameInstance: true,
     isSameInstanceAboveFavorites: false,
     isSidebarDivideByFriendGroup: false,
+    sidebarCompactRows: false,
     sidebarSortMethod1: 'Sort by Status',
     sidebarSortMethod2: 'Sort Alphabetically',
     sidebarSortMethod3: '',
@@ -161,6 +163,10 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                     'isSidebarDivideByFriendGroup',
                     defaultPrefs.isSidebarDivideByFriendGroup
                 ),
+                configRepository.getBool(
+                    'sidebarCompactRows',
+                    defaultPrefs.sidebarCompactRows
+                ),
                 configRepository.getString(
                     'sidebarSortMethod1',
                     defaultPrefs.sidebarSortMethod1
@@ -182,6 +188,7 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                         isHideFriendsInSameInstance,
                         isSameInstanceAboveFavorites,
                         isSidebarDivideByFriendGroup,
+                        sidebarCompactRows,
                         sidebarSortMethod1,
                         sidebarSortMethod2,
                         sidebarSortMethod3,
@@ -204,6 +211,7 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                             isSidebarDivideByFriendGroup: Boolean(
                                 isSidebarDivideByFriendGroup
                             ),
+                            sidebarCompactRows: Boolean(sidebarCompactRows),
                             sidebarSortMethod1: toSidePanelSortMethod(
                                 sidebarSortMethod1 || ''
                             ),
@@ -599,21 +607,21 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                                 );
                             })}
                         </TabsList>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground shrink-0"
-                            title={t(
+                        <HintTooltip
+                            label={t(
                                 'side_panel.settings.custom_tabs.configure'
                             )}
-                            aria-label={t(
-                                'side_panel.settings.custom_tabs.configure'
-                            )}
-                            onClick={openCustomTabsDialog}
                         >
-                            <PlusIcon data-icon="icon" />
-                        </Button>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="text-muted-foreground shrink-0"
+                                onClick={openCustomTabsDialog}
+                            >
+                                <PlusIcon data-icon="icon" />
+                            </Button>
+                        </HintTooltip>
                         <div className="mt-auto shrink-0">
                             <SidePanelSettingsPopover
                                 open={settingsPopoverOpen}

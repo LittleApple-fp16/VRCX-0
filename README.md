@@ -1,8 +1,8 @@
 <div align="center">
 
-# <img src="images/VRCX-0.png" alt="VRCX-0 Logo" width="25"> VRCX-0
+# <img src="images/brand/VRCX-0.png" alt="VRCX-0 Logo" width="25"> VRCX-0
 
-### The fast, lightweight VRCX.
+### Faster. Better. Works with AI.
 
 English | [Français](README.fr-FR.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-Hant.md) | [日本語](README.ja-JP.md) | [한국어](README.ko-KR.md)
 
@@ -19,7 +19,7 @@ English | [Français](README.fr-FR.md) | [简体中文](README.zh-CN.md) | [繁�
 
 Windows · macOS · Linux
 
-![VRCX-0](images/screenshot-user-dialog.webp)
+![VRCX-0](images/screenshots/user-dialog.webp)
 
 </div>
 
@@ -60,15 +60,20 @@ VRCX-0 is a ground-up rewrite of VRCX by one of its former maintainers. Rebuilt 
   instances
 - **Game Log import** — fill in the Game Log from VRChat's own logs for times
   VRCX-0 wasn't running
+- **Chatbox** — built-in chatbox features like those in [VRCOSC](https://github.com/VolcanicArts/VRCOSC), with no extra
+  app to run: rotate your status and the song that's playing, and translate the
+  messages you send automatically
 
 ### For advanced users
 
 - **MCP server** — let external AI tools use your local social data directly
-- **Integration API** — real-time in-game data for third-party apps
+- **Integration API** — real-time in-game data for third-party apps; see
+  [guides/integration-api.md](guides/integration-api.md)
 - **Self-hosted Recorder (experimental)** — runs on your own server and keeps
   your Feed recording while VRCX-0 is closed; the gap fills in the next time
-  you open it
-- **Headless mode** — run without a UI; see `crates/headless`
+  you open it; see [guides/recorder.md](guides/recorder.md)
+- **Headless mode** — run without a UI; see
+  [guides/headless.md](guides/headless.md)
 
 ### Compared with VRCX
 
@@ -77,7 +82,7 @@ VRCX-0 is a ground-up rewrite of VRCX by one of its former maintainers. Rebuilt 
 | **Social automation** | Switch status when alone or with others; auto-reply to invite requests | + Schedules, multiple context rules with priorities, previous status restored             |
 | **Notifications**     | Desktop, TTS, XSOverlay, OVR Toolkit, wrist overlay                    | + Desktop Overlay, Discord webhooks, Do Not Disturb; per-event filtering on every channel |
 | **VR overlay**        | Browser-rendered (100 MB+); OpenVR                                     | + Native rendering (tens of MB); OpenXR (**tested with WiVRn**)                           |
-| Screenshots           | View and search metadata                                               | + Grid view, favorites, batch management, ZIP export                                      |
+| Screenshots           | View and search metadata                                               | + Grid view, favorites, batch management, ZIP export, frames, send to Discord             |
 | Avatar details        | Performance rank and file size                                         | + Full performance stats against each platform's limits                                   |
 | Backup                | VRChat registry settings                                               | + Scheduled database backups, one-click restore                                           |
 | Friend locations      | Group friends by instance                                              | + Worlds view                                                                             |
@@ -85,7 +90,7 @@ VRCX-0 is a ground-up rewrite of VRCX by one of its former maintainers. Rebuilt 
 | Themes                | Built-in themes, custom CSS file                                       | + Community themes, background image, in-app CSS editor, accent color                     |
 | Multiple accounts     | Game logs from all accounts mixed together                             | Game log kept per account; play VRChat on another account without affecting this one      |
 
-Everything else VRCX does, VRCX-0 does too.
+Nearly everything else VRCX does, VRCX-0 does too.
 
 ## Install
 
@@ -105,8 +110,19 @@ Security** and click **Open Anyway**.
 
 Hardware acceleration for the app interface is off by default. Turn it on under
 **Settings → System → Hardware acceleration (experimental)**; if the interface
-doesn't display properly, VRCX-0 turns it back off automatically. Setting
+doesn't display properly, VRCX-0 turns it back off automatically. NVIDIA GPUs
+on X11 or Hyprland usually can't use it. Setting
 `WEBKIT_DISABLE_DMABUF_RENDERER` yourself hides this option.
+
+## Privacy
+
+To help improve the app, VRCX-0 collects anonymous usage information: a random
+install ID and only the information it needs. Sensitive data is removed before
+anything is sent. It's on by default; turn it off under **Settings → Advanced →
+Collect Anonymous Usage Information**. Even when it's off, VRCX-0 still sends
+one basic record after each update, so active installs can be counted. If
+you're not comfortable with that, this software may not be the right fit for
+you.
 
 ## Feedback
 
@@ -120,6 +136,7 @@ Use these steps to contribute or build VRCX-0 locally. Before contributing, see 
 
 Requirements: Node.js ≥ 24.10, npm ≥ 11.5, and a stable Rust toolchain via rustup.
 On Windows, also install **Visual Studio Build Tools** with the **Desktop development with C++** workload.
+On Linux, also install the system packages listed in Tauri's [prerequisites](https://v2.tauri.app/start/prerequisites/#linux).
 
 ```bash
 git clone https://github.com/Map1en/VRCX-0

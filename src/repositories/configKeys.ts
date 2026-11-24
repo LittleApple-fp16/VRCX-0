@@ -1,8 +1,4 @@
-import {
-    DEFAULT_TABLE_PAGE_SIZE,
-    DEFAULT_TRANSLATION_ENDPOINT,
-    DEFAULT_TRANSLATION_MODEL
-} from '@/shared/constants/settings';
+import { DEFAULT_TABLE_PAGE_SIZE } from '@/shared/constants/settings';
 import { DEFAULT_GENERIC_WEBHOOK_FIELDS } from '@/shared/constants/webhook';
 
 type ConfigValueType = 'string' | 'int' | 'bool' | 'float';
@@ -45,6 +41,7 @@ export const ConfigKeys = defineConfigKeys({
     isHideFriendsInSameInstance: { type: 'bool', default: true },
     isSameInstanceAboveFavorites: { type: 'bool', default: false },
     isSidebarDivideByFriendGroup: { type: 'bool', default: false },
+    sidebarCompactRows: { type: 'bool', default: false },
     rightSidebarOpen: { type: 'bool', default: true },
     sidebarSortMethod1: { type: 'string', default: 'Sort by Status' },
     sidebarSortMethod2: { type: 'string', default: 'Sort Alphabetically' },
@@ -101,6 +98,7 @@ export const ConfigKeys = defineConfigKeys({
     dataTableStriped: { type: 'bool', default: false },
     tableDensity: { type: 'string', default: 'standard' },
     reducedMotionAndBlur: { type: 'bool', default: false },
+    ctrlWheelZoom: { type: 'bool', default: false },
     tablePageSize: { type: 'int', default: DEFAULT_TABLE_PAGE_SIZE },
     randomUserColours: { type: 'bool', default: false },
     randomUserColourStyle: { type: 'string', default: 'classic' },
@@ -158,11 +156,9 @@ export const ConfigKeys = defineConfigKeys({
     translationAPIKey: { type: 'string', default: '' },
     translationAPIType: { type: 'string', default: 'google' },
     translationEndpointId: { type: 'string', default: '' },
-    translationAPIEndpoint: {
-        type: 'string',
-        default: DEFAULT_TRANSLATION_ENDPOINT
-    },
-    translationAPIModel: { type: 'string', default: DEFAULT_TRANSLATION_MODEL },
+    chatboxTranslateTarget: { type: 'string', default: 'en' },
+    chatboxTranslateEnabled: { type: 'bool', default: false },
+    translationAPIModel: { type: 'string', default: '' },
     translationAPIPrompt: { type: 'string', default: '' },
     translationAPIReasoningEffort: { type: 'string', default: '' },
 
@@ -353,6 +349,7 @@ export type ConfigKeyName = keyof typeof ConfigKeys;
 export const APP_THEME_CONFIG_KEYS = Object.freeze({
     themeMode: 'ThemeMode',
     themeColor: 'VRCX_themeColor',
+    communityThemeAccentOverride: 'VRCX_communityThemeAccentOverride',
     zoomLevel: 'VRCX_ZoomLevel',
     fontFamily: 'VRCX_fontFamily'
 });

@@ -28,6 +28,33 @@ where
     }
 }
 
+pub(super) fn enum_token(value: &str) -> String {
+    value
+        .chars()
+        .filter(char::is_ascii_alphanumeric)
+        .map(|character| character.to_ascii_lowercase())
+        .collect()
+}
+
+pub(super) fn deserialize_lenient_enum<'de, D, T>(
+    deserializer: D,
+    expected: &'static [&'static str],
+    parse: impl FnOnce(&str) -> Option<T>,
+) -> Result<T, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Default,
+{
+    let Some(raw) = Option::<String>::deserialize(deserializer)? else {
+        return Ok(T::default());
+    };
+    let token = enum_token(&raw);
+    if token.is_empty() {
+        return Ok(T::default());
+    }
+    parse(&token).ok_or_else(|| serde::de::Error::unknown_variant(raw.trim(), expected))
+}
+
 #[derive(Clone, Debug, Default)]
 pub(super) struct TimeWindowParams {
     pub(super) from: Option<String>,
@@ -67,13 +94,13 @@ impl schemars::JsonSchema for TimeWindowParams {
             "oneOf": [
                 {
                     "type": "string",
-                    "description": "Relative window such as 90d or this week, a four-digit calendar year such as 2026, this year or last year, a calendar month such as 2026-10, a calendar day such as 2026-10-18, or all history. Calendar forms use the tool's utcOffsetMinutes when it takes one, otherwise UTC."
+                    "description": "90d, this week, last month, this year, 2026, 2026-10, 2026-10-18 or all; calendar forms use utcOffsetMinutes when the tool has it, else UTC."
                 },
                 {
                     "type": "integer",
                     "minimum": 1000,
                     "maximum": 9998,
-                    "description": "Four-digit calendar year such as 2026, in the tool's utcOffsetMinutes when it takes one, otherwise UTC."
+                    "description": "Calendar year, e.g. 2026."
                 },
                 {
                     "type": "object",
@@ -553,7 +580,7 @@ struct DisambiguationOutput {
 struct NotFoundOutput {
     not_found: bool,
     query: String,
-    hint: &'static str,
+    summary: String,
 }
 
 pub(super) fn disambiguation_result(
@@ -571,8 +598,14 @@ pub(super) fn not_found_result(query: &str) -> Result<CallToolResult, String> {
     structured_result(NotFoundOutput {
         not_found: true,
         query: query.to_string(),
-        hint: "no user matching this name in local history",
+        summary: not_found_summary(query),
     })
+}
+
+pub(super) fn not_found_summary(query: &str) -> String {
+    format!(
+        "No one matching \"{query}\" appears in this profile's local history. That is the answer: say so, and do not search for the name with other tools."
+    )
 }
 
 pub(super) fn map_application_query_error(error: vrcx_0_application_core::Error) -> String {

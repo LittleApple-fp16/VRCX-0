@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 
 import type {
+    AssistantApprovalRequestEvent,
+    AssistantChoiceRequestEvent,
     AssistantDeltaEvent,
     AssistantDoneEvent,
     AssistantErrorEvent,
@@ -118,7 +120,7 @@ export function useAssistantEvents(): void {
                 }
                 flushNow();
                 store.applyToolResult(event);
-                if (!event.ok) {
+                if (!event.ok && !event.denied) {
                     const tool = toolCallsById.get(event.toolCallId);
                     recordAssistantToolError({
                         source: tool?.name,
@@ -127,6 +129,20 @@ export function useAssistantEvents(): void {
                     });
                 }
                 toolCallsById.delete(event.toolCallId);
+            },
+            assistantChoiceRequest: (event: AssistantChoiceRequestEvent) => {
+                if (isCurrentAccountEvent(event)) {
+                    flushNow();
+                    store.applyChoiceRequest(event);
+                }
+            },
+            assistantApprovalRequest: (
+                event: AssistantApprovalRequestEvent
+            ) => {
+                if (isCurrentAccountEvent(event)) {
+                    flushNow();
+                    store.applyApprovalRequest(event);
+                }
             },
             assistantTurnEntities: (event: AssistantTurnEntitiesEvent) => {
                 if (isCurrentAccountEvent(event)) {
@@ -182,6 +198,14 @@ export function useAssistantEvents(): void {
             tauriClient.events.subscribe(
                 'assistantToolResult',
                 handlers.assistantToolResult
+            ),
+            tauriClient.events.subscribe(
+                'assistantChoiceRequest',
+                handlers.assistantChoiceRequest
+            ),
+            tauriClient.events.subscribe(
+                'assistantApprovalRequest',
+                handlers.assistantApprovalRequest
             ),
             tauriClient.events.subscribe(
                 'assistantTurnEntities',

@@ -1,17 +1,18 @@
 use std::collections::HashMap;
-use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
-use vrcx_0_application_core::{RuntimeAuthScopeSnapshot, RuntimeOperationStatus};
+use vrcx_0_application_core::{RuntimeAuthScopeSnapshot, RuntimeOperationStatus, WebClient};
 
 use tokio::sync::{broadcast, watch};
 use vrcx_0_application_core::{Error, Result};
 use vrcx_0_contracts::realtime::{NotificationExpiration, RealtimePersistenceBatch};
 use vrcx_0_core::friends::{FriendBaselineEntry, FriendRosterBaseline};
-use vrcx_0_core::vrchat_endpoints::normalize_vrchat_websocket_endpoint;
+use vrcx_0_core::vrchat_endpoints::{
+    normalize_vrchat_api_endpoint, normalize_vrchat_websocket_endpoint,
+};
 
 use crate::realtime::connection::RealtimeMessageSink;
 use crate::realtime::current_user::RealtimeCurrentUserRuntime;
-use crate::realtime::friends::RealtimeFriendsRuntime;
+use crate::realtime::friends::{apply_friend_number, RealtimeFriendsRuntime};
 use crate::realtime::user_facts::UserFactStore;
 use crate::realtime::user_query_cache::UserQueryCache;
 use crate::realtime::{
@@ -33,21 +34,25 @@ enum RealtimeFriendBaselineStart {
 }
 
 impl RealtimeHostRuntime {
-    pub fn new(deps: RealtimeHostRuntimeDeps) -> Self {
+    pub fn new(deps: RealtimeHostRuntimeDeps, web: Arc<WebClient>) -> Self {
         let (cancel_tx, _) = watch::channel(0);
         let (transport_lifecycle_tx, _) = broadcast::channel(32);
-        let (friend_profile_bulk_cancel_tx, _) = watch::channel(0);
+        let friend_profile_bulk =
+            super::friend_profile_bulk_load::FriendProfileBulkLoader::new(&deps);
         let world_cache = Arc::clone(&deps.world_cache);
         let instance_dwell = Arc::clone(&deps.instance_dwell);
         let feed_persistence_disabled = deps
-            .store
+            .config
             .get_bool("feedPersistenceDisabled", false)
             .unwrap_or_else(|error| {
                 tracing::warn!("Feed persistence preference read failed: {error}");
                 false
             });
+        let feed =
+            super::feed::FeedLiveProjector::new(deps.event_bus.clone(), feed_persistence_disabled);
         Self {
             deps,
+            web,
             state: Mutex::new(RealtimeHostRuntimeState::default()),
             cancel_tx,
             transport_lifecycle_tx,
@@ -57,15 +62,10 @@ impl RealtimeHostRuntime {
             user_query_cache: UserQueryCache::new(),
             world_cache,
             friend_owner_lock: Mutex::new(()),
-            feed_owner_lock: Mutex::new(()),
-            feed_live_cache: Mutex::new(super::feed::FeedLiveCache::default()),
-            feed_persistence_disabled: AtomicBool::new(feed_persistence_disabled),
+            feed,
             reconnect_backfill_check: Mutex::new(None),
-            notification_apply_lock: tokio::sync::Mutex::new(()),
-            friend_profile_bulk_load: Mutex::new(
-                super::friend_profile_bulk_load::FriendProfileBulkLoadState::default(),
-            ),
-            friend_profile_bulk_cancel_tx,
+            notification_apply: Default::default(),
+            friend_profile_bulk,
             current_user_refresh_inflight: Mutex::new(None),
         }
     }
@@ -88,11 +88,7 @@ impl RealtimeHostRuntime {
                     .connection
                     .active_context
                     .as_ref()
-                    .is_some_and(|active| {
-                        active.client_run_id == transport.client_run_id
-                            && active.generation == transport.generation
-                            && active.session_generation == transport.session_generation
-                    })
+                    .is_some_and(|active| active.matches_transport(transport))
             })
             .unwrap_or(false)
     }
@@ -187,14 +183,10 @@ impl RealtimeHostRuntime {
             state.connection.generation = state.connection.generation.saturating_add(1);
             state.connection.generation
         };
-        self.cancel_friend_profile_bulk_load_for_replacement(&session);
-        let session_generation = self.deps.session.set_realtime_context(
-            vrcx_0_application_core::HostRealtimeSessionContext::new(
-                session.user_id.clone(),
-                session.endpoint.clone(),
-                session.websocket.clone(),
-            ),
-        );
+        self.friend_profile_bulk
+            .cancel_friend_profile_bulk_load_for_replacement(&session);
+        let session_generation = self.deps.session.set_realtime_context(session.clone());
+        let friend_numbers = self.persisted_friend_numbers(&session.user_id);
         {
             let mut state = self
                 .state
@@ -211,47 +203,53 @@ impl RealtimeHostRuntime {
             state.friend_profile.refetches.clear();
             state.world_enrichment.inflight.clear();
             state.world_enrichment.pending_corrections.clear();
-            state.automation.invite.clear_all();
-            let friend_user_ids =
-                if let Some(friends_by_id) = queued_friends.or_else(|| supplied_friends.take()) {
-                    if self
-                        .friends
-                        .session_context()
-                        .is_some_and(|previous| previous != session)
-                    {
-                        self.friends.clear();
+            state.automation.invite.retain_for_session(&session);
+            let friend_user_ids = if let Some(mut friends_by_id) =
+                queued_friends.or_else(|| supplied_friends.take())
+            {
+                if let Some(numbers) = friend_numbers.as_ref() {
+                    for (user_id, entry) in &mut friends_by_id {
+                        apply_friend_number(user_id, &mut entry.record, numbers);
                     }
-                    let friend_user_ids = friends_by_id.keys().cloned().collect::<Vec<_>>();
-                    let effects = self.friends.set_baseline_with_effects(
-                        FriendRosterBaseline {
-                            current_user_id: session.user_id.clone(),
-                            endpoint: session.endpoint.clone(),
-                            websocket: session.websocket.clone(),
-                            friends_by_id,
-                        },
-                        generation,
-                        0,
-                        None,
-                        chrono::Utc::now().timestamp_millis(),
-                    );
-                    start_effects = Some(effects);
-                    friend_user_ids
-                } else {
-                    let Some((friend_user_ids, wakes)) = self
-                        .friends
-                        .restart_preserving_baseline(&session, generation)
-                    else {
-                        self.deps
-                            .session
-                            .clear_realtime_context_if_generation(session_generation);
-                        return Err(Error::Custom(
-                            "Realtime transport requires a pending or preserved friend baseline."
-                                .into(),
-                        ));
-                    };
-                    preserved_wakes = wakes;
-                    friend_user_ids
+                }
+                if self
+                    .friends
+                    .session_context()
+                    .is_some_and(|previous| previous != session)
+                {
+                    self.friends.clear();
+                }
+                let friend_user_ids = friends_by_id.keys().cloned().collect::<Vec<_>>();
+                let effects = self.friends.set_baseline_with_effects(
+                    FriendRosterBaseline {
+                        current_user_id: session.user_id.clone(),
+                        endpoint: session.endpoint.clone(),
+                        websocket: session.websocket.clone(),
+                        friends_by_id,
+                    },
+                    generation,
+                    0,
+                    None,
+                    chrono::Utc::now().timestamp_millis(),
+                );
+                start_effects = Some(effects);
+                friend_user_ids
+            } else {
+                let Some((friend_user_ids, wakes)) = self
+                    .friends
+                    .restart_preserving_baseline(&session, generation)
+                else {
+                    self.deps
+                        .session
+                        .clear_realtime_context_if_generation(session_generation);
+                    return Err(Error::Custom(
+                        "Realtime transport requires a pending or preserved friend baseline."
+                            .into(),
+                    ));
                 };
+                preserved_wakes = wakes;
+                friend_user_ids
+            };
             queued_projection.location_time_snapshot = Some(self.deps.instance_dwell.snapshot());
             state.connection.active_context = Some(ActiveRealtimeContext {
                 session: session.clone(),
@@ -371,11 +369,7 @@ impl RealtimeHostRuntime {
                     .connection
                     .active_context
                     .as_ref()
-                    .filter(|active| {
-                        active.generation == transport.generation
-                            && active.client_run_id == transport.client_run_id
-                            && active.session_generation == transport.session_generation
-                    })
+                    .filter(|active| active.matches_transport(&transport))
                     .cloned();
                 active.map(|active| {
                     let final_current_user_output = if preserve_snapshot {
@@ -401,7 +395,8 @@ impl RealtimeHostRuntime {
 
         if let Some((active, final_current_user_output)) = finished {
             if !preserve_snapshot {
-                self.cancel_friend_profile_bulk_load_for_session(&active.session);
+                self.friend_profile_bulk
+                    .cancel_friend_profile_bulk_load_for_session(&active.session);
             }
             if let Some(output) = final_current_user_output {
                 if preserve_snapshot && active.generation == output.projection.generation {
@@ -488,7 +483,8 @@ impl RealtimeHostRuntime {
                         auth_scope.active
                             && active.auth_scope_generation == auth_scope.generation
                             && active.session.user_id == auth_scope.current_user_id
-                            && active.session.endpoint == auth_scope.endpoint
+                            && normalize_vrchat_api_endpoint(Some(&active.session.endpoint))
+                                == auth_scope.endpoint
                     })
                     .map(|active| active.session.endpoint.clone())
             })
@@ -532,7 +528,8 @@ impl RealtimeHostRuntime {
         };
         let result = self
             .deps
-            .store
+            .stores
+            .batch_writer
             .write_realtime_batch(&OwnerId::new(user_id), &batch)
             .map_err(|error| Error::Custom(format!("expire realtime notification: {error}")));
         match &result {
@@ -568,6 +565,30 @@ impl RealtimeHostRuntime {
         self.is_message_current_locked(&state, generation, session_generation, session)
     }
 
+    fn teardown_session_locked(&self, state: &mut RealtimeHostRuntimeState) {
+        state.connection.generation = state.connection.generation.saturating_add(1);
+        state.friend_baseline.queued = None;
+        state.friend_profile.refetches.clear();
+        state.world_enrichment.inflight.clear();
+        state.world_enrichment.pending_corrections.clear();
+        state.automation.invite.clear_all();
+        let _ = self.cancel_tx.send(state.connection.generation);
+        self.deps.session.clear_realtime_context();
+    }
+
+    fn clear_session_caches(&self) {
+        self.user_facts.clear();
+        self.user_query_cache.clear();
+        self.world_cache.clear_working();
+        self.feed.reset();
+    }
+
+    pub(super) fn is_session_live(&self, active: &ActiveRealtimeContext) -> bool {
+        self.deps
+            .session
+            .is_realtime_generation_active(active.session_generation)
+    }
+
     pub fn stop(&self, request: RealtimeStopRequest) {
         let friend_owner = self.lock_friend_owner();
         let stopped = {
@@ -582,13 +603,7 @@ impl RealtimeHostRuntime {
             match state.connection.active_context.clone() {
                 None => {
                     if !request.has_scope() {
-                        state.connection.generation = state.connection.generation.saturating_add(1);
-                        state.friend_baseline.queued = None;
-                        state.friend_profile.refetches.clear();
-                        state.world_enrichment.inflight.clear();
-                        state.world_enrichment.pending_corrections.clear();
-                        let _ = self.cancel_tx.send(state.connection.generation);
-                        self.deps.session.clear_realtime_context();
+                        self.teardown_session_locked(&mut state);
                         if self.friends.session_context().is_some() {
                             self.friends.clear();
                         }
@@ -612,14 +627,8 @@ impl RealtimeHostRuntime {
                         normalize_vrchat_websocket_endpoint(&active.session.websocket);
                     let final_current_user_output =
                         self.current_user_transport_finalization_output(active.generation);
-                    state.connection.generation = state.connection.generation.saturating_add(1);
                     state.connection.active_context = None;
-                    state.friend_baseline.queued = None;
-                    state.friend_profile.refetches.clear();
-                    state.world_enrichment.inflight.clear();
-                    state.world_enrichment.pending_corrections.clear();
-                    let _ = self.cancel_tx.send(state.connection.generation);
-                    self.deps.session.clear_realtime_context();
+                    self.teardown_session_locked(&mut state);
                     self.friends.clear();
                     self.current_user.clear();
                     Some((
@@ -643,21 +652,16 @@ impl RealtimeHostRuntime {
             final_current_user_output,
         )) = stopped
         else {
-            self.cancel_friend_profile_bulk_load_for_stop_request(&request);
+            self.friend_profile_bulk
+                .cancel_friend_profile_bulk_load_for_stop_request(&request);
             if !request.has_scope() {
-                self.user_facts.clear();
-                self.user_query_cache.clear();
-                self.world_cache.clear_working();
-                self.reset_feed_live_cache();
+                self.clear_session_caches();
             }
             return;
         };
-        self.cancel_friend_profile_bulk_load_for_session(&stopped_active.session);
-
-        self.user_facts.clear();
-        self.user_query_cache.clear();
-        self.world_cache.clear_working();
-        self.reset_feed_live_cache();
+        self.friend_profile_bulk
+            .cancel_friend_profile_bulk_load_for_session(&stopped_active.session);
+        self.clear_session_caches();
 
         if let Some(output) = final_current_user_output {
             self.apply_current_user_output(output);
@@ -722,6 +726,38 @@ mod cached_user_profile_tests {
         assert!(runtime
             .cached_user_profiles(&replacement_scope, &user_ids)
             .is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn cached_user_profiles_normalize_the_session_endpoint_like_the_auth_scope() -> Result<()> {
+        let (_dir, test_runtime, _session) =
+            runtime_with_active_session("cached-user-profile-endpoint")?;
+        let runtime = test_runtime.runtime();
+        runtime
+            .state
+            .lock()
+            .unwrap()
+            .connection
+            .active_context
+            .as_mut()
+            .unwrap()
+            .session
+            .endpoint = "https://api.vrchat.cloud/api/1/".into();
+        runtime.ingest_user_facts(vec![json!({
+            "user": {
+                "id": "usr_target",
+                "tags": ["language_eng"]
+            },
+            "isFriend": true
+        })]);
+
+        let profiles = runtime.cached_user_profiles(
+            &test_runtime.auth_scope().snapshot(),
+            &["usr_target".to_string()],
+        );
+
+        assert_eq!(profiles.len(), 1);
         Ok(())
     }
 }

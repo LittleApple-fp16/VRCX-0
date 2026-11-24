@@ -1,4 +1,5 @@
 import { GlobeIcon, UserIcon, UsersIcon } from 'lucide-react';
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { AffinityBadge } from '@/components/affinity/AffinityBadge';
@@ -18,7 +19,9 @@ import {
 import { resolveSidebarStatusDotClassName } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import { UserHoverCard } from '@/components/user-hover-card/UserHoverCard';
 import { UserStatusDot } from '@/components/UserStatusDot';
+import { presenceTravelingTag } from '@/domain/friends/presence';
 import type { FriendRecord } from '@/domain/friends/types';
+import type { WorldSummary } from '@/lib/useWorldSummaries';
 import { cn } from '@/lib/utils';
 import { userImage } from '@/services/entityMediaService';
 import { accessTypeLocaleKeyMap } from '@/shared/constants/accessType';
@@ -31,16 +34,14 @@ import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import type { getFriendsLocationsDensityConfig } from '../friendsLocationsDensity';
-import { friendLocationTarget } from '../friendsLocationsRows';
 import type {
     FriendsLocationsWorldGroup,
     FriendsLocationsWorldInstance
 } from '../friendsLocationsWorlds';
-import type { FriendsLocationsWorldSummary } from '../useFriendsLocationsWorldSummaries';
 
 type FriendsLocationsWorldSectionProps = {
     group: FriendsLocationsWorldGroup;
-    summary?: FriendsLocationsWorldSummary;
+    summary?: WorldSummary;
     densityConfig: ReturnType<typeof getFriendsLocationsDensityConfig>;
     favoriteIds: ReadonlySet<string>;
     onOpenWorld: (group: FriendsLocationsWorldGroup, name: string) => void;
@@ -48,14 +49,14 @@ type FriendsLocationsWorldSectionProps = {
     onOpenUser: (friend: FriendRecord) => void;
 };
 
-function FriendChip({
+const FriendChip = memo(function FriendChip({
     friend,
     isFavorite,
     statusDotClassName,
     twoLine,
     showAvatarFrame,
     showNameplate,
-    onOpen
+    onOpenUser
 }: {
     friend: FriendRecord;
     isFavorite: boolean;
@@ -63,16 +64,17 @@ function FriendChip({
     twoLine: boolean;
     showAvatarFrame: boolean;
     showNameplate: boolean;
-    onOpen: () => void;
+    onOpenUser: (friend: FriendRecord) => void;
 }) {
     const { t } = useTranslation();
     const decorationHover = useDecorationHover();
     const recentlyOnline = useRecentlyOnline(normalizeString(friend.id));
-    const decorationActive = decorationHover.active || recentlyOnline;
     const iconFrameId = showAvatarFrame ? friend.iconFrame?.trim() : '';
     const nameplateId = showNameplate ? friend.nameplateEffect?.trim() : '';
     const avatarUrl = userImage(friend);
-    const isTraveling = friendLocationTarget(friend).isTraveling;
+    const isTraveling = Boolean(presenceTravelingTag(friend.$presence));
+    const decorationActive =
+        decorationHover.active || recentlyOnline || isTraveling;
     const isPendingOffline = friend.$presence?.kind === 'pendingOffline';
     const chipRef = usePendingOfflineBlink<HTMLButtonElement>(isPendingOffline);
     const statusDescription = !twoLine
@@ -88,10 +90,10 @@ function FriendChip({
                 type="button"
                 data-pending-offline={isPendingOffline || undefined}
                 className={cn(
-                    'focus-visible:ring-ring/50 relative isolate flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md pr-3 pl-1 text-sm outline-none hover:bg-(--state-hover-surface) focus-visible:ring-3',
+                    'focus-visible:ring-ring/50 bg-foreground/4 relative isolate flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md pr-3 pl-1 text-sm outline-none hover:bg-(--state-hover-surface) focus-visible:ring-3',
                     twoLine ? 'h-10' : 'h-8'
                 )}
-                onClick={onOpen}
+                onClick={() => onOpenUser(friend)}
                 {...decorationHover.hoverProps}
             >
                 {nameplateId ? (
@@ -113,7 +115,7 @@ function FriendChip({
                     {iconFrameId ? (
                         <ProfileAvatarFrame
                             templateId={iconFrameId}
-                            active={decorationActive || isTraveling}
+                            active={decorationActive}
                         />
                     ) : null}
                     <UserStatusDot
@@ -142,7 +144,7 @@ function FriendChip({
             </button>
         </UserHoverCard>
     );
-}
+});
 
 export function FriendsLocationsFriendChips({
     friends,
@@ -177,7 +179,7 @@ export function FriendsLocationsFriendChips({
                             hideNonFriend: false
                         }
                     )}
-                    onOpen={() => onOpenUser(friend)}
+                    onOpenUser={onOpenUser}
                 />
             ))}
         </div>

@@ -1,8 +1,8 @@
 <div align="center">
 
-# <img src="images/VRCX-0.png" alt="VRCX-0 Logo" width="25"> VRCX-0
+# <img src="images/brand/VRCX-0.png" alt="VRCX-0 Logo" width="25"> VRCX-0
 
-### 更快、更轻的 VRCX。
+### 更快、更好用，支持 AI。
 
 [English](README.md) | [Français](README.fr-FR.md) | 简体中文 | [繁體中文](README.zh-Hant.md) | [日本語](README.ja-JP.md) | [한국어](README.ko-KR.md)
 
@@ -19,7 +19,7 @@
 
 Windows · macOS · Linux
 
-![VRCX-0](images/screenshot-user-dialog.webp)
+![VRCX-0](images/screenshots/user-dialog.webp)
 
 </div>
 
@@ -46,13 +46,14 @@ VRCX-0 是 VRCX 的完全重写版本，由 VRCX 前维护者之一开发。基�
 - **锁定** — 密码锁定界面，保护你的隐私
 - **分享** — 世界合集、世界、模型、房间均可生成分享链接
 - **补录游戏日志** — 从 VRChat 自身的日志补回 VRCX-0 未运行期间的游戏日志
+- **Chatbox** — 内置类似 [VRCOSC](https://github.com/VolcanicArts/VRCOSC) 的 Chatbox 功能，无需另开软件：轮播状态和正在播放的歌曲，发送的消息可自动翻译
 
 ### 进阶
 
 - **MCP 服务器** — 让外部 AI 工具直接使用你的本地社交数据
-- **集成 API** — 为第三方应用提供游戏内实时数据
-- **自建记录端（实验性）** — 部署在你自己的服务器上，VRCX-0 关闭期间继续记录好友动态，下次打开时自动补上
-- **无头模式（Headless）** — 无界面运行，详见 `crates/headless`
+- **集成 API** — 为第三方应用提供游戏内实时数据，详见 [进阶文档](guides/integration-api.md)（英文）
+- **自建记录端（实验性）** — 部署在你自己的服务器上，VRCX-0 关闭期间继续记录好友动态，下次打开时自动补上，详见 [部署说明](guides/recorder.zh-CN.md)
+- **无头模式（Headless）** — 无界面运行，详见 [进阶文档](guides/headless.md)（英文）
 
 ### 与 VRCX 的对比
 
@@ -61,7 +62,7 @@ VRCX-0 是 VRCX 的完全重写版本，由 VRCX 前维护者之一开发。基�
 | **社交自动化** | 按是否独处切换状态；自动回复加入请求           | + 定时规则、多条情境规则与优先级、结束后恢复原状态                |
 | **通知**       | 桌面、语音、XSOverlay、OVR Toolkit、腕部悬浮层 | + 桌面叠加界面、Discord Webhook、勿扰模式；所有通道按事件独立筛选 |
 | **VR 悬浮层**  | 浏览器渲染（100 MB+）；OpenVR                  | + 原生渲染（几十 MB）；OpenXR（**WiVRn 实测通过**）               |
-| 截图           | 查看和搜索元数据                               | + 网格视图、收藏、批量管理、ZIP 导出                              |
+| 截图           | 查看和搜索元数据                               | + 网格视图、收藏、批量管理、ZIP 导出、加框、发送到 Discord        |
 | 模型详情       | 性能等级、文件大小                             | + 完整性能指标，对照各平台上限                                    |
 | 备份           | VRChat 注册表设置                              | + 数据库定时备份、一键恢复                                        |
 | 好友位置       | 按同一房间分组                                 | + 世界视图                                                        |
@@ -69,7 +70,7 @@ VRCX-0 是 VRCX 的完全重写版本，由 VRCX 前维护者之一开发。基�
 | 主题           | 内置主题、自定义 CSS 文件                      | + 社区主题、背景图片、应用内 CSS 编辑、强调色                     |
 | 多账号         | 多账号游戏日志混在一起                         | 游戏日志按账号分开存储；用另一个账号玩 VRChat 时互不影响          |
 
-VRCX 的其他功能，VRCX-0 同样具备。
+VRCX 的其他功能，VRCX-0 也基本都有。
 
 ## 安装
 
@@ -86,7 +87,11 @@ macOS 首次启动如被系统拦截，请前往 **系统设置 → 隐私与安
 
 ### Linux
 
-软件界面的硬件加速默认关闭，可在 **设置 → 系统 → 硬件加速（实验性）** 中开启；若界面显示异常，VRCX-0 会自动关闭硬件加速。自行设置 `WEBKIT_DISABLE_DMABUF_RENDERER` 时不显示此选项。
+软件界面的硬件加速默认关闭，可在 **设置 → 系统 → 硬件加速（实验性）** 中开启；若界面显示异常，VRCX-0 会自动关闭硬件加速。NVIDIA 显卡在 X11 或 Hyprland 下通常无法使用。自行设置 `WEBKIT_DISABLE_DMABUF_RENDERER` 时不显示此选项。
+
+## 隐私
+
+为了改进软件，VRCX-0 会收集匿名使用信息，只包括随机生成的安装 ID 和必要信息，敏感内容在发送前都会脱敏。此功能默认开启，可在 **设置 → 高级 → 启用诊断数据收集（匿名）** 中关闭。关闭后，每次更新仍会发送一条基础记录，用于统计活跃安装数；如果无法接受，建议不要使用本软件。
 
 ## 反馈与交流
 
@@ -100,6 +105,7 @@ macOS 首次启动如被系统拦截，请前往 **系统设置 → 隐私与安
 
 依赖：Node.js ≥ 24.10、npm ≥ 11.5，以及通过 rustup 安装的稳定版 Rust 工具链。
 Windows 用户还需安装 **Visual Studio Build Tools**，并勾选 **"使用 C++ 的桌面开发"**。
+Linux 用户还需安装 Tauri [环境准备](https://v2.tauri.app/start/prerequisites/#linux) 中列出的系统依赖。
 
 ```bash
 git clone https://github.com/Map1en/VRCX-0

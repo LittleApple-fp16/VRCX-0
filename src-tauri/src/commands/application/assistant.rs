@@ -36,6 +36,36 @@ pub async fn app__assistant_cancel(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn app__assistant_answer_choice(
+    state: State<'_, AppState>,
+    sessionId: String,
+    choiceId: String,
+    userId: Option<String>,
+) -> Result<(), AppError> {
+    state
+        .assistant()
+        .await?
+        .answer_choice(&sessionId, &choiceId, userId);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__assistant_answer_approval(
+    state: State<'_, AppState>,
+    sessionId: String,
+    approvalId: String,
+    approved: bool,
+) -> Result<(), AppError> {
+    state
+        .assistant()
+        .await?
+        .answer_approval(&sessionId, &approvalId, approved);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn app__assistant_list_sessions(
     state: State<'_, AppState>,
 ) -> Result<Vec<SessionSummary>, AppError> {
@@ -73,6 +103,34 @@ pub async fn app__assistant_delete_session(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn app__assistant_rename_session(
+    state: State<'_, AppState>,
+    sessionId: String,
+    title: String,
+) -> Result<(), AppError> {
+    state
+        .assistant()
+        .await?
+        .rename_session(&sessionId, &title)
+        .map_err(AppError::from)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__assistant_set_session_pinned(
+    state: State<'_, AppState>,
+    sessionId: String,
+    pinned: bool,
+) -> Result<(), AppError> {
+    state
+        .assistant()
+        .await?
+        .set_session_pinned(&sessionId, pinned)
+        .map_err(AppError::from)
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn app__assistant_set_panel_open(
     state: State<'_, AppState>,
     sessionId: String,
@@ -104,7 +162,6 @@ pub async fn app__assistant_set_session_runtime(
     sessionId: String,
     endpointId: Option<String>,
     model: Option<String>,
-    allowWrites: bool,
     playbookMode: PlaybookMode,
 ) -> Result<Session, AppError> {
     state
@@ -118,7 +175,6 @@ pub async fn app__assistant_set_session_runtime(
                 .map(str::trim)
                 .filter(|value| !value.is_empty())
                 .map(str::to_string),
-            allowWrites,
             playbookMode,
         )
         .map_err(AppError::from)
@@ -130,7 +186,6 @@ pub async fn app__assistant_set_default_runtime(
     state: State<'_, AppState>,
     endpointId: Option<String>,
     model: Option<String>,
-    allowWrites: bool,
     playbookMode: PlaybookMode,
 ) -> Result<AssistantRuntimeSelection, AppError> {
     state
@@ -143,7 +198,6 @@ pub async fn app__assistant_set_default_runtime(
                 .map(str::trim)
                 .filter(|value| !value.is_empty())
                 .map(str::to_string),
-            allowWrites,
             playbookMode,
         )
         .map_err(AppError::from)

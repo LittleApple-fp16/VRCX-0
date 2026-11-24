@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="images/VRCX-0.png" alt="VRCX-0 Logo" width="25"> VRCX-0
+# <img src="images/brand/VRCX-0.png" alt="VRCX-0 Logo" width="25"> VRCX-0
 
 ### VRCX, plus léger et plus rapide.
 
@@ -20,9 +20,13 @@
 
 Windows · macOS · Linux
 
-![VRCX-0](images/screenshot-user-dialog.webp)
+![VRCX-0](images/screenshots/user-dialog.webp)
 
 </div>
+
+> [!NOTE]
+> Cette traduction n'est peut-être pas à jour. Consultez la
+> [version anglaise](README.md) pour les informations les plus récentes.
 
 VRCX-0 est une réécriture de VRCX sur une base native Rust (Tauri + React) par
 l'un de ses anciens mainteneurs, permettant de meilleures performances : Des
@@ -96,8 +100,10 @@ De plus :
   canaux configurables indépendamment selon le type d'événement ; les webhooks
   utilisent un format compatible avec Discord
 - Compatible avec la navigation par clavier
-- Intégration par API pour des applications tierces — données d'instances en temps réel en jeu.
-- Mode "sans tête" pour les configurations avancées — voir `crates/headless`
+- Intégration par API pour des applications tierces — données d'instances en temps réel en jeu ; voir
+  [guides/integration-api.md](guides/integration-api.md) (en anglais)
+- Mode "sans tête" pour les configurations avancées — voir
+  [guides/headless.md](guides/headless.md) (en anglais)
 
 ## Licence
 
@@ -113,7 +119,9 @@ Suivez ces étapes pour contribuer ou créer VRCX-0 localement. Veuillez lire
 Configuration requise : Node.js ≥ 24.10, npm ≥ 11.5 et une chaîne d'outils
 Rust stable via rustup.
 Sur Windows, installez **Visual Studio** avec la charge de travail
-**Développement Desktop en C++**
+**Développement Desktop en C++**.
+Sur Linux, installez aussi les paquets système listés dans les
+[prérequis de Tauri](https://v2.tauri.app/start/prerequisites/#linux).
 
 ```bash
 git clone https://github.com/Map1en/VRCX-0

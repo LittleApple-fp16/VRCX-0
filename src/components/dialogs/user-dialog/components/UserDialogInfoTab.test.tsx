@@ -15,6 +15,8 @@ vi.mock('@/components/economy/useEconomyBalance', () => ({
     useEconomyBalance: () => ({ data: 2450, refetch: vi.fn() })
 }));
 
+import { useAssistantChatStore } from '@/state/assistantChatStore';
+
 import {
     UserDialogActivitySummaryPanel,
     UserDialogBioPanel
@@ -149,8 +151,8 @@ describe('UserDialogActivitySummaryPanel', () => {
                 onOpenInstanceHistory={onOpenInstanceHistory}
                 presenceActivityAt={undefined}
                 profile={{ id: 'usr_test' }}
-                userTimeSpent={0}
-                userJoinCount={0}
+                userTimeSpent={3_600_000}
+                userJoinCount={3}
             />
         );
 
@@ -169,6 +171,27 @@ describe('UserDialogActivitySummaryPanel', () => {
         expect(onOpenInstanceHistory).toHaveBeenCalledOnce();
     });
 
+    it('hides activity rows that have no value', () => {
+        render(
+            <UserDialogActivitySummaryPanel
+                friendedAt={undefined}
+                isCurrentUser={false}
+                isFriend
+                lastSeen={undefined}
+                presenceActivityAt={undefined}
+                profile={{ id: 'usr_test' }}
+                userTimeSpent={0}
+                userJoinCount={0}
+            />
+        );
+
+        expect(
+            screen
+                .getAllByText(/^dialog\.user\.info\./)
+                .map((element) => element.textContent)
+        ).toEqual(['dialog.user.info.activity_summary']);
+    });
+
     it('hides the friended date for the current user', () => {
         render(
             <UserDialogActivitySummaryPanel
@@ -176,9 +199,9 @@ describe('UserDialogActivitySummaryPanel', () => {
                 isCurrentUser
                 isFriend={false}
                 lastSeen={undefined}
-                presenceActivityAt={undefined}
+                presenceActivityAt="2026-08-12T00:00:00Z"
                 profile={{ id: 'usr_self' }}
-                userTimeSpent={0}
+                userTimeSpent={3_600_000}
                 userJoinCount={0}
             />
         );
@@ -192,8 +215,7 @@ describe('UserDialogActivitySummaryPanel', () => {
             'dialog.user.info.activity_summary',
             'dialog.user.info.last_activity',
             'dialog.user.info.play_time',
-            'dialog.user.info.vrc_credits',
-            'dialog.user.info.date_joined'
+            'dialog.user.info.vrc_credits'
         ]);
         expect(screen.getByText(`${(2450).toLocaleString()}V`)).toBeTruthy();
     });
@@ -241,16 +263,56 @@ describe('UserDialogActivitySummaryPanel', () => {
         );
         expect(onOpenFeed).toHaveBeenCalledOnce();
     });
+
+    it('starts an assistant chat about the person', () => {
+        render(
+            <UserDialogActivitySummaryPanel
+                friendedAt={undefined}
+                isCurrentUser={false}
+                isFriend
+                lastSeen={undefined}
+                presenceActivityAt={undefined}
+                profile={{ id: 'usr_test', displayName: 'Mika' }}
+                userTimeSpent={0}
+                userJoinCount={0}
+            />
+        );
+
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'assistant.title'
+            })
+        );
+        expect(useAssistantChatStore.getState()).toMatchObject({
+            open: true,
+            assistantDraft: {
+                topic: 'profile',
+                target: { kind: 'user', id: 'usr_test', name: 'Mika' }
+            }
+        });
+    });
 });
 
 describe('UserDialogBioPanel', () => {
+    it('keeps an empty bio panel only when it can be edited', () => {
+        const { rerender } = render(
+            <UserDialogBioPanel profile={{ id: 'usr_test', bio: '  ' }} />
+        );
+        expect(screen.queryByText('dialog.user.info.bio')).toBeNull();
+
+        rerender(
+            <UserDialogBioPanel
+                profile={{ id: 'usr_self', bio: '' }}
+                onEditBio={vi.fn()}
+            />
+        );
+        expect(screen.getByText('dialog.user.info.bio')).toBeTruthy();
+    });
+
     it('offers bio editing only when an edit handler is provided', () => {
         const onEditBio = vi.fn();
         const { rerender } = render(
-            <UserDialogBioPanel
-                profile={{ id: 'usr_test', bio: 'hello' }}
-                bioLinks={[]}
-            />
+            <UserDialogBioPanel profile={{ id: 'usr_test', bio: 'hello' }} />
         );
         expect(
             screen.queryByRole('button', {
@@ -261,7 +323,6 @@ describe('UserDialogBioPanel', () => {
         rerender(
             <UserDialogBioPanel
                 profile={{ id: 'usr_self', bio: 'hello' }}
-                bioLinks={[]}
                 onEditBio={onEditBio}
             />
         );

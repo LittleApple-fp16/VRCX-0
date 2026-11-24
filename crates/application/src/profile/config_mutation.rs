@@ -34,10 +34,6 @@ fn validate_config_mutation(key: &str, value: Option<&str>) -> Result<()> {
         )),
         "config:vrcx_avatarautocleanup" => validate_avatar_auto_cleanup(value),
         "config:vrcx_usergeneratedcontentpath" => validate_ugc_path(value.unwrap_or_default()),
-        "config:vrcx_translationapiendpoint" => validate_optional_provider_url(
-            value.unwrap_or_default(),
-            "translationAPIEndpoint must be an HTTP or HTTPS endpoint.",
-        ),
         "config:vrcx_avatarremotedatabaseprovider" => validate_optional_provider_url(
             value.unwrap_or_default(),
             "VRCX_avatarRemoteDatabaseProvider must be an HTTP or HTTPS endpoint.",
@@ -106,8 +102,8 @@ fn validate_provider_list(value: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::test_support::MemoryProfileConfigStore;
     use super::*;
+    use vrcx_0_application_core::MemoryConfigStore;
 
     fn entry(key: &str, value: &str) -> ConfigWriteEntry {
         ConfigWriteEntry {
@@ -118,15 +114,15 @@ mod tests {
 
     #[test]
     fn accepts_regular_config_and_http_providers() {
-        let db = MemoryProfileConfigStore::default();
+        let db = MemoryConfigStore::default();
 
         set_config_values(
             &db,
             vec![
                 entry("SomeRegularSetting", "anything"),
                 entry(
-                    "translationAPIEndpoint",
-                    "http://localhost:8123/v1/chat/completions",
+                    "VRCX_avatarRemoteDatabaseProvider",
+                    "http://localhost:8123/api",
                 ),
                 entry(
                     "VRCX_avatarRemoteDatabaseProviderList",
@@ -139,11 +135,14 @@ mod tests {
 
     #[test]
     fn rejects_invalid_provider_and_relative_ugc_writes() {
-        let db = MemoryProfileConfigStore::default();
+        let db = MemoryConfigStore::default();
 
         assert!(set_config_values(
             &db,
-            vec![entry("translationAPIEndpoint", "ftp://example.com/api")]
+            vec![entry(
+                "VRCX_avatarRemoteDatabaseProvider",
+                "ftp://example.com/api"
+            )]
         )
         .is_err());
         assert!(set_config_values(
@@ -155,7 +154,7 @@ mod tests {
 
     #[test]
     fn dedicated_auth_config_cannot_be_set_or_removed() {
-        let db = MemoryProfileConfigStore::default();
+        let db = MemoryConfigStore::default();
 
         assert!(set_config_values(&db, vec![entry("savedCredentials", "{}")]).is_err());
         assert!(set_config_values(&db, vec![entry("feedLogger", "{}")]).is_err());
@@ -164,7 +163,7 @@ mod tests {
 
     #[test]
     fn avatar_auto_cleanup_accepts_only_supported_retention_values() {
-        let db = MemoryProfileConfigStore::default();
+        let db = MemoryConfigStore::default();
 
         for value in ["Off", "30", "90", "180", "365"] {
             set_config_values(&db, vec![entry("avatarAutoCleanup", value)]).unwrap();
@@ -181,7 +180,7 @@ mod tests {
 
     #[test]
     fn regular_removal_preserves_the_existing_count_contract() {
-        let db = MemoryProfileConfigStore::default();
+        let db = MemoryConfigStore::default();
         set_config_values(&db, vec![entry("ThemeMode", "dark")]).unwrap();
 
         assert_eq!(remove_config_value(&db, "ThemeMode".into()).unwrap(), 1);

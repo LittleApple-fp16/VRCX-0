@@ -19,10 +19,9 @@ mod webhook_sink;
 
 pub use activity_filters::save_notification_activity_filters;
 pub use activity_filters::{
-    apply_location_notification_rules, load_overlay_activity_filters,
+    load_overlay_activity_filters, reload_activity_router,
     rename_local_favorite_group_in_activity_filters, ActivityFilterProfile,
-    NotificationActivityFilterProfiles, NotificationActivityFilterSurface,
-    NotificationActivityFiltersSetInput,
+    NotificationActivityFilterProfiles, NotificationActivityFiltersSetInput,
 };
 pub use auth_webhook::{
     auth_webhook_generic_payload, auth_webhook_is_enabled, auth_webhook_should_recover,
@@ -35,9 +34,8 @@ pub use localization::{
     discord_embed_kind, discord_title_key, DiscordEmbedKind, OverlayLocale, OverlayLocalizer,
 };
 pub use ports::{
-    CachedNotificationUserImageResolver, NotificationConfig, NotificationRemote,
-    NotificationRemoteFuture, NotificationWebhookFuture, NotificationWebhookTransport,
-    NotificationWebhookTransportError,
+    CachedNotificationUserImageResolver, NotificationRemote, NotificationRemoteFuture,
+    NotificationWebhookFuture, NotificationWebhookTransport, NotificationWebhookTransportError,
 };
 pub use preferences::{config_bool, parse_webhook_fields, NotificationWebhookFormat};
 pub use rendered::RenderedNotification;

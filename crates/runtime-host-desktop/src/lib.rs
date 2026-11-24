@@ -1,13 +1,15 @@
 mod ancillary_snapshot;
 mod app_launcher;
 mod assistant_adapters;
+#[cfg(test)]
+mod assistant_llm_harness;
 pub mod auth_failure;
 mod autostart;
 mod avatar;
 mod background_image;
 mod background_remote;
+mod chatbox;
 mod context;
-mod current_user_mutation;
 pub mod data_dir;
 mod database_upgrade;
 pub mod deep_link;
@@ -35,7 +37,6 @@ pub mod notification;
 mod privacy_lock;
 mod process_monitor;
 mod profile_backup;
-mod profile_bio;
 mod proxy_connectivity;
 mod registry_backup;
 mod screenshot;
@@ -46,9 +47,6 @@ mod startup_bootstrap;
 mod state;
 pub mod tray_shortcut;
 pub mod vr_overlay;
-pub mod vrchat_api;
-mod vrchat_remote;
-mod world_remote;
 
 pub use ancillary_snapshot::AncillaryRuntimeSnapshot;
 pub use app_launcher::AppLauncherSnapshotEvent;
@@ -59,9 +57,11 @@ pub use background_image::{
 };
 pub use context::DesktopRuntimeServices;
 pub use database_upgrade::{DatabaseUpgradeLifecycle, DesktopDatabaseUpgradeRuntime};
-pub use external_api::{ExternalApiExecuteResponse, ExternalApiRuntime};
+pub use external_api::{
+    ExternalApiAvatarSearchResponse, ExternalApiExecuteResponse, ExternalApiRuntime,
+};
 pub use game_client::{GameClientHostRuntime, GameClientHostRuntimeDeps};
-pub use game_isolation::{GameIsolationRuntime, GameIsolationSnapshot};
+pub use game_isolation::{GameIsolationRuntime, GameIsolationSnapshot, LocalGameAccount};
 pub use game_log::{GameLogHostRuntime, GameLogHostRuntimeDeps};
 pub use group::DesktopGroupRuntime;
 pub use host_actions::{RuntimeHost, RuntimeHostActions};
@@ -75,7 +75,9 @@ pub use log_watcher::{
     HostLogLocationSnapshotScanner, LogLocationSnapshot, LogWatcher,
 };
 pub use media::DesktopMediaRuntime;
-pub use privacy_lock::{PrivacyLockOutcome, PrivacyLockRuntime, PrivacyLockSnapshot};
+pub use privacy_lock::{
+    PrivacyLockDeviceStart, PrivacyLockOutcome, PrivacyLockRuntime, PrivacyLockSnapshot,
+};
 pub use process_monitor::HostGameProcessMonitorActions;
 pub use profile_backup::{
     DesktopProfileBackupRuntime, DesktopProfileRestoreRequest, ProfileBackupSettingsError,
@@ -89,5 +91,4 @@ pub use state::{
     CurrentUserRefreshOutcome, DesktopRuntimeBundle, DesktopRuntimeHostOptions,
     DesktopRuntimeHostState, GameRuntimeBundle, RuntimeJobRecordInput,
 };
-pub use vrchat_remote::DesktopVrchatRemoteFacade;
 pub use vrcx_0_composition::{Error, Result};

@@ -12,6 +12,22 @@ vi.mock('../useNotificationActorImage', () => ({
     useNotificationActorImage: () => ''
 }));
 
+const rowRenders = vi.hoisted(() => ({ ids: [] as string[] }));
+
+vi.mock('./notificationDrawerRowUtils', async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import('./notificationDrawerRowUtils')>();
+    return {
+        ...actual,
+        getNotificationTypeLabel: (
+            ...args: Parameters<typeof actual.getNotificationTypeLabel>
+        ) => {
+            rowRenders.ids.push(String(args[0]?.id));
+            return actual.getNotificationTypeLabel(...args);
+        }
+    };
+});
+
 afterEach(cleanup);
 
 function handlers() {
@@ -28,7 +44,7 @@ function handlers() {
     };
 }
 
-const RESPONSE_KEY = 'inviteResponse:*:2026-10-29';
+const RESPONSE_KEY = 'inviteResponse:*';
 
 function activity(
     id: string,
@@ -49,9 +65,12 @@ function activity(
     };
 }
 
-function renderDrawer(unseen: NotificationRow[]) {
+function renderDrawer(
+    unseen: NotificationRow[],
+    recent: NotificationRow[] = []
+) {
     const categories: NotificationCategories = {
-        friend: { unseen, recent: [] },
+        friend: { unseen, recent },
         group: { unseen: [], recent: [] },
         other: { unseen: [], recent: [] }
     };
@@ -83,7 +102,6 @@ describe('NotificationDrawerList', () => {
                     onAcceptRequestInvite: vi.fn(),
                     onDeleteNotification: vi.fn(),
                     onHideNotification: vi.fn(),
-                    onIgnoreNotificationLocally: vi.fn(),
                     onJoinQueueReady: vi.fn(),
                     onMarkSeen: vi.fn(),
                     onSendInviteResponseWithMessage: vi.fn(),
@@ -128,14 +146,33 @@ describe('NotificationDrawerList', () => {
         expect(screen.queryByText('reply not_reply_1')).toBeNull();
     });
 
-    it('expands separated runs of the same group key independently', () => {
+    it('gathers unseen rows of the same group key across other rows', () => {
         renderDrawer([
             activity('not_reply_1', 5),
-            activity('not_reply_2', 4),
-            activity('not_message', 3, 'message', ''),
-            activity('not_reply_3', 2),
-            activity('not_reply_4', 1)
+            activity('not_message', 4, 'message', ''),
+            activity('not_reply_2', 3)
         ]);
+
+        const [summary] = screen.getAllByRole('button', { expanded: false });
+        expect(screen.getByText('reply not_message')).toBeTruthy();
+        expect(screen.queryByText('reply not_reply_2')).toBeNull();
+
+        fireEvent.click(summary);
+        expect(screen.getByText('reply not_reply_1')).toBeTruthy();
+        expect(screen.getByText('reply not_reply_2')).toBeTruthy();
+    });
+
+    it('expands separated runs of seen rows with the same group key independently', () => {
+        renderDrawer(
+            [],
+            [
+                activity('not_reply_1', 5),
+                activity('not_reply_2', 4),
+                activity('not_message', 3, 'message', ''),
+                activity('not_reply_3', 2),
+                activity('not_reply_4', 1)
+            ]
+        );
 
         expect(screen.getByText('(5)')).toBeTruthy();
         const [first, second] = screen.getAllByRole('button', {
@@ -147,5 +184,40 @@ describe('NotificationDrawerList', () => {
         expect(second.getAttribute('aria-expanded')).toBe('false');
         expect(screen.getByText('reply not_reply_1')).toBeTruthy();
         expect(screen.queryByText('reply not_reply_3')).toBeNull();
+    });
+
+    it('re-renders only the changed row when the drawer re-renders with new handlers and rows', () => {
+        const first = activity('n1', 1, 'friendRequest', 'a');
+        const second = activity('n2', 2, 'friendRequest', 'b');
+        const categories = (
+            rows: NotificationRow[]
+        ): NotificationCategories => ({
+            friend: { unseen: rows, recent: [] },
+            group: { unseen: [], recent: [] },
+            other: { unseen: [], recent: [] }
+        });
+        const view = render(
+            <NotificationDrawerList
+                categories={categories([first, second])}
+                canInviteFromCurrentLocation={false}
+                handlers={handlers()}
+                onNavigateToTable={vi.fn()}
+            />
+        );
+        rowRenders.ids.length = 0;
+
+        view.rerender(
+            <NotificationDrawerList
+                categories={categories([
+                    first,
+                    { ...second, message: 'edited' }
+                ])}
+                canInviteFromCurrentLocation={false}
+                handlers={handlers()}
+                onNavigateToTable={vi.fn()}
+            />
+        );
+
+        expect(rowRenders.ids).toEqual(['n2']);
     });
 });

@@ -31,7 +31,13 @@ interface SigmaLifecycleOptions {
     onSelectNode: (nodeId: string) => void;
     onOpenNode?: (nodeId: string) => void;
     forceLabels?: boolean;
+    minNodeSize?: number;
+    emphasizedNodeId?: string;
+    nodeImageUrlById?: ReadonlyMap<string, string>;
+    nodeImagesOnHover?: boolean;
 }
+
+const NO_NODE_IMAGES: ReadonlyMap<string, string> = new Map();
 
 export function useMutualFriendsSigmaLifecycle({
     graph,
@@ -44,7 +50,11 @@ export function useMutualFriendsSigmaLifecycle({
     selectedNodeIdRef,
     onSelectNode,
     onOpenNode,
-    forceLabels = false
+    forceLabels = false,
+    minNodeSize,
+    emphasizedNodeId,
+    nodeImageUrlById = NO_NODE_IMAGES,
+    nodeImagesOnHover = false
 }: SigmaLifecycleOptions) {
     const { t } = useTranslation();
     const containerRef = useRef<HTMLElement | null>(null);
@@ -70,6 +80,8 @@ export function useMutualFriendsSigmaLifecycle({
     themeRef.current = theme;
     const crossCommunityOnlyRef = useRef(crossCommunityOnly);
     crossCommunityOnlyRef.current = crossCommunityOnly;
+    const nodeImageUrlByIdRef = useRef(nodeImageUrlById);
+    nodeImageUrlByIdRef.current = nodeImageUrlById;
     const hoverCardStringsRef = useRef({
         connections: '',
         lastFetched: '',
@@ -91,10 +103,11 @@ export function useMutualFriendsSigmaLifecycle({
     layoutSettingsRef.current = layoutSettings;
 
     const teardownGraph = useCallback(() => {
-        controllerRef.current?.dispose();
-        destroySigmaInstance(instanceRef, resizeObserverRef);
+        const controller = controllerRef.current;
         controllerRef.current = null;
         graphologyRef.current = null;
+        controller?.dispose();
+        destroySigmaInstance(instanceRef, resizeObserverRef);
     }, []);
 
     const setGraphElementRef = useCallback(
@@ -154,7 +167,9 @@ export function useMutualFriendsSigmaLifecycle({
             communityIndexById,
             namedCommunityIndexes,
             theme: themeRef.current,
-            forceLabels
+            forceLabels,
+            minNodeSize,
+            emphasizedNodeId
         })
             .then((builtGraph) => {
                 if (!active || containerRef.current !== container) {
@@ -165,8 +180,7 @@ export function useMutualFriendsSigmaLifecycle({
                     return;
                 }
 
-                graphologyRef.current = builtGraph;
-                controllerRef.current?.dispose();
+                teardownGraph();
                 controllerRef.current = renderSigmaGraph({
                     graph: builtGraph,
                     container,
@@ -177,8 +191,11 @@ export function useMutualFriendsSigmaLifecycle({
                     crossCommunityOnlyRef,
                     onSelectNode: (nodeId) => selectNodeRef.current(nodeId),
                     onOpenNode: (nodeId) => openNodeRef.current?.(nodeId),
-                    hoverCardStringsRef
+                    hoverCardStringsRef,
+                    nodeImageUrlByIdRef,
+                    nodeImagesOnHover
                 });
+                graphologyRef.current = builtGraph;
             })
             .catch((error: unknown) => {
                 if (active) {
@@ -200,8 +217,11 @@ export function useMutualFriendsSigmaLifecycle({
     }, [
         graph,
         communityIndexById,
+        emphasizedNodeId,
         forceLabels,
+        minNodeSize,
         namedCommunityIndexes,
+        nodeImagesOnHover,
         layoutIterations,
         layoutSpacing,
         renderRetryToken,
@@ -229,6 +249,21 @@ export function useMutualFriendsSigmaLifecycle({
     useEffect(() => {
         controllerRef.current?.applyEdgeEmphasis();
     }, [crossCommunityOnly]);
+
+    const appliedNodeImageUrlByIdRef = useRef(nodeImageUrlById);
+    useEffect(() => {
+        const previous = appliedNodeImageUrlByIdRef.current;
+        appliedNodeImageUrlByIdRef.current = nodeImageUrlById;
+        if (
+            previous.size === nodeImageUrlById.size &&
+            [...nodeImageUrlById].every(
+                ([node, url]) => previous.get(node) === url
+            )
+        ) {
+            return;
+        }
+        controllerRef.current?.applyNodeImages();
+    }, [nodeImageUrlById]);
 
     return {
         isLayoutRunning,

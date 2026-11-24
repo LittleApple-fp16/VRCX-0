@@ -16,6 +16,7 @@ pub struct ToolDescriptor {
     pub name: String,
     pub description: String,
     pub parameters: Value,
+    pub read_only: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -51,6 +52,11 @@ impl InProcessMcpTools {
                     .map(|value| value.to_string())
                     .unwrap_or_default(),
                 parameters: Value::Object((*tool.input_schema).clone()),
+                read_only: tool
+                    .annotations
+                    .as_ref()
+                    .and_then(|annotations| annotations.read_only_hint)
+                    == Some(true),
             })
             .collect())
     }
@@ -112,6 +118,16 @@ pub async fn spawn_in_process_tools(runtime: McpRuntime) -> Result<InProcessMcpT
 }
 
 #[cfg(test)]
+mod chatbox_tests;
+#[cfg(test)]
+mod disambiguation_tests;
+#[cfg(test)]
+mod profile_encounter_tests;
+#[cfg(test)]
+mod screenshot_tests;
+#[cfg(test)]
 mod tests;
 #[cfg(test)]
 mod visit_timeline_tests;
+#[cfg(test)]
+mod world_profile_tests;

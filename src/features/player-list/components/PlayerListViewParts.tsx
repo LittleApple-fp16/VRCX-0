@@ -1,14 +1,17 @@
 import {
     Clock3Icon,
+    FlaskConicalIcon,
     Gamepad2Icon,
-    HeartIcon,
+    GlobeIcon,
     HomeIcon,
+    LockIcon,
     UsersIcon
 } from 'lucide-react';
+import { memo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { AppTable } from '@/components/data-table/appTable';
+import type { AppRow, AppTable } from '@/components/data-table/appTable';
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
 import {
     DataTableColumnDndProvider,
@@ -25,27 +28,18 @@ import { ResizableTableCell } from '@/components/data-table/ResizableTableParts'
 import { EmptyState } from '@/components/layout/PageScaffold';
 import { LocationWorld } from '@/components/LocationWorld';
 import { FadeInImage } from '@/components/media/FadeInImage';
-import type {
-    PlatformFileAnalysis,
-    WorldProfileRecord
-} from '@/domain/entities/world';
+import type { WorldProfileRecord } from '@/domain/entities/world';
 import { timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
-import { defaultWorldCacheInfo } from '@/lib/worldAssetBundle';
 import { openUserDialog, openWorldDialog } from '@/services/dialogService';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { parseLocation } from '@/shared/utils/location';
 import { normalizeString } from '@/shared/utils/string';
-import { Badge } from '@/ui/shadcn/badge';
+import { structuralEqual } from '@/shared/utils/structuralEqual';
 import { Button } from '@/ui/shadcn/button';
 import { Table, TableBody } from '@/ui/shadcn/table';
 
-import {
-    fileAnalysisSizeForPlatform,
-    getHomeWorldId,
-    getWorldImage,
-    resolvePlatformBadge
-} from '../playerListDisplay';
+import { getHomeWorldId, getWorldImage } from '../playerListDisplay';
 import { parseTimeMs } from '../playerListRows';
 import { PLAYER_LIST_COLUMN_IDS as COLUMN_IDS } from '../playerListState';
 import type {
@@ -58,11 +52,8 @@ export { DataTableSortButton as SortButton };
 type PlayerListTable = AppTable<PlayerListRow>;
 
 export function CurrentWorldHeader({
-    cacheInfo = defaultWorldCacheInfo(),
     clockNow,
     currentUserSnapshot,
-    fileAnalysis = {},
-    friendCount,
     instanceCapacity,
     instanceCreatedAt = '',
     instanceGroupName = '',
@@ -76,11 +67,8 @@ export function CurrentWorldHeader({
     startedAt,
     world
 }: {
-    cacheInfo?: ReturnType<typeof defaultWorldCacheInfo>;
     clockNow: number;
     currentUserSnapshot?: PlayerListProfileRecord | null;
-    fileAnalysis?: PlatformFileAnalysis;
-    friendCount: number;
     instanceCapacity?: number | null;
     instanceCreatedAt?: string;
     instanceGroupName?: string;
@@ -95,6 +83,7 @@ export function CurrentWorldHeader({
     world?: WorldProfileRecord | null;
 }) {
     const { t } = useTranslation();
+    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
     const worldId =
         world?.id || instanceWorldId || parsedLocation.worldId || '';
     const worldName = world?.name || instanceWorldName || 'Current instance';
@@ -106,10 +95,10 @@ export function CurrentWorldHeader({
     );
     const isHome = Boolean(homeWorldId && worldId && homeWorldId === worldId);
     const imageUrl = getWorldImage(world);
-    const platforms = world?.platforms.map(resolvePlatformBadge) ?? [];
     const startedAtMs = parseTimeMs(startedAt || instanceCreatedAt);
     const elapsedMs = startedAtMs ? Math.max(clockNow - startedAtMs, 0) : 0;
     const capacity = instanceCapacity || world?.capacity || 0;
+    const isInstanceFull = capacity > 0 && playerCount >= capacity;
     const hasAvatarScalingDisabled =
         world?.tags.includes('feature_avatar_scaling_disabled') ?? false;
     const currentInstanceLocationObject = parseLocation(instanceLocation || '');
@@ -123,12 +112,21 @@ export function CurrentWorldHeader({
         return null;
     }
 
+    const releaseStatus = world?.isLabs
+        ? { icon: FlaskConicalIcon, label: t('dialog.world.tags.labs') }
+        : world?.releaseStatus === 'public'
+          ? { icon: GlobeIcon, label: t('dialog.world.tags.public') }
+          : world?.releaseStatus === 'private'
+            ? { icon: LockIcon, label: t('dialog.world.tags.private') }
+            : null;
+    const ReleaseStatusIcon = releaseStatus?.icon;
+
     return (
-        <div className="flex min-h-20 shrink-0 flex-col gap-2 pb-3 md:flex-row md:items-start">
+        <div className="flex shrink-0 items-start gap-3 pb-3">
             <Button
                 type="button"
                 variant="ghost"
-                className="bg-muted h-20 w-28 shrink-0 overflow-hidden rounded-md border p-0"
+                className="bg-muted h-15 w-20 shrink-0 overflow-hidden rounded-md border p-0"
                 disabled={!imageUrl}
                 aria-label={worldName}
                 onClick={() =>
@@ -167,7 +165,7 @@ export function CurrentWorldHeader({
                     <Button
                         type="button"
                         variant="ghost"
-                        className="h-auto max-w-full justify-start p-0 text-left text-base font-semibold hover:bg-transparent"
+                        className="h-auto min-w-0 shrink justify-start p-0 text-left text-sm font-medium hover:bg-transparent"
                         onClick={() =>
                             openWorldDialog({
                                 worldId: worldDialogTarget,
@@ -184,7 +182,7 @@ export function CurrentWorldHeader({
                             <Button
                                 type="button"
                                 variant="ghost"
-                                className="text-muted-foreground hover:text-foreground h-auto min-w-0 justify-start p-0 font-mono text-xs hover:bg-transparent"
+                                className="text-muted-foreground hover:text-foreground h-auto min-w-0 shrink justify-start p-0 text-xs font-normal hover:bg-transparent"
                                 onClick={() =>
                                     authorId &&
                                     openUserDialog({
@@ -197,106 +195,79 @@ export function CurrentWorldHeader({
                             </Button>
                         </>
                     ) : null}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                    {world?.isLabs ? (
-                        <Badge variant="outline">
-                            {t('dialog.world.tags.labs')}
-                        </Badge>
-                    ) : world?.releaseStatus === 'public' ? (
-                        <Badge variant="outline">
-                            {t('dialog.world.tags.public')}
-                        </Badge>
-                    ) : world?.releaseStatus === 'private' ? (
-                        <Badge variant="outline">
-                            {t('dialog.world.tags.private')}
-                        </Badge>
-                    ) : null}
-                    {platforms.map((platform) => {
-                        const Icon = platform.icon;
-                        return (
-                            <Badge
-                                key={platform.key}
-                                variant="outline"
-                                className="gap-1"
-                            >
-                                {Icon ? <Icon className="size-3.5" /> : null}
-                                {platform.label}
-                                {fileAnalysisSizeForPlatform(
-                                    fileAnalysis,
-                                    platform.key
-                                ) ? (
-                                    <span className="border-l pl-1">
-                                        {fileAnalysisSizeForPlatform(
-                                            fileAnalysis,
-                                            platform.key
-                                        )}
-                                    </span>
+                    {releaseStatus ? (
+                        <>
+                            <span className="text-muted-foreground/60">·</span>
+                            <span className="text-muted-foreground inline-flex shrink-0 items-center gap-1 text-xs">
+                                {ReleaseStatusIcon ? (
+                                    <ReleaseStatusIcon className="size-3.5" />
                                 ) : null}
-                            </Badge>
-                        );
-                    })}
+                                {releaseStatus.label}
+                            </span>
+                        </>
+                    ) : null}
                     {hasAvatarScalingDisabled ? (
-                        <Badge variant="outline">
-                            {t('dialog.world.tags.avatar_scaling_disabled')}
-                        </Badge>
-                    ) : null}
-                    {cacheInfo?.inCache ? (
-                        <Badge variant="outline">
-                            {cacheInfo.cacheSize
-                                ? `${cacheInfo.cacheSize} ${t('dialog.world.tags.cache')}`
-                                : t('dialog.world.tags.cache')}
-                        </Badge>
-                    ) : null}
-                    {instanceGroupName ? (
-                        <Badge variant="outline">{instanceGroupName}</Badge>
-                    ) : null}
-                    {playerCount > 0 ? (
-                        <Badge
-                            variant="outline"
-                            className="gap-1 tabular-nums"
-                            title={t('dialog.world.info.capacity')}
-                        >
-                            <UsersIcon className="size-3.5" />
-                            {capacity > 0
-                                ? `${playerCount}/${capacity}`
-                                : playerCount}
-                        </Badge>
-                    ) : null}
-                    {friendCount > 0 ? (
-                        <Badge
-                            variant="outline"
-                            className="gap-1 tabular-nums"
-                            title={t('common.affinity.friend')}
-                        >
-                            <HeartIcon className="size-3.5 fill-current text-rose-400" />
-                            {friendCount}
-                        </Badge>
-                    ) : null}
-                    {elapsedMs > 0 ? (
-                        <Badge
-                            variant="outline"
-                            className="gap-1 tabular-nums"
-                            title={t('table.playerList.timer')}
-                        >
-                            <Clock3Icon className="size-3.5" />
-                            {timeToText(elapsedMs)}
-                        </Badge>
+                        <>
+                            <span className="text-muted-foreground/60">·</span>
+                            <span className="text-muted-foreground shrink-0 text-xs">
+                                {t('dialog.world.tags.avatar_scaling_disabled')}
+                            </span>
+                        </>
                     ) : null}
                 </div>
-                <div className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-2 font-mono text-xs">
+                <div className="text-muted-foreground flex min-w-0 items-center text-xs">
                     <LocationWorld
                         locationObject={currentInstanceLocationObject}
                         currentUserId={normalizeString(currentUserSnapshot?.id)}
                         grouphint={instanceGroupName || ''}
                         hint={worldName}
-                        className="font-sans"
+                        showWorldName={false}
                     />
                 </div>
                 {description && description !== worldName ? (
-                    <div className="truncate text-xs" title={description}>
+                    <button
+                        type="button"
+                        className={cn(
+                            'text-muted-foreground/80 hover:text-muted-foreground cursor-pointer text-left text-xs whitespace-pre-line',
+                            !isDescriptionExpanded && 'line-clamp-1'
+                        )}
+                        aria-expanded={isDescriptionExpanded}
+                        onClick={() =>
+                            setIsDescriptionExpanded((expanded) => !expanded)
+                        }
+                    >
                         {description}
-                    </div>
+                    </button>
+                ) : null}
+            </div>
+            <div className="text-muted-foreground flex shrink-0 items-center gap-3 pt-0.5 text-sm tabular-nums">
+                {playerCount > 0 ? (
+                    <span
+                        className="inline-flex items-center gap-1"
+                        title={t('dialog.world.info.capacity')}
+                    >
+                        <UsersIcon className="size-3.5" />
+                        <span
+                            className={
+                                isInstanceFull
+                                    ? 'text-amber-400'
+                                    : 'text-foreground'
+                            }
+                        >
+                            {capacity > 0
+                                ? `${playerCount}/${capacity}`
+                                : playerCount}
+                        </span>
+                    </span>
+                ) : null}
+                {elapsedMs > 0 ? (
+                    <span
+                        className="inline-flex items-center gap-1"
+                        title={t('table.playerList.timer')}
+                    >
+                        <Clock3Icon className="size-3.5" />
+                        {timeToText(elapsedMs)}
+                    </span>
                 ) : null}
             </div>
         </div>
@@ -346,7 +317,6 @@ export function PlayerListRows({
     emptyTitle?: string;
     emptyDescription?: string;
 }) {
-    const { t } = useTranslation();
     if (!hasRows) {
         return (
             <PlayerListEmptyRow
@@ -357,42 +327,77 @@ export function PlayerListRows({
         );
     }
 
-    return table.getRowModel().rows.map((row) => (
-        <DataTableRow
-            key={row.id}
-            className={cn(
-                'cursor-pointer border-l-2 border-l-transparent',
-                row.original?.moderationSeverity === 'blocked' &&
-                    'border-l-destructive bg-destructive/10 hover:bg-destructive/15',
-                row.original?.moderationSeverity === 'muted' &&
-                    'border-l-muted-foreground/50 bg-muted/40 hover:bg-muted/60'
-            )}
-            tabIndex={0}
-            aria-label={t('accessibility.open_player', {
-                player:
-                    row.original?.displayName ||
-                    row.original?.userId ||
-                    t('accessibility.player')
-            })}
-            onKeyDown={(event) => {
-                if (event.key !== 'Enter' && event.key !== ' ') {
-                    return;
-                }
-                event.preventDefault();
-                onOpenPlayer(row.original);
-            }}
-            onClick={() => {
-                onOpenPlayer(row.original);
-            }}
-        >
-            <DataTableColumnSortableContext table={table}>
-                {row.getVisibleCells().map((cell) => (
-                    <ResizableTableCell key={cell.id} cell={cell} />
-                ))}
-            </DataTableColumnSortableContext>
-        </DataTableRow>
-    ));
+    const columnsKey = table
+        .getVisibleLeafColumns()
+        .map((column) => column.id)
+        .join('|');
+    return table
+        .getRowModel()
+        .rows.map((row) => (
+            <PlayerListTableRow
+                key={row.id}
+                row={row}
+                table={table}
+                columnsKey={columnsKey}
+                onOpenPlayer={onOpenPlayer}
+            />
+        ));
 }
+
+const PlayerListTableRow = memo(
+    function PlayerListTableRow({
+        row,
+        table,
+        onOpenPlayer
+    }: {
+        row: AppRow<PlayerListRow>;
+        table: PlayerListTable;
+        columnsKey: string;
+        onOpenPlayer: (row: PlayerListRow) => void;
+    }) {
+        const { t } = useTranslation();
+        return (
+            <DataTableRow
+                className={cn(
+                    'cursor-pointer border-l-2 border-l-transparent',
+                    row.original?.moderationSeverity === 'blocked' &&
+                        'border-l-destructive bg-destructive/10 hover:bg-destructive/15',
+                    row.original?.moderationSeverity === 'muted' &&
+                        'border-l-muted-foreground/50 bg-muted/40 hover:bg-muted/60'
+                )}
+                tabIndex={0}
+                aria-label={t('accessibility.open_player', {
+                    player:
+                        row.original?.displayName ||
+                        row.original?.userId ||
+                        t('accessibility.player')
+                })}
+                onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') {
+                        return;
+                    }
+                    event.preventDefault();
+                    onOpenPlayer(row.original);
+                }}
+                onClick={() => {
+                    onOpenPlayer(row.original);
+                }}
+            >
+                <DataTableColumnSortableContext table={table}>
+                    {row.getVisibleCells().map((cell) => (
+                        <ResizableTableCell key={cell.id} cell={cell} />
+                    ))}
+                </DataTableColumnSortableContext>
+            </DataTableRow>
+        );
+    },
+    (prev, next) =>
+        prev.table.store === next.table.store &&
+        prev.table.options.columns === next.table.options.columns &&
+        prev.columnsKey === next.columnsKey &&
+        prev.onOpenPlayer === next.onOpenPlayer &&
+        structuralEqual(prev.row.original, next.row.original)
+);
 
 function PlayerListEmptyRow({
     table,

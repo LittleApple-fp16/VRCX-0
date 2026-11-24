@@ -1,8 +1,14 @@
 use serde::Serialize;
 use specta::Type;
-use vrcx_0_application_core::{RuntimeEventBus, RuntimeEventPayload};
+use vrcx_0_application_core::RuntimeEventBus;
+use vrcx_0_contracts::RuntimeEventPayload;
 
+use crate::approvals::AssistantApproval;
+use crate::charts::AssistantChart;
+use crate::choices::AssistantChoiceCandidate;
 use crate::entities::Entity;
+use crate::screenshots::AssistantScreenshots;
+use crate::session::ToolResultRecord;
 use vrcx_0_core::OwnerId;
 
 #[derive(Serialize, Type)]
@@ -36,6 +42,30 @@ pub struct AssistantToolResultEvent {
     pub ok: bool,
     pub summary: String,
     pub entities: Vec<Entity>,
+    pub charts: Vec<AssistantChart>,
+    pub screenshots: Option<AssistantScreenshots>,
+    pub denied: bool,
+}
+
+#[derive(Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AssistantApprovalRequestEvent {
+    pub owner_user_id: OwnerId,
+    pub session_id: String,
+    pub turn_id: String,
+    pub approval: AssistantApproval,
+}
+
+#[derive(Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AssistantChoiceRequestEvent {
+    pub owner_user_id: OwnerId,
+    pub session_id: String,
+    pub turn_id: String,
+    pub tool_call_id: String,
+    pub choice_id: String,
+    pub query: String,
+    pub candidates: Vec<AssistantChoiceCandidate>,
 }
 
 #[derive(Serialize, Type)]
@@ -75,6 +105,14 @@ impl RuntimeEventPayload for AssistantToolCallEvent {
 
 impl RuntimeEventPayload for AssistantToolResultEvent {
     const EVENT_NAME: &'static str = "assistantToolResult";
+}
+
+impl RuntimeEventPayload for AssistantApprovalRequestEvent {
+    const EVENT_NAME: &'static str = "assistantApprovalRequest";
+}
+
+impl RuntimeEventPayload for AssistantChoiceRequestEvent {
+    const EVENT_NAME: &'static str = "assistantChoiceRequest";
 }
 
 impl RuntimeEventPayload for AssistantTurnEntitiesEvent {
@@ -143,15 +181,45 @@ impl AssistantEmitter {
         });
     }
 
-    pub fn tool_result(&self, tool_call_id: &str, ok: bool, summary: &str, entities: &[Entity]) {
+    pub(crate) fn tool_result(&self, record: &ToolResultRecord) {
         self.bus.emit(AssistantToolResultEvent {
             owner_user_id: self.owner_user_id.clone(),
             session_id: self.session_id.clone(),
             turn_id: self.turn_id.clone(),
+            tool_call_id: record.tool_call_id.clone(),
+            ok: record.ok,
+            summary: record.summary.clone(),
+            entities: record.entities.clone(),
+            charts: record.charts.clone(),
+            screenshots: record.screenshots.clone(),
+            denied: record.denied,
+        });
+    }
+
+    pub fn approval_request(&self, approval: &AssistantApproval) {
+        self.bus.emit(AssistantApprovalRequestEvent {
+            owner_user_id: self.owner_user_id.clone(),
+            session_id: self.session_id.clone(),
+            turn_id: self.turn_id.clone(),
+            approval: approval.clone(),
+        });
+    }
+
+    pub fn choice_request(
+        &self,
+        tool_call_id: &str,
+        choice_id: &str,
+        query: &str,
+        candidates: Vec<AssistantChoiceCandidate>,
+    ) {
+        self.bus.emit(AssistantChoiceRequestEvent {
+            owner_user_id: self.owner_user_id.clone(),
+            session_id: self.session_id.clone(),
+            turn_id: self.turn_id.clone(),
             tool_call_id: tool_call_id.to_string(),
-            ok,
-            summary: summary.to_string(),
-            entities: entities.to_vec(),
+            choice_id: choice_id.to_string(),
+            query: query.trim().to_string(),
+            candidates,
         });
     }
 

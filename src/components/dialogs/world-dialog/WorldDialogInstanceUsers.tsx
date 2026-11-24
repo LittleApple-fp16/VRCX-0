@@ -7,7 +7,7 @@ import {
     FriendInstanceTimer,
     FriendLocationTimer
 } from '@/components/friends/FriendInstanceTimer';
-import { UserDetailTile } from '@/components/UserDetailTile';
+import { UserListItem } from '@/components/UserListItem';
 import {
     presenceDotClassName,
     presenceLocationTag,
@@ -32,6 +32,7 @@ import { hasGroupIdPrefix } from '@/shared/constants/vrchatIds';
 import { isRecord } from '@/shared/utils/record';
 import { userStatusLabel } from '@/shared/utils/userStatus';
 import { useRuntimeStore } from '@/state/runtimeStore';
+import { HintTooltip } from '@/ui/hint-tooltip';
 
 export { firstText, mergeInstanceUsers, normalizeInstanceUsers };
 
@@ -266,7 +267,7 @@ export function InstanceUserTiles({
                     subline = subtitle || undefined;
                 }
                 return (
-                    <UserDetailTile
+                    <UserListItem
                         key={`${userId || displayName || 'user'}:${index}`}
                         userId={userId}
                         seed={user}
@@ -276,12 +277,18 @@ export function InstanceUserTiles({
                         displayName={displayName}
                         namePrefix={
                             isInstanceCreator ? (
-                                <CrownIcon
-                                    className="text-muted-foreground size-3.5 shrink-0"
-                                    aria-label={t(
+                                <HintTooltip
+                                    label={t(
                                         'dialog.world.instances.instance_creator'
                                     )}
-                                />
+                                >
+                                    <span
+                                        role="img"
+                                        className="inline-flex shrink-0"
+                                    >
+                                        <CrownIcon className="text-muted-foreground size-3.5 shrink-0" />
+                                    </span>
+                                </HintTooltip>
                             ) : undefined
                         }
                         nameStyle={

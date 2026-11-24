@@ -37,11 +37,21 @@ export function useLoginPageController() {
             busy: page.isAuthBusy,
             loginErrors: page.loginErrors,
             loginForm: page.loginForm,
+            onClearPreparedAccount: page.clearPreparedAccount,
             onPrepareSavedAccount: page.prepareSavedAccountLogin,
+            onStartQrLogin: page.startQrLogin,
             onSubmit: page.handleManualLoginSubmit,
+            preparedAccount: page.preparedAccount,
             setLoginErrors: page.setLoginErrors,
             setLoginForm: page.setLoginForm,
             submitting: page.isSubmitting
+        },
+        qrLogin: {
+            onCancel: page.cancelQrLogin,
+            onRetry: page.startQrLogin,
+            onUsePassword: page.closeQrLogin,
+            pending: page.pendingDeviceLogin,
+            view: page.qrLogin
         },
         header: {
             locale: page.locale,

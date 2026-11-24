@@ -28,6 +28,7 @@ import {
 } from '@/ui/shadcn/input-group';
 import { Spinner } from '@/ui/shadcn/spinner';
 import { TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
+import { Toggle } from '@/ui/shadcn/toggle';
 import {
     ToggleGroup,
     ToggleGroupItem,
@@ -152,6 +153,7 @@ export type ToolbarSegmentOption<TValue extends string> = {
     label: string;
     count?: number;
     icon?: LucideIcon;
+    dimmed?: boolean;
 };
 
 export function ToolbarTabs<TValue extends string>({
@@ -164,7 +166,14 @@ export function ToolbarTabs<TValue extends string>({
             {options.map((option) => {
                 const Icon = option.icon;
                 return (
-                    <TabsTrigger key={option.value} value={option.value}>
+                    <TabsTrigger
+                        key={option.value}
+                        value={option.value}
+                        className={cn(
+                            option.dimmed &&
+                                'not-data-active:not-hover:opacity-50'
+                        )}
+                    >
                         {Icon ? <Icon data-icon="inline-start" /> : null}
                         {option.label}
                         {option.count === undefined ? null : (
@@ -434,6 +443,29 @@ function ToolbarTooltipButton({
             />
             <TooltipContent>{label}</TooltipContent>
         </Tooltip>
+    );
+}
+
+export function ToolbarToggle({
+    icon: Icon,
+    label,
+    pressed,
+    onPressedChange
+}: {
+    icon: LucideIcon;
+    label: string;
+    pressed: boolean;
+    onPressedChange: (pressed: boolean) => void;
+}) {
+    return (
+        <Toggle
+            pressed={pressed}
+            onPressedChange={onPressedChange}
+            className="text-muted-foreground hover:text-foreground data-pressed:text-foreground px-2.5 data-pressed:bg-(--state-pressed-surface)"
+        >
+            <Icon />
+            {label}
+        </Toggle>
     );
 }
 

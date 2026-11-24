@@ -7,6 +7,7 @@ import {
     useFriendStatsHydration
 } from '@/lib/useFriendStats';
 import { useKnownUserFacts } from '@/lib/useKnownUser';
+import { commands, type ProfileBioOutput } from '@/platform/tauri/bindings';
 import memoPersistenceRepository from '@/repositories/memoPersistenceRepository';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
@@ -57,6 +58,9 @@ export function useFriendListRows({
     const [userNoteById, setUserNoteById] = useState(
         () => new Map<string, string>()
     );
+    const [profileBioById, setProfileBioById] = useState(
+        () => new Map<string, ProfileBioOutput>()
+    );
     const favoriteFriendIds = useMemo(
         () => buildFavoriteIdSet(remoteFavoriteFriendIds, localFriendFavorites),
         [localFriendFavorites, remoteFavoriteFriendIds]
@@ -67,41 +71,31 @@ export function useFriendListRows({
     const rosterRows = useMemo<FriendListRow[]>(
         () =>
             orderedFriendIds
-                .map((friendId, index) => {
+                .map((friendId): FriendListRow | null => {
                     const rosterFriend = friendsById[friendId];
                     if (!rosterFriend) {
                         return null;
                     }
                     const stats = statsById[friendId];
-                    const friend: FriendListRow = {
+                    const profileBio = profileBioById.get(friendId);
+                    return {
                         ...applyFactDerivedFields(
                             rosterFriend,
                             factsById[friendId]
                         ),
+                        ...(profileBio && {
+                            bio: profileBio.bio,
+                            bioLinks: profileBio.bioLinks
+                        }),
                         $joinCount: stats?.joinCount,
                         $lastSeen: stats?.lastSeen,
                         $timeSpent: stats?.timeSpent,
                         $mutualCount: stats?.mutualCount,
                         $mutualOptedOut: stats?.mutualOptedOut
                     };
-                    const friendNumber =
-                        Number.parseInt(
-                            String(
-                                friend.$friendNumber ?? friend.friendNumber ?? 0
-                            ),
-                            10
-                        ) || 0;
-                    if (friendNumber > 0) {
-                        return friend;
-                    }
-                    return {
-                        ...friend,
-                        friendNumber: index + 1,
-                        $friendNumber: index + 1
-                    };
                 })
                 .filter(isPresent),
-        [friendsById, orderedFriendIds, factsById, statsById]
+        [friendsById, orderedFriendIds, factsById, profileBioById, statsById]
     );
     const filteredRows = useMemo(() => {
         return filterFriendListRows({
@@ -149,6 +143,27 @@ export function useFriendListRows({
                 }
                 setUserMemoById(nextMemos);
                 setUserNoteById(nextNotes);
+            })
+            .catch(() => {});
+        return () => {
+            active = false;
+        };
+    }, [currentUserId]);
+
+    useEffect(() => {
+        let active = true;
+        if (!currentUserId) {
+            setProfileBioById(new Map());
+            return undefined;
+        }
+        commands
+            .appFriendProfileBioList(currentUserId)
+            .then((rows) => {
+                if (active) {
+                    setProfileBioById(
+                        new Map(rows.map((row) => [row.userId, row]))
+                    );
+                }
             })
             .catch(() => {});
         return () => {

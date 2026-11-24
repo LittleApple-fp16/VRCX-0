@@ -135,6 +135,104 @@ describe('useAssistantEvents auth scope', () => {
         ).toBeUndefined();
     });
 
+    it('attaches a choice request to the running turn as a pending choice', async () => {
+        renderHook(() => useAssistantEvents());
+        await waitFor(() => {
+            expect(mocks.handlers.has('assistantChoiceRequest')).toBe(true);
+        });
+        const candidate = {
+            userId: 'usr_alice',
+            displayName: 'Alice',
+            isFriend: true,
+            encounterCount: 4,
+            lastSeen: '2026-10-01T12:00:00Z'
+        };
+
+        act(() => {
+            mocks.handlers.get('assistantChoiceRequest')?.({
+                ownerUserId: 'usr_current',
+                sessionId: 'session-1',
+                turnId: 'turn-1',
+                toolCallId: 'call-1',
+                choiceId: 'choice-1',
+                query: 'Ali',
+                candidates: [candidate]
+            });
+        });
+
+        expect(
+            useAssistantChatStore.getState().messagesBySession['session-1']
+        ).toMatchObject([
+            {
+                role: 'assistant',
+                turnId: 'turn-1',
+                choices: [
+                    {
+                        id: 'choice-1',
+                        sessionId: 'session-1',
+                        query: 'Ali',
+                        status: 'pending',
+                        candidates: [candidate]
+                    }
+                ]
+            }
+        ]);
+    });
+
+    it('shows an approval card on its tool call and does not report a declined call as a tool error', async () => {
+        renderHook(() => useAssistantEvents());
+        await waitFor(() => {
+            expect(mocks.handlers.has('assistantApprovalRequest')).toBe(true);
+        });
+        const turn = {
+            ownerUserId: 'usr_current',
+            sessionId: 'session-1',
+            turnId: 'turn-1'
+        };
+
+        act(() => {
+            mocks.handlers.get('assistantToolCall')?.({
+                ...turn,
+                toolCallId: 'call-1',
+                name: 'favorite_vrchat',
+                args: '{"entityId":"wrld_a"}'
+            });
+            mocks.handlers.get('assistantApprovalRequest')?.({
+                ...turn,
+                approval: {
+                    id: 'approval-1',
+                    toolCallId: 'call-1',
+                    tool: 'favorite_vrchat',
+                    fields: [{ name: 'entityId', value: 'wrld_a' }],
+                    favoriteMove: null
+                }
+            });
+        });
+        expect(
+            useAssistantChatStore.getState().messagesBySession['session-1'][0]
+                .toolCalls[0].approval
+        ).toMatchObject({ id: 'approval-1', status: 'pending' });
+
+        act(() => {
+            mocks.handlers.get('assistantToolResult')?.({
+                ...turn,
+                toolCallId: 'call-1',
+                ok: false,
+                summary: 'Declined by the user; nothing was changed.',
+                entities: [],
+                charts: [],
+                screenshots: null,
+                denied: true
+            });
+        });
+
+        expect(mocks.recordToolError).not.toHaveBeenCalled();
+        expect(
+            useAssistantChatStore.getState().messagesBySession['session-1'][0]
+                .toolCalls[0].status
+        ).toBe('denied');
+    });
+
     it('evicts a retained busy transcript after it finishes while closed', async () => {
         renderHook(() => useAssistantEvents());
         await waitFor(() => {
@@ -145,6 +243,7 @@ describe('useAssistantEvents auth scope', () => {
                 {
                     id: 'session-1',
                     title: 'Running',
+                    pinned: false,
                     busy: true,
                     updatedAt: '2026-08-11T00:00:00Z'
                 }

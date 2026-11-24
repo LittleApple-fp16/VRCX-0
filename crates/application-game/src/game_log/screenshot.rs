@@ -1,5 +1,5 @@
 use chrono::{DateTime, Duration, Utc};
-use vrcx_0_application_core::RuntimeAuthIdentity;
+use vrcx_0_application_core::{ConfigStore, RuntimeAuthIdentity};
 
 use crate::game_log::host::GameLogHostActions;
 use crate::game_log::ingest::ScreenshotInput;
@@ -24,20 +24,27 @@ struct ScreenshotPlayer {
 }
 
 pub async fn handle_screenshot(
-    store: &dyn crate::GameStateStore,
+    store: &dyn crate::GameLogLocationQueries,
+    config: &dyn ConfigStore,
     host_actions: std::sync::Arc<dyn GameLogHostActions>,
     side_effect_sink: &GameLogSideEffectSink,
     author: &RuntimeAuthIdentity,
     input: ScreenshotInput,
 ) -> Result<()> {
-    let screenshot_path = input.path.trim().to_string();
-    if screenshot_path.is_empty() {
+    let logged_path = input.path.trim().to_string();
+    if logged_path.is_empty() {
         return Ok(());
     }
+    let host_actions_for_resolve = std::sync::Arc::clone(&host_actions);
+    let screenshot_path = tokio::task::spawn_blocking(move || {
+        host_actions_for_resolve.resolve_game_path(&logged_path)
+    })
+    .await
+    .map_err(|error| Error::Custom(format!("screenshot path task: {error}")))?;
 
-    let screenshot_helper = store.get_bool("screenshotHelper", true)?;
-    let modify_filename = store.get_bool("screenshotHelperModifyFilename", false)?;
-    let copy_to_clipboard = store.get_bool("screenshotHelperCopyToClipboard", false)?;
+    let screenshot_helper = config.get_bool("screenshotHelper", true)?;
+    let modify_filename = config.get_bool("screenshotHelperModifyFilename", false)?;
+    let copy_to_clipboard = config.get_bool("screenshotHelperCopyToClipboard", false)?;
 
     let mut next_path = screenshot_path.clone();
     if screenshot_helper {
@@ -79,7 +86,7 @@ pub async fn handle_screenshot(
 }
 
 fn screenshot_context(
-    store: &dyn crate::GameStateStore,
+    store: &dyn crate::GameLogLocationQueries,
     owner_user_id: &OwnerId,
     input: &ScreenshotInput,
 ) -> Result<Option<ScreenshotContext>> {
@@ -99,7 +106,6 @@ fn screenshot_context(
         }));
     }
 
-    store.ensure_game_log_tables()?;
     let Some(location_entry) = store.location_before_or_at(owner_user_id, &input.created_at)?
     else {
         return Ok(None);

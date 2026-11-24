@@ -4,6 +4,7 @@ import type {
     BackendRuntimeCombinedSnapshot
 } from '@/platform/tauri/bindings';
 import vrchatEconomyRepository from '@/repositories/vrchatEconomyRepository';
+import { useChatboxStore } from '@/state/chatboxStore';
 import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -49,6 +50,7 @@ import {
     handleFeedLoggerSyncEvent
 } from './offlineRecordService';
 import { handleRealtimeEntryCorrection } from './realtimePresenceService';
+import { hydrateFriendLocationTimes } from './realtimeRosterUpdateQueue';
 import { runForegroundUpdateRegistryBackupMaintenance } from './registryBackupMaintenanceService';
 import {
     handleFavoritesChangedEvent,
@@ -189,6 +191,16 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
 
     if (event.name === 'gameIsolationState') {
         applyGameIsolationSnapshot(event.payload);
+        return;
+    }
+
+    if (event.name === 'chatboxState') {
+        useChatboxStore.getState().setStatus(event.payload);
+        return;
+    }
+
+    if (event.name === 'chatboxConfig') {
+        useChatboxStore.getState().setSavedConfig(event.payload);
         return;
     }
 
@@ -501,6 +513,8 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'communityThemeState',
         'notificationDoNotDisturbState',
         'gameIsolationState',
+        'chatboxState',
+        'chatboxConfig',
         'privacyLockState',
         'desktopWidgetState',
         'gameLogProjection',
@@ -623,6 +637,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         applyAuthenticatedRuntimePhaseSnapshot(
             combinedSnapshot.authenticatedRuntimePhase
         );
+        hydrateFriendLocationTimes(combinedSnapshot.friendLocationTimes);
     } catch (error) {
         console.warn('Failed to hydrate authenticated runtime phase:', error);
     }

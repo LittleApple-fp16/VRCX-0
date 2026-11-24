@@ -9,6 +9,7 @@ import {
 import type { ComponentType, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FavoriteBadgeMenu } from '@/components/favorites/FavoriteActionMenu';
 import { FadeInImage } from '@/components/media/FadeInImage';
 import type { UserBadgeRecord } from '@/domain/entities/user';
 import { cn } from '@/lib/utils';
@@ -16,7 +17,11 @@ import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { isRecord } from '@/shared/utils/record';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger
+} from '@/ui/shadcn/hover-card';
 import { Separator } from '@/ui/shadcn/separator';
 import {
     ToggleGroup,
@@ -104,8 +109,15 @@ export function UserDialogHeaderFlags({
     }
 
     return (
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
             <UserRelationshipBadges badges={relationshipBadges} />
+            {relationshipBadges.includes('friend') && profile.id ? (
+                <FavoriteBadgeMenu
+                    kind="friend"
+                    entityId={profile.id}
+                    entity={profile}
+                />
+            ) : null}
             {profile.$isTroll ? (
                 <Badge variant="destructive">
                     {t(
@@ -304,7 +316,7 @@ export function UserDialogHeaderMediaBadges({
                 const actionsDisabled = actionStatus !== 'idle';
 
                 return (
-                    <Popover
+                    <HoverCard
                         key={String(
                             badge.badgeId ||
                                 badge.id ||
@@ -312,16 +324,15 @@ export function UserDialogHeaderMediaBadges({
                                 badgeImageUrl
                         )}
                     >
-                        <PopoverTrigger
+                        <HoverCardTrigger
                             render={
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size={badgeImageUrl ? 'icon' : 'sm'}
                                     aria-label={badgeTitle}
-                                    title={badgeTitle}
                                     className={cn(
-                                        'transition-transform duration-150 ease-out active:scale-[0.97] [@media(hover:hover)]:hover:scale-110',
+                                        'transition-transform duration-150 ease-out hover:bg-transparent active:scale-[0.97] aria-expanded:bg-transparent [@media(hover:hover)]:hover:scale-110',
                                         badgeImageUrl
                                             ? 'size-8 rounded-sm p-0'
                                             : 'h-8 max-w-full rounded-sm px-2 text-xs',
@@ -346,10 +357,7 @@ export function UserDialogHeaderMediaBadges({
                                 </Button>
                             }
                         />
-                        <PopoverContent
-                            side="bottom"
-                            className="w-80 gap-0 overflow-hidden p-0"
-                        >
+                        <HoverCardContent className="w-80 overflow-hidden p-0">
                             {badgeImageUrl ? (
                                 <Button
                                     type="button"
@@ -395,18 +403,11 @@ export function UserDialogHeaderMediaBadges({
                                             </div>
                                         ) : null}
                                     </div>
-                                    <Badge
-                                        variant={
-                                            isBadgeVisible
-                                                ? 'outline'
-                                                : 'secondary'
-                                        }
-                                        className="shrink-0"
-                                    >
-                                        {isBadgeVisible
-                                            ? visibleLabel
-                                            : hiddenLabel}
-                                    </Badge>
+                                    {!isBadgeVisible && (
+                                        <Badge variant="outline">
+                                            {hiddenLabel}
+                                        </Badge>
+                                    )}
                                 </div>
                                 {badge.assignedAt ? (
                                     <div className="text-muted-foreground flex min-w-0 items-center justify-between gap-2 text-xs">
@@ -490,8 +491,8 @@ export function UserDialogHeaderMediaBadges({
                                     </>
                                 ) : null}
                             </div>
-                        </PopoverContent>
-                    </Popover>
+                        </HoverCardContent>
+                    </HoverCard>
                 );
             })}
         </>

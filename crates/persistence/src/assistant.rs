@@ -24,8 +24,8 @@ pub struct PersistedSession {
     pub surfaced_entities: String,
     pub endpoint_id: String,
     pub model: String,
-    pub allow_writes: bool,
     pub playbook_mode: String,
+    pub pinned: bool,
 }
 
 pub fn assistant_sessions_load(
@@ -37,12 +37,12 @@ pub fn assistant_sessions_load(
     let params = ParamsBuilder::new().set("owner_id", owner_id).build();
     let sessions = db
         .execute(
-            "SELECT s.id, s.title, s.created_at, s.updated_at, s.entity_panel_open, s.surfaced_entities, s.endpoint_id, s.model, s.allow_writes, s.playbook_mode, COALESCE(o.user_id, '') FROM assistant_session s LEFT JOIN owners o ON o.id = s.owner_id WHERE s.owner_id IN (0, @owner_id) ORDER BY s.updated_at DESC",
+            "SELECT s.id, s.title, s.created_at, s.updated_at, s.entity_panel_open, s.surfaced_entities, s.endpoint_id, s.model, s.playbook_mode, COALESCE(o.user_id, ''), s.pinned FROM assistant_session s LEFT JOIN owners o ON o.id = s.owner_id WHERE s.owner_id IN (0, @owner_id) ORDER BY s.updated_at DESC",
             &params,
         )?
         .into_iter()
         .map(|row| PersistedSession {
-            owner_user_id: OwnerId::new(row_string(&row, 10)),
+            owner_user_id: OwnerId::new(row_string(&row, 9)),
             id: row_string(&row, 0),
             title: row_string(&row, 1),
             created_at: row_string(&row, 2),
@@ -51,8 +51,8 @@ pub fn assistant_sessions_load(
             surfaced_entities: row_string(&row, 5),
             endpoint_id: row_string(&row, 6),
             model: row_string(&row, 7),
-            allow_writes: row_i64(&row, 8) != 0,
-            playbook_mode: row_string(&row, 9),
+            playbook_mode: row_string(&row, 8),
+            pinned: row_i64(&row, 10) != 0,
         })
         .collect();
     Ok(sessions)
@@ -134,17 +134,31 @@ pub fn assistant_session_set_runtime(
     id: &str,
     endpoint_id: Option<&str>,
     model: Option<&str>,
-    allow_writes: bool,
     playbook_mode: &str,
 ) -> Result<(), Error> {
     ensure_assistant_tables(db)?;
     db.execute_non_query(
-        "UPDATE assistant_session SET endpoint_id = @endpoint_id, model = @model, allow_writes = @allow_writes, playbook_mode = @playbook_mode WHERE id = @id",
+        "UPDATE assistant_session SET endpoint_id = @endpoint_id, model = @model, playbook_mode = @playbook_mode WHERE id = @id",
         &ParamsBuilder::new()
             .set("endpoint_id", endpoint_id.unwrap_or("").to_string())
             .set("model", model.unwrap_or("").to_string())
-            .set("allow_writes", i64::from(allow_writes))
             .set("playbook_mode", playbook_mode.to_string())
+            .set("id", id.to_string())
+            .build(),
+    )?;
+    Ok(())
+}
+
+pub fn assistant_session_set_pinned(
+    db: &DatabaseService,
+    id: &str,
+    pinned: bool,
+) -> Result<(), Error> {
+    ensure_assistant_tables(db)?;
+    db.execute_non_query(
+        "UPDATE assistant_session SET pinned = @pinned WHERE id = @id",
+        &ParamsBuilder::new()
+            .set("pinned", i64::from(pinned))
             .set("id", id.to_string())
             .build(),
     )?;
@@ -228,11 +242,12 @@ mod tests {
     fn round_trips_sessions_and_messages() {
         let db = test_db("assistant-roundtrip");
         assistant_session_upsert(&db, &OwnerId::new("usr_a"), "ses_1", "", "t0", "t0").unwrap();
-        assistant_session_set_runtime(&db, "ses_1", Some("ep_1"), Some("model-a"), true, "guided")
+        assistant_session_set_runtime(&db, "ses_1", Some("ep_1"), Some("model-a"), "guided")
             .unwrap();
         assistant_message_insert(&db, "msg_1", "ses_1", 1, "user", "hi", "t1").unwrap();
         assistant_session_upsert(&db, &OwnerId::new("usr_a"), "ses_1", "hi", "t0", "t1").unwrap();
         assistant_message_insert(&db, "msg_2", "ses_1", 2, "assistant", "hello", "t2").unwrap();
+        assistant_session_set_pinned(&db, "ses_1", true).unwrap();
 
         let loaded = assistant_sessions_load(&db, &OwnerId::new("usr_a")).unwrap();
         assert_eq!(loaded.len(), 1);
@@ -240,8 +255,8 @@ mod tests {
         assert_eq!(session.title, "hi");
         assert_eq!(session.endpoint_id, "ep_1");
         assert_eq!(session.model, "model-a");
-        assert!(session.allow_writes);
         assert_eq!(session.playbook_mode, "guided");
+        assert!(session.pinned);
         let messages =
             assistant_session_messages_load(&db, &OwnerId::new("usr_a"), "ses_1").unwrap();
         assert_eq!(messages.len(), 2);

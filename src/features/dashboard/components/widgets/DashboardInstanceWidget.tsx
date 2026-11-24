@@ -15,6 +15,7 @@ import {
     DataTableCell,
     DataTableRow
 } from '@/components/data-table/DataTableView';
+import { LanguageCodeBadge } from '@/components/language/LanguageCodeBadge';
 import { LocationWorld } from '@/components/LocationWorld';
 import { buildFavoriteIdSet } from '@/domain/favorites/favoriteIdSet';
 import type { FriendRecordInput } from '@/domain/friends/types';
@@ -26,10 +27,14 @@ import { cn } from '@/lib/utils';
 import { parseLocation } from '@/shared/utils/location';
 import { isRecord } from '@/shared/utils/record';
 import { normalizeString } from '@/shared/utils/string';
-import { normalizeProfileLanguageRows } from '@/shared/utils/userLanguage';
+import {
+    normalizeLanguageKey,
+    normalizeProfileLanguageRows
+} from '@/shared/utils/userLanguage';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
+import { HintTooltip } from '@/ui/hint-tooltip';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -99,13 +104,6 @@ function resolvePlatformMeta(platform: unknown): {
     };
 }
 
-function languageCodeLabel(languageKey: unknown) {
-    const key = normalizeString(languageKey)
-        .toLowerCase()
-        .replace(/^language_/, '');
-    return key ? key.toUpperCase() : '';
-}
-
 function getActiveColumns(config: DashboardConfig): string[] {
     if (!Array.isArray(config?.columns) || config.columns.length === 0) {
         return [...DEFAULT_COLUMNS];
@@ -128,7 +126,6 @@ function getActiveColumns(config: DashboardConfig): string[] {
 type DashboardLanguageEntry = {
     key: string;
     value: string;
-    code: string;
 };
 
 function resolveLanguageEntries(
@@ -152,20 +149,15 @@ function resolveLanguageEntries(
                       record.name ||
                       record.label ||
                       '';
-            const value =
-                typeof entry === 'string'
-                    ? languageCodeLabel(entry)
-                    : record.value ||
-                      record.name ||
-                      record.label ||
-                      languageCodeLabel(key);
-            return { key, value };
+            return {
+                key,
+                value: record.value || record.name || record.label || ''
+            };
         })
     ]
         .map((entry) => ({
-            key: normalizeString(entry.key),
-            value: normalizeString(entry.value),
-            code: languageCodeLabel(entry.key)
+            key: normalizeLanguageKey(entry.key),
+            value: normalizeString(entry.value)
         }))
         .filter((entry) => entry.key);
 }
@@ -207,18 +199,15 @@ function DashboardInstanceSettingsMenu({
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger
-                render={
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={'Widget settings'}
-                    >
-                        <SettingsIcon data-icon="inline-start" />
-                    </Button>
-                }
-            />
+            <HintTooltip label={t('common.actions.configure')}>
+                <DropdownMenuTrigger
+                    render={
+                        <Button type="button" variant="ghost" size="icon-sm">
+                            <SettingsIcon data-icon="inline-start" />
+                        </Button>
+                    }
+                />
+            </HintTooltip>
             <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuGroup>
                     {DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS.map(
@@ -448,21 +437,11 @@ function DashboardInstancePlayersTable({
                                         {row.languageEntries
                                             .slice(0, 2)
                                             .map((entry) => (
-                                                <Tooltip
+                                                <LanguageCodeBadge
                                                     key={`${row.id}:${entry.key}`}
-                                                >
-                                                    <TooltipTrigger
-                                                        render={
-                                                            <span className="border-border/70 bg-muted/70 text-muted-foreground inline-flex h-5 min-w-8 items-center justify-center rounded border px-1 font-mono text-[10px] leading-none font-semibold">
-                                                                {entry.code}
-                                                            </span>
-                                                        }
-                                                    />
-                                                    <TooltipContent>
-                                                        {entry.value ||
-                                                            entry.key}
-                                                    </TooltipContent>
-                                                </Tooltip>
+                                                    languageKey={entry.key}
+                                                    nativeName={entry.value}
+                                                />
                                             ))}
                                     </span>
                                 </DataTableCell>

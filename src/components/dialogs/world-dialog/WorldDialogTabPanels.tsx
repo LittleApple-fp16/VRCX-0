@@ -1,18 +1,15 @@
-import { ImageIcon, RefreshCwIcon, UserIcon, UsersIcon } from 'lucide-react';
+import { ImageIcon, SparklesIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { EconomyStoreListings } from '@/components/economy/EconomyStoreListings';
-import { CurrentInstanceBadge } from '@/components/instances/CurrentInstanceBadge';
-import { InstanceActionBar } from '@/components/instances/InstanceActionBar';
-import { InstanceVisitedBadge } from '@/components/instances/InstanceVisitedBadge';
-import { normalizeLocationText } from '@/components/location/locationModel';
+import {
+    ToolbarActions,
+    ToolbarRefreshButton,
+    ToolbarStatus
+} from '@/components/layout/ToolbarControls';
 import { ScreenshotThumbnailCard } from '@/components/media/ScreenshotThumbnailCard';
 import { useScreenshotGalleryGrid } from '@/components/media/useScreenshotGalleryGrid';
-import { formatDateFilterOrFallback, timeToText } from '@/lib/dateTime';
-import { cn } from '@/lib/utils';
-import { openExternalLink } from '@/services/entityMediaService';
-import { isRecord } from '@/shared/utils/record';
-import { Badge } from '@/ui/shadcn/badge';
+import { useAssistantChatStore } from '@/state/assistantChatStore';
 import { Button } from '@/ui/shadcn/button';
 import {
     Empty,
@@ -22,55 +19,21 @@ import {
     EmptyTitle
 } from '@/ui/shadcn/empty';
 import { Spinner } from '@/ui/shadcn/spinner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
     EntityDialogTabContent,
     EntityDialogTabs,
-    EntityInfoBlock,
-    EntityInfoGrid,
-    EntityMemoTextarea,
     EntityRawJson
 } from '../EntityDialogScaffold';
 import { InstanceHistoryListPanel } from '../previous-instances-table/InstanceHistoryListPanel';
-import { formatPreviousInstanceCount } from '../previous-instances-table/previousInstancesRows';
+import { WorldInfoSections } from './WorldDialogInfoSections';
+import { WorldDialogInstancesPanel } from './WorldDialogInstancesPanel';
 import type {
     WorldDialogTabCommands,
     WorldDialogTabModel,
     WorldWorldScreenshots
 } from './WorldDialogTabbedView';
-import { friendVisitSummary } from './worldDialogUtils';
-import {
-    InstanceUserTiles,
-    WorldInstancesEmptyState,
-    platformDisplayName,
-    resolveLaunchLocation
-} from './WorldDialogViewParts';
-import { WorldInstanceRowTitle } from './WorldInstanceRowTitle';
-import { WorldSidebarPinButton } from './WorldSidebarPinButton';
-
-const WORLD_DATE_FALLBACKS = {
-    empty: '',
-    invalid: String
-};
-
-function firstKnownValue(...values: unknown[]): number | undefined {
-    for (const value of values) {
-        const numeric = Number(value);
-        if (
-            value !== null &&
-            typeof value !== 'undefined' &&
-            value !== '' &&
-            Number.isFinite(numeric)
-        ) {
-            return numeric;
-        }
-    }
-    return undefined;
-}
-
-function record(value: unknown): Record<string, unknown> {
-    return isRecord(value) ? value : {};
-}
 
 function WorldScreenshotsEmptyState({
     loading = false,
@@ -108,15 +71,12 @@ function WorldScreenshotsEmptyState({
 function WorldScreenshotsGrid({
     screenshots,
     worldId,
-    worldName,
     onOpenScreenshot
 }: {
     screenshots: WorldWorldScreenshots;
     worldId: string;
-    worldName: string;
     onOpenScreenshot: (path: string) => void;
 }) {
-    const { t } = useTranslation();
     const safeScreenshots = Array.isArray(screenshots) ? screenshots : [];
     const {
         gridColumnCount,
@@ -133,11 +93,6 @@ function WorldScreenshotsGrid({
 
     return (
         <div className="flex min-h-0 flex-1 flex-col gap-2">
-            <Badge variant="outline" className="w-fit">
-                {t('dialog.screenshot_metadata.image_count', {
-                    count: safeScreenshots.length
-                })}
-            </Badge>
             <div ref={viewportRef} className="min-h-0 flex-1 overflow-auto p-1">
                 <div className="relative" style={{ height: totalHeight }}>
                     {visibleRows.map((row) => (
@@ -157,7 +112,7 @@ function WorldScreenshotsGrid({
                                         compact
                                         item={item}
                                         onOpen={onOpenScreenshot}
-                                        worldNameHint={worldName}
+                                        hideWorldTitle
                                     />
                                 )
                             )}
@@ -178,6 +133,7 @@ export function WorldDialogTabPanels({
 }) {
     const { t } = useTranslation();
     const {
+        actionStatus,
         activeTab,
         authorTags,
         currentUserId,
@@ -191,6 +147,7 @@ export function WorldDialogTabPanels({
         previousInstances,
         previewUrl,
         restrictions,
+        attributes,
         screenshots,
         screenshotsError,
         screenshotsRefreshDisabled,
@@ -203,205 +160,65 @@ export function WorldDialogTabPanels({
     } = model;
     const {
         onChangeTab,
-        onOpenAuthor,
         onOpenScreenshot,
         onPreviousInstancesChange,
+        onRefresh,
         onRefreshScreenshots,
         onSaveMemo
     } = commands;
-    const releaseStatusLabel = world.isLabs
-        ? t('dialog.world.tags.labs')
-        : world.releaseStatus === 'public'
-          ? t('dialog.world.tags.public')
-          : world.releaseStatus === 'private'
-            ? t('dialog.world.tags.private')
-            : '—';
     return (
         <EntityDialogTabs
             value={activeTab}
             onValueChange={onChangeTab}
             tabs={tabs}
+            actions={
+                world.id ? (
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    size="icon-xs"
+                                    variant="outline"
+                                    aria-label={t('assistant.title')}
+                                    onClick={() =>
+                                        useAssistantChatStore
+                                            .getState()
+                                            .startAssistantDraft({
+                                                topic: 'profile',
+                                                target: {
+                                                    kind: 'world',
+                                                    id: world.id,
+                                                    name: world.name || world.id
+                                                }
+                                            })
+                                    }
+                                >
+                                    <SparklesIcon data-icon="inline-start" />
+                                </Button>
+                            }
+                        />
+                        <TooltipContent>{t('assistant.title')}</TooltipContent>
+                    </Tooltip>
+                ) : null
+            }
         >
             <EntityDialogTabContent
                 value="instances"
                 className="flex flex-col gap-3 pt-3"
             >
-                <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge variant="outline">
-                        <UserIcon data-icon="inline-start" />
-                        {t('dialog.world.instances.public_count', {
-                            count: world.publicOccupants ?? 0
-                        })}
-                    </Badge>
-                    <Badge variant="outline">
-                        <UserIcon data-icon="inline-start" />
-                        {t('dialog.world.instances.private_count', {
-                            count: world.privateOccupants ?? 0
-                        })}
-                    </Badge>
-                    <Badge variant="outline">
-                        <UsersIcon data-icon="inline-start" />
-                        {t('dialog.world.instances.capacity_count', {
-                            count: world.recommendedCapacity || '—',
-                            max: world.capacity || '—'
-                        })}
-                    </Badge>
-                    <WorldSidebarPinButton
-                        worldId={world.id}
-                        name={world.name}
-                    />
-                </div>
-                <div className="flex flex-col gap-2">
-                    {displayInstanceRows.length ? (
-                        displayInstanceRows.map((instance) => {
-                            const instanceRecord = record(instance);
-                            const instanceRef = record(instance.ref);
-                            const instanceRefWorld = record(instanceRef.world);
-                            const instanceGroup = record(instance.group);
-                            const instanceWorld = record(instanceRecord.world);
-                            const location = resolveLaunchLocation(
-                                world,
-                                instance
-                            );
-                            const shortName = normalizeLocationText(
-                                instance.shortName
-                            );
-                            const launchToken =
-                                shortName ||
-                                normalizeLocationText(instance.secureName);
-                            const playerCount = firstKnownValue(
-                                instance.playerCount,
-                                instance.userCount,
-                                instance.occupants,
-                                Array.isArray(instance.users)
-                                    ? instance.users.length
-                                    : undefined
-                            );
-                            const capacity = firstKnownValue(
-                                instance.capacity,
-                                instanceRef.capacity,
-                                instanceRefWorld.capacity,
-                                world.capacity
-                            );
-                            const isClosed = Boolean(
-                                instanceRef.closedAt || instanceRecord.closedAt
-                            );
-                            return (
-                                <div
-                                    key={instance.id}
-                                    className={cn(
-                                        'bg-muted/10 hover:bg-muted/25 rounded-md border px-2.5 py-2 text-sm transition-colors',
-                                        isClosed && 'opacity-60'
-                                    )}
-                                >
-                                    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                                        <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                                            <WorldInstanceRowTitle
-                                                location={location}
-                                                displayName={normalizeLocationText(
-                                                    instanceRef.displayName ||
-                                                        instanceRecord.displayName
-                                                )}
-                                                languageSource={{
-                                                    ...instanceRef,
-                                                    ...instanceRecord
-                                                }}
-                                                locationWorldProps={{
-                                                    locationObject: {
-                                                        ...record(instance.ref),
-                                                        ...instance,
-                                                        tag: location,
-                                                        location,
-                                                        shortName,
-                                                        launchToken
-                                                    },
-                                                    currentUserId,
-                                                    worldDialogShortName,
-                                                    grouphint:
-                                                        normalizeLocationText(
-                                                            instanceRecord.groupName
-                                                        ) ||
-                                                        normalizeLocationText(
-                                                            instanceGroup.name
-                                                        ),
-                                                    playerCount,
-                                                    capacity,
-                                                    showWorldName: false,
-                                                    showPlayerSummary: false,
-                                                    hint:
-                                                        world.name ||
-                                                        normalizeLocationText(
-                                                            instanceRecord.worldName
-                                                        ) ||
-                                                        normalizeLocationText(
-                                                            instanceWorld.name
-                                                        )
-                                                }}
-                                            />
-                                            {isClosed ? (
-                                                <Badge
-                                                    variant="outline"
-                                                    className="shrink-0"
-                                                >
-                                                    {t(
-                                                        'dialog.world.instances.closed'
-                                                    )}
-                                                </Badge>
-                                            ) : null}
-                                            {instance.isCurrentInstance ? (
-                                                <CurrentInstanceBadge className="shrink-0" />
-                                            ) : (
-                                                <InstanceVisitedBadge
-                                                    location={location}
-                                                    className="shrink-0"
-                                                />
-                                            )}
-                                        </div>
-                                        <InstanceActionBar
-                                            className="min-w-0 flex-wrap justify-start sm:justify-end"
-                                            target={{
-                                                location,
-                                                shortName: launchToken,
-                                                worldName:
-                                                    normalizeLocationText(
-                                                        world.name ||
-                                                            instanceRecord.worldName ||
-                                                            instanceWorld.name
-                                                    )
-                                            }}
-                                            instance={instance}
-                                            friendCount={
-                                                Number(
-                                                    instanceRecord.friendCount
-                                                ) || undefined
-                                            }
-                                            playerCount={playerCount}
-                                            capacity={capacity}
-                                            instanceInfoPlacement="start"
-                                            instanceCountAlign="left"
-                                            instanceSummaryOrder="markers-first"
-                                            showHistory={Boolean(
-                                                previousInstances.length
-                                            )}
-                                            historyTooltip="Visit history"
-                                            onHistory={() =>
-                                                onChangeTab('visit-history')
-                                            }
-                                        />
-                                    </div>
-                                    <InstanceUserTiles
-                                        instance={instance}
-                                        instanceLocation={location}
-                                        visibleUserIds={visibleInstanceUserIds}
-                                        showInstanceDuration
-                                    />
-                                </div>
-                            );
-                        })
-                    ) : !isInstanceLocation ? (
-                        <WorldInstancesEmptyState />
-                    ) : null}
-                </div>
+                <WorldDialogInstancesPanel
+                    world={world}
+                    rows={displayInstanceRows}
+                    currentUserId={currentUserId}
+                    worldDialogShortName={worldDialogShortName}
+                    visibleInstanceUserIds={visibleInstanceUserIds}
+                    isInstanceLocation={isInstanceLocation}
+                    showHistory={Boolean(previousInstances.length)}
+                    refreshing={actionStatus === 'refresh'}
+                    onShowHistory={() => onChangeTab('visit-history')}
+                    onRefresh={onRefresh}
+                />
             </EntityDialogTabContent>
             <EntityDialogTabContent
                 value="visit-history"
@@ -418,21 +235,20 @@ export function WorldDialogTabPanels({
                 value="screenshots"
                 className="flex min-h-0 flex-col gap-3 pt-3"
             >
-                <div className="flex shrink-0 justify-end">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={screenshotsRefreshDisabled}
-                        onClick={onRefreshScreenshots}
-                    >
-                        {screenshotsRefreshDisabled ? (
-                            <Spinner data-icon="inline-start" />
-                        ) : (
-                            <RefreshCwIcon data-icon="inline-start" />
-                        )}
-                        {t('common.actions.refresh')}
-                    </Button>
+                <div className="flex shrink-0 items-center gap-2">
+                    <ToolbarStatus className="mr-auto tabular-nums">
+                        {Array.isArray(screenshots) && screenshots.length
+                            ? t('dialog.screenshot_metadata.image_count', {
+                                  count: screenshots.length
+                              })
+                            : null}
+                    </ToolbarStatus>
+                    <ToolbarActions>
+                        <ToolbarRefreshButton
+                            loading={screenshotsRefreshDisabled}
+                            onRefresh={onRefreshScreenshots}
+                        />
+                    </ToolbarActions>
                 </div>
                 {screenshotsError &&
                 Array.isArray(screenshots) &&
@@ -450,7 +266,6 @@ export function WorldDialogTabPanels({
                     <WorldScreenshotsGrid
                         screenshots={screenshots}
                         worldId={world.id}
-                        worldName={world.name || ''}
                         onOpenScreenshot={onOpenScreenshot}
                     />
                 ) : (
@@ -458,224 +273,22 @@ export function WorldDialogTabPanels({
                 )}
             </EntityDialogTabContent>
             <EntityDialogTabContent value="info" forceMount>
-                <EntityInfoGrid>
-                    <EntityMemoTextarea
-                        label={t('dialog.world.info.memo')}
-                        value={memo}
-                        placeholder={t('dialog.world.info.memo_placeholder')}
-                        onSave={onSaveMemo}
-                    />
-                    {previewUrl ? (
-                        <EntityInfoBlock
-                            label={t('dialog.world.info.youtube_preview')}
-                            wide
-                            onClick={() => openExternalLink(previewUrl)}
-                        >
-                            <span className="block truncate text-xs">
-                                {previewUrl}
-                            </span>
-                        </EntityInfoBlock>
-                    ) : null}
-                    <EntityInfoBlock
-                        label={t('dialog.world.label.author')}
-                        onClick={world.authorId ? onOpenAuthor : undefined}
-                    >
-                        <span className="block truncate text-xs">
-                            {world.authorName || '—'}
-                        </span>
-                    </EntityInfoBlock>
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.players')}
-                        value={world.occupants ? String(world.occupants) : '—'}
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.favorites')}
-                        value={
-                            world.favorites
-                                ? `${world.favorites}${favoriteRate ? ` (${favoriteRate}%)` : ''}`
-                                : '—'
-                        }
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.visits')}
-                        value={world.visits ? String(world.visits) : '—'}
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.capacity')}
-                        value={`${world.recommendedCapacity || '—'} (${world.capacity || '—'})`}
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.created_at')}
-                        value={formatDateFilterOrFallback(
-                            world.createdAt || world.created_at,
-                            'long',
-                            WORLD_DATE_FALLBACKS
-                        )}
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.last_updated')}
-                        value={formatDateFilterOrFallback(
-                            world.updatedAt || world.updated_at,
-                            'long',
-                            WORLD_DATE_FALLBACKS
-                        )}
-                    />
-                    {world.labsPublicationDate &&
-                    world.labsPublicationDate !== 'none' ? (
-                        <EntityInfoBlock
-                            label={t('dialog.world.info.labs_publication_date')}
-                            value={formatDateFilterOrFallback(
-                                world.labsPublicationDate,
-                                'long',
-                                WORLD_DATE_FALLBACKS
-                            )}
-                        />
-                    ) : null}
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.publication_date')}
-                        value={formatDateFilterOrFallback(
-                            world.publicationDate,
-                            'long',
-                            WORLD_DATE_FALLBACKS
-                        )}
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.last_visited')}
-                        value={formatDateFilterOrFallback(
-                            lastVisitedInstance?.created_at,
-                            'long',
-                            WORLD_DATE_FALLBACKS
-                        )}
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.visit_count')}
-                        value={
-                            previousInstances.length
-                                ? formatPreviousInstanceCount(
-                                      previousInstances.length
-                                  )
-                                : '—'
-                        }
-                        onClick={
-                            previousInstances.length
-                                ? () => onChangeTab('visit-history')
-                                : undefined
-                        }
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.time_spent')}
-                        value={
-                            totalVisitTime > 0
-                                ? timeToText(totalVisitTime)
-                                : '—'
-                        }
-                    />
-                    {friendVisits && friendVisits.friendCount > 0 ? (
-                        <>
-                            <EntityInfoBlock
-                                label={t('dialog.world.info.friends_visited')}
-                                wide
-                            >
-                                <span className="block truncate text-sm leading-snug font-medium">
-                                    {String(friendVisits.friendCount)}
-                                </span>
-                                <span className="text-muted-foreground block truncate text-xs leading-snug">
-                                    {friendVisitSummary(friendVisits)}
-                                </span>
-                            </EntityInfoBlock>
-                            <EntityInfoBlock
-                                label={t(
-                                    'dialog.world.info.friends_last_visited'
-                                )}
-                                value={formatDateFilterOrFallback(
-                                    friendVisits.lastVisitedAt,
-                                    'long',
-                                    WORLD_DATE_FALLBACKS
-                                )}
-                            />
-                        </>
-                    ) : null}
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.version')}
-                        value={world.version ? String(world.version) : '—'}
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.heat')}
-                        value={world.heat ? String(world.heat) : '—'}
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.popularity')}
-                        value={
-                            world.popularity ? String(world.popularity) : '—'
-                        }
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.persistent_data')}
-                        value={hasPersistData ? '✓' : '—'}
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.cache_size')}
-                        value={world.$isCached ? world.$cacheSize || '—' : '—'}
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.release_status')}
-                        value={releaseStatusLabel}
-                    />
-                    <EntityInfoBlock
-                        label={t('dialog.world.info.platform')}
-                        full
-                    >
-                        <span className="block text-xs whitespace-normal">
-                            {world.platforms
-                                ?.map(platformDisplayName)
-                                .join(', ') || '—'}
-                        </span>
-                    </EntityInfoBlock>
-                    {Array.isArray(world.urlList) && world.urlList.length ? (
-                        <EntityInfoBlock
-                            label={t(
-                                'dialog.allowed_video_player_domains.header'
-                            )}
-                            full
-                        >
-                            <div className="flex flex-wrap gap-1.5">
-                                {world.urlList.map((url) => (
-                                    <Badge key={url} variant="outline">
-                                        {url}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </EntityInfoBlock>
-                    ) : null}
-                    {authorTags.length ? (
-                        <EntityInfoBlock
-                            label={t('dialog.world.info.author_tags')}
-                            full
-                        >
-                            <div className="flex flex-wrap gap-1.5">
-                                {authorTags.map((tag) => (
-                                    <Badge key={tag} variant="outline">
-                                        {tag}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </EntityInfoBlock>
-                    ) : null}
-                    {restrictions.length ? (
-                        <EntityInfoBlock
-                            label={t('dialog.world.info.restrictions')}
-                            full
-                        >
-                            <div className="flex flex-wrap gap-1.5">
-                                {restrictions.map((tag) => (
-                                    <Badge key={tag.key} variant="outline">
-                                        {tag.label}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </EntityInfoBlock>
-                    ) : null}
-                </EntityInfoGrid>
+                <WorldInfoSections
+                    world={world}
+                    authorTags={authorTags}
+                    favoriteRate={favoriteRate}
+                    friendVisits={friendVisits}
+                    hasPersistData={hasPersistData}
+                    lastVisitedInstance={lastVisitedInstance}
+                    memo={memo}
+                    previousInstanceCount={previousInstances.length}
+                    previewUrl={previewUrl}
+                    restrictions={restrictions}
+                    attributes={attributes}
+                    totalVisitTime={totalVisitTime}
+                    onOpenVisitHistory={() => onChangeTab('visit-history')}
+                    onSaveMemo={onSaveMemo}
+                />
             </EntityDialogTabContent>
             {typeof world.storeId === 'string' && world.storeId ? (
                 <EntityDialogTabContent value="store">

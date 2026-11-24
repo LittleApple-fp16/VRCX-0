@@ -79,6 +79,7 @@ function createHeaderModel(effect?: InventoryItemRecord): UserHeaderModel {
             profileEffect: true,
             nameplateEffect: true
         },
+        bioLinks: [],
         avatarOverrideState: {
             hideAvatar: false,
             showAvatar: false
@@ -107,7 +108,6 @@ function createHeaderModel(effect?: InventoryItemRecord): UserHeaderModel {
             block: false,
             mute: false
         },
-        noteSummary: '',
         platform: {
             icon: null,
             label: 'PC'
@@ -139,6 +139,8 @@ function createHeaderCommands(): UserHeaderCommands {
         onCopyDisplayName: noop,
         onCopyUserId: noop,
         onCopyUserUrl: noop,
+        onCopyLink: noop,
+        onOpenLink: noop,
         onEditMemo: noop,
         onEditSelfProfile: noop,
         onEditSelfStatus: noop,
@@ -159,7 +161,7 @@ function createHeaderCommands(): UserHeaderCommands {
         onOpenUserUrl: noop,
         onRefresh: noop,
         onReportUser: noop,
-        onShowAccountStanding: noop,
+        onShowVrchatAccount: noop,
         onShowAvatarAuthor: noop,
         onShowInstanceHistory: noop,
         onToggleBadgeShowcased: noop,
@@ -219,6 +221,36 @@ describe('UserDialogHeaderSection nameplate', () => {
         act(() => notifyResize?.());
 
         expect(displayName.style.fontSize).toBe('15px');
+    });
+});
+
+describe('UserDialogHeaderSection facts', () => {
+    it('lists bio links as rail rows', () => {
+        const headerModel = createHeaderModel();
+        headerModel.bioLinks = ['https://x.com/example'];
+
+        render(
+            <UserDialogHeaderSection
+                headerModel={headerModel}
+                headerCommands={createHeaderCommands()}
+            />
+        );
+
+        expect(screen.getByText('x.com')).toBeTruthy();
+    });
+
+    it('lists the account creation date with the identity facts', () => {
+        const headerModel = createHeaderModel();
+        headerModel.profile.date_joined = '2022-04-30';
+
+        render(
+            <UserDialogHeaderSection
+                headerModel={headerModel}
+                headerCommands={createHeaderCommands()}
+            />
+        );
+
+        expect(screen.getByText('dialog.user.info.date_joined')).toBeTruthy();
     });
 });
 
@@ -516,24 +548,6 @@ describe('UserDialogHeaderSection relationship', () => {
             screen.getByText('dialog.user.relationship.chatbox_muted')
         ).toBeTruthy();
     });
-
-    it('opens the note editor from the note summary', () => {
-        const headerModel = createHeaderModel();
-        headerModel.noteSummary = 'Met at the meetup';
-        const headerCommands = createHeaderCommands();
-        headerCommands.onEditMemo = vi.fn();
-
-        render(
-            <UserDialogHeaderSection
-                headerModel={headerModel}
-                headerCommands={headerCommands}
-            />
-        );
-
-        fireEvent.click(screen.getByText('Met at the meetup'));
-
-        expect(headerCommands.onEditMemo).toHaveBeenCalledOnce();
-    });
 });
 
 describe('UserDialogHeaderSection account standing', () => {
@@ -545,7 +559,7 @@ describe('UserDialogHeaderSection account standing', () => {
 
     it('opens account standing from the own action menu', async () => {
         const headerCommands = createHeaderCommands();
-        headerCommands.onShowAccountStanding = vi.fn();
+        headerCommands.onShowVrchatAccount = vi.fn();
 
         render(
             <UserDialogHeaderSection
@@ -558,10 +572,10 @@ describe('UserDialogHeaderSection account standing', () => {
             screen.getByRole('button', { name: 'common.actions.more_actions' })
         );
         fireEvent.click(
-            await screen.findByText('dialog.user.actions.account_standing')
+            await screen.findByText('dialog.user.actions.vrchat_account')
         );
 
-        expect(headerCommands.onShowAccountStanding).toHaveBeenCalledOnce();
+        expect(headerCommands.onShowVrchatAccount).toHaveBeenCalledOnce();
     });
 
     it('marks the action menu only when the own standing is not good', () => {

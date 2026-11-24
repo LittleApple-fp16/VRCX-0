@@ -253,6 +253,13 @@ defineCard(
             labelKey: 'view.settings.appearance.appearance.zoom'
         },
         {
+            key: 'ctrl-wheel-zoom',
+            labelKey: 'view.settings.appearance.appearance.ctrl_wheel_zoom',
+            descriptionKey:
+                'view.settings.appearance.appearance.ctrl_wheel_zoom_description',
+            prefKey: 'ctrlWheelZoom'
+        },
+        {
             key: 'table-density',
             labelKey: 'view.settings.appearance.appearance.table_density',
             prefKey: 'tableDensity'
@@ -1087,6 +1094,12 @@ defineCard('ai', 'mcp', 'view.settings.integrations.mcp_server.header', [
             'view.settings.integrations.mcp_server.enable_description'
     },
     {
+        key: 'connect',
+        labelKey: 'view.settings.integrations.mcp_server.connect_client',
+        descriptionKey:
+            'view.settings.integrations.mcp_server.connect_client_description'
+    },
+    {
         key: 'allow-lan',
         labelKey: 'view.settings.integrations.mcp_server.allow_lan_connections',
         descriptionKey:
@@ -1108,8 +1121,8 @@ defineCard('ai', 'mcp', 'view.settings.integrations.mcp_server.header', [
         labelKey: 'view.settings.integrations.mcp_server.status_label'
     },
     {
-        key: 'client-config',
-        labelKey: 'view.settings.integrations.mcp_server.client_config',
+        key: 'token',
+        labelKey: 'view.settings.integrations.mcp_server.token_label',
         descriptionKey: 'view.settings.integrations.mcp_server.security_note'
     },
     {

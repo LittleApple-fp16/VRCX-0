@@ -88,11 +88,21 @@ function controllerValue(hasSavedAccounts: boolean) {
             busy: false,
             loginErrors: {},
             loginForm: {},
+            onClearPreparedAccount: noop,
             onPrepareSavedAccount: noop,
+            onStartQrLogin: noop,
             onSubmit: noop,
+            preparedAccount: null,
             setLoginErrors: noop,
             setLoginForm: noop,
             submitting: false
+        },
+        qrLogin: {
+            onCancel: noop,
+            onRetry: noop,
+            onUsePassword: noop,
+            pending: null,
+            view: { status: 'closed' }
         },
         header: {
             locale: 'en',

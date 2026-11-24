@@ -20,6 +20,10 @@ use super::remote_favorites::{
     add_remote_favorite, clear_remote_favorite_group, delete_remote_favorite,
     save_remote_favorite_group, FavoriteRemoteMutationDeps,
 };
+use super::remote_move::{
+    list_remote_favorites, move_remote_favorites, FavoriteRemoteListInput, FavoriteRemoteListing,
+    FavoriteRemoteMoveInput, FavoriteRemoteMoveOutput,
+};
 use super::{
     FavoriteBulkRemoveInput, FavoriteBulkRemoveResult, FavoriteImportLocation,
     FavoriteImportOperation, FavoriteImportStatus, FavoriteRemoteAddInput,
@@ -119,13 +123,12 @@ impl FavoriteMutationCoordinator {
         if !local_changed && !remote_changed {
             return;
         }
-        self.event_bus
-            .emit_favorites_changed(FavoritesChangedPayload::invalidated(
-                scope,
-                kind,
-                local_changed,
-                remote_changed,
-            ));
+        self.event_bus.emit(FavoritesChangedPayload::invalidated(
+            scope,
+            kind,
+            local_changed,
+            remote_changed,
+        ));
     }
 
     pub fn add_local(
@@ -242,7 +245,7 @@ impl FavoriteMutationCoordinator {
         &self,
         label: &'static str,
         input: FavoriteRemoteAddInput,
-    ) -> Result<vrcx_0_application_core::vrchat_api::VrchatApiResponse> {
+    ) -> Result<vrcx_0_contracts::vrchat_api::VrchatResponse> {
         let deps = self.remote_deps(label)?;
         add_remote_favorite(&deps, input).await
     }
@@ -251,7 +254,7 @@ impl FavoriteMutationCoordinator {
         &self,
         label: &'static str,
         input: FavoriteRemoteDeleteInput,
-    ) -> Result<vrcx_0_application_core::vrchat_api::VrchatApiResponse> {
+    ) -> Result<vrcx_0_contracts::vrchat_api::VrchatResponse> {
         let deps = self.remote_deps(label)?;
         delete_remote_favorite(&deps, input).await
     }
@@ -260,7 +263,7 @@ impl FavoriteMutationCoordinator {
         &self,
         label: &'static str,
         input: FavoriteRemoteGroupSaveInput,
-    ) -> Result<vrcx_0_application_core::vrchat_api::VrchatApiResponse> {
+    ) -> Result<vrcx_0_contracts::vrchat_api::VrchatResponse> {
         let deps = self.remote_deps(label)?;
         save_remote_favorite_group(&deps, input).await
     }
@@ -269,9 +272,46 @@ impl FavoriteMutationCoordinator {
         &self,
         label: &'static str,
         input: FavoriteRemoteGroupClearInput,
-    ) -> Result<vrcx_0_application_core::vrchat_api::VrchatApiResponse> {
+    ) -> Result<vrcx_0_contracts::vrchat_api::VrchatResponse> {
         let deps = self.remote_deps(label)?;
         clear_remote_favorite_group(&deps, input).await
+    }
+
+    pub async fn move_remote(
+        &self,
+        input: FavoriteRemoteMoveInput,
+    ) -> Result<FavoriteRemoteMoveOutput> {
+        let kind = input.kind;
+        let mutation = self.capture("Favorite move")?;
+        let event_scope = mutation.scope().clone();
+        let outcome = move_remote_favorites(&self.transfer_deps(mutation), input).await?;
+        self.notify_invalidated(
+            &event_scope,
+            kind.into(),
+            outcome.local_changed,
+            outcome.remote_changed,
+        );
+        Ok(outcome.output)
+    }
+
+    pub async fn list_remote(
+        &self,
+        input: FavoriteRemoteListInput,
+    ) -> Result<FavoriteRemoteListing> {
+        let mutation = self.capture("Favorite listing")?;
+        list_remote_favorites(&self.transfer_deps(mutation), input).await
+    }
+
+    fn transfer_deps<'a>(
+        &'a self,
+        mutation: AuthenticatedMutationContext<'a>,
+    ) -> FavoriteTransferDeps<'a> {
+        FavoriteTransferDeps {
+            store: self.store.as_ref(),
+            remote: self.remote.as_ref(),
+            world_cache: self.world_cache.as_ref(),
+            mutation,
+        }
     }
 
     pub async fn transfer_selection(
@@ -358,14 +398,13 @@ impl FavoriteMutationCoordinator {
             RuntimeOperationStatus::Running,
             format!("Removing {target_count} favorite item(s)."),
         );
-        let expected_scope = self.capture("Favorite bulk remove")?.scope().clone();
+        let mutation = self.capture("Favorite bulk remove")?;
+        let expected_scope = mutation.scope().clone();
         let result = remove_favorites_selection(
             &FavoriteBulkRemoveDeps {
                 store: self.store.as_ref(),
                 remote: self.remote.as_ref(),
-                auth_scope: &self.auth_scope,
-                expected_scope: expected_scope.clone(),
-                remote_mutation_gate: &self.remote_mutations,
+                mutation,
             },
             input,
         )

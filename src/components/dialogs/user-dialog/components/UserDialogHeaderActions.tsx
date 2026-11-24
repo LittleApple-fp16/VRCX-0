@@ -17,10 +17,10 @@ import {
     RotateCcwIcon,
     SettingsIcon,
     ShieldAlertIcon,
-    ShieldCheckIcon,
     ShieldIcon,
     UserIcon,
     UserCheckIcon,
+    UserCogIcon,
     UserPlusIcon,
     UserRoundMinusIcon,
     UserXIcon,
@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { FavoriteActionMenu } from '@/components/favorites/FavoriteActionMenu';
+import { FavoriteActionSub } from '@/components/favorites/FavoriteActionMenu';
 
 import {
     EntityActionDropdown,
@@ -84,7 +84,7 @@ type UserActionMenuCommands = Pick<
     | 'onAvatarOverride'
     | 'onExtendedModeration'
     | 'onReportUser'
-    | 'onShowAccountStanding'
+    | 'onShowVrchatAccount'
 >;
 
 function AccountStandingAlertIcon() {
@@ -137,7 +137,7 @@ export function UserDialogHeaderActions({
         onAvatarOverride,
         onExtendedModeration,
         onReportUser,
-        onShowAccountStanding
+        onShowVrchatAccount
     } = commands;
     const isBusy = loadStatus === 'running' || actionStatus !== 'idle';
     const accountStandingAlert =
@@ -150,14 +150,6 @@ export function UserDialogHeaderActions({
 
     return (
         <>
-            {!isCurrentUser && isFriend ? (
-                <FavoriteActionMenu
-                    kind="friend"
-                    entityId={profile.id ?? ''}
-                    entity={profile}
-                    iconOnly
-                />
-            ) : null}
             <EntityActionDropdown
                 busy={isBusy}
                 dangerous={moderationState.block}
@@ -167,6 +159,16 @@ export function UserDialogHeaderActions({
                     accountStandingAlert
                 }
             >
+                {!isCurrentUser && isFriend ? (
+                    <>
+                        <FavoriteActionSub
+                            kind="friend"
+                            entityId={profile.id ?? ''}
+                            entity={profile}
+                        />
+                        <EntityActionSeparator />
+                    </>
+                ) : null}
                 <EntityActionItem
                     icon={RefreshCwIcon}
                     disabled={loadStatus === 'running'}
@@ -224,11 +226,11 @@ export function UserDialogHeaderActions({
                             icon={
                                 accountStandingAlert
                                     ? AccountStandingAlertIcon
-                                    : ShieldCheckIcon
+                                    : UserCogIcon
                             }
-                            onClick={onShowAccountStanding}
+                            onClick={onShowVrchatAccount}
                         >
-                            {t('dialog.user.actions.account_standing')}
+                            {t('dialog.user.actions.vrchat_account')}
                         </EntityActionItem>
                     </>
                 ) : null}

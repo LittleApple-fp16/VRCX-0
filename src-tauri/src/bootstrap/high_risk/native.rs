@@ -11,12 +11,12 @@ use tauri_winrt_notification::{Sound, Toast};
 use vrcx_0_application::social::ModerationSyncMutationInput;
 use vrcx_0_application_core::RuntimeAuthScopeSnapshot;
 use vrcx_0_application_game::PlayerListSnapshotPlayer;
+use vrcx_0_contracts::ConfigWriteEntry;
 use vrcx_0_core::{
     location::parse_location,
     trust::{compute_trust_level, TrustRank},
     OwnerId,
 };
-use vrcx_0_runtime_host_desktop::local_data::ConfigWriteEntry;
 
 use super::*;
 use crate::bootstrap::{
@@ -80,7 +80,7 @@ fn same_scope(
 
 pub(super) fn setup(app: &AppHandle, state: &AppState) {
     let raw = state.runtime_host().config_string(CONFIG_KEY, "");
-    let mut settings: HighRiskDetectionSettings = serde_json::from_str(&raw).unwrap_or_default();
+    let mut settings = read_saved_settings(&raw);
     if settings.shortcut.validate().is_err() {
         settings.shortcut = HighRiskDetectionSettings::default().shortcut;
     }
@@ -94,6 +94,17 @@ pub(super) fn setup(app: &AppHandle, state: &AppState) {
         next_alert: None,
     })));
     tauri::async_runtime::spawn(run(app.clone()));
+}
+
+fn read_saved_settings(raw: &str) -> HighRiskDetectionSettings {
+    let mut settings = serde_json::json!(HighRiskDetectionSettings::default());
+    if let (Some(defaults), Ok(saved)) = (
+        settings.as_object_mut(),
+        serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(raw),
+    ) {
+        defaults.extend(saved);
+    }
+    serde_json::from_value(settings).unwrap_or_default()
 }
 
 pub(super) fn settings(app: &AppHandle) -> Option<HighRiskDetectionSettings> {
@@ -671,10 +682,24 @@ mod tests {
     use super::*;
 
     #[test]
+    fn partial_saved_settings_keep_explicit_mark_selection() {
+        let settings = read_saved_settings(r#"{"marks":[]}"#);
+        assert!(settings.marks.is_empty());
+        assert_eq!(settings.rooms, HighRiskDetectionSettings::default().rooms);
+        assert_eq!(
+            read_saved_settings("{}").marks,
+            vec![HighRiskMark::ProbableTroll, HighRiskMark::Troll]
+        );
+    }
+
+    #[test]
     fn nickname_is_required_for_both_rank_and_mark() {
         let mut settings = HighRiskDetectionSettings::default();
         let troll = ["system_trust_veteran".into(), "system_troll".into()];
-        let probable_troll = ["system_trust_veteran".into(), "system_probable_troll".into()];
+        let probable_troll = [
+            "system_trust_veteran".into(),
+            "system_probable_troll".into(),
+        ];
         assert!(profile_matches(&settings, "Player a1b2", &[]));
         assert!(profile_matches(&settings, "Player", &troll));
         assert!(profile_matches(&settings, "Player", &probable_troll));

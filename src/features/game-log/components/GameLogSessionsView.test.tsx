@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import { cloneElement } from 'react';
 import type { PropsWithChildren, ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -87,7 +87,7 @@ vi.mock('@/ui/shadcn/hover-card', () => ({
 }));
 
 vi.mock('./GameLogSessionEventRow', () => ({
-    SessionEventGroups: () => null
+    SessionEventGroups: () => <div data-testid="session-body" />
 }));
 
 import { GameLogSessionAffinityContext } from '../gameLogSessionAffinity';
@@ -97,6 +97,8 @@ describe('GameLogSessionsView', () => {
     afterEach(() => {
         cleanup();
         vi.clearAllMocks();
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
     });
 
     it('shows every session friend with an avatar below the +n trigger', () => {
@@ -124,6 +126,7 @@ describe('GameLogSessionsView', () => {
                         worldId: 'wrld_test',
                         worldName: 'Test World',
                         groupName: '',
+                        remote: false,
                         playerDurationRows: [],
                         events: friends.map(([userId, displayName], index) => ({
                             type: 'OnPlayerJoined',
@@ -206,6 +209,7 @@ describe('GameLogSessionsView', () => {
                         worldId: 'wrld_test',
                         worldName: 'Test World',
                         groupName: '',
+                        remote: false,
                         playerDurationRows: [
                             {
                                 displayName: 'Alice',
@@ -255,6 +259,7 @@ describe('GameLogSessionsView', () => {
                         worldId: 'wrld_b',
                         worldName: 'Second World',
                         groupName: '',
+                        remote: false,
                         playerDurationRows: [],
                         events: [
                             {
@@ -297,6 +302,7 @@ describe('GameLogSessionsView', () => {
                         worldId: 'wrld_a',
                         worldName: 'First World',
                         groupName: '',
+                        remote: false,
                         playerDurationRows: [
                             {
                                 displayName: 'Carol',
@@ -330,5 +336,146 @@ describe('GameLogSessionsView', () => {
         expect(
             within(sections[1] as HTMLElement).getByText(/1 players/)
         ).not.toBeNull();
+    });
+
+    it('labels remote sessions as another device without an expand toggle', () => {
+        const session = {
+            created_at: '2026-08-10T12:00:00',
+            duration: 60_000,
+            worldId: 'wrld_a',
+            groupName: '',
+            playerDurationRows: [],
+            events: []
+        };
+        render(
+            <GameLogSessionsView
+                isGameRunning={false}
+                defaultOpen={false}
+                sessionOpenOverrides={new Map()}
+                onSessionOpenChange={vi.fn()}
+                sessions={[
+                    {
+                        ...session,
+                        id: 2,
+                        location: 'wrld_a:2',
+                        worldName: 'Quest World',
+                        remote: true
+                    },
+                    {
+                        ...session,
+                        id: 1,
+                        location: 'wrld_a:1',
+                        worldName: 'PC World',
+                        remote: false
+                    }
+                ]}
+            />,
+            {
+                wrapper: ({ children }) => (
+                    <GameLogSessionAffinityContext
+                        value={{
+                            favoriteIdSet: new Set(),
+                            friendIdSet: new Set()
+                        }}
+                    >
+                        {children}
+                    </GameLogSessionAffinityContext>
+                )
+            }
+        );
+
+        expect(
+            screen.getAllByText('view.game_log.sessions.other_device')
+        ).toHaveLength(1);
+        expect(
+            screen.getAllByRole('button', {
+                name: 'view.game_log.sessions.expand_session'
+            })
+        ).toHaveLength(1);
+    });
+
+    it('mounts nearby session events at once and the rest when they near the viewport', () => {
+        let reportIntersections: IntersectionObserverCallback = () => {};
+        const observed: Element[] = [];
+        vi.stubGlobal(
+            'IntersectionObserver',
+            class {
+                constructor(callback: IntersectionObserverCallback) {
+                    reportIntersections = callback;
+                }
+                observe(element: Element) {
+                    observed.push(element);
+                }
+                unobserve() {}
+                disconnect() {}
+            }
+        );
+        vi.spyOn(
+            HTMLElement.prototype,
+            'getBoundingClientRect'
+        ).mockImplementation(function (this: HTMLElement) {
+            const top = this.dataset.sessionKey?.includes('wrld_a:1')
+                ? 1000
+                : 0;
+            return DOMRect.fromRect({ y: top, height: 100 });
+        });
+        const session = {
+            created_at: '2026-08-10T12:00:00',
+            duration: 60_000,
+            worldId: 'wrld_a',
+            worldName: 'World A',
+            groupName: '',
+            remote: false,
+            playerDurationRows: [],
+            events: [
+                {
+                    type: 'OnPlayerJoined',
+                    created_at: '2026-08-10T12:00:00',
+                    userId: 'usr_a',
+                    displayName: 'A'
+                }
+            ]
+        };
+        render(
+            <GameLogSessionsView
+                isGameRunning={false}
+                defaultOpen
+                sessionOpenOverrides={new Map()}
+                onSessionOpenChange={vi.fn()}
+                sessions={[
+                    { ...session, id: 2, location: 'wrld_a:2' },
+                    { ...session, id: 1, location: 'wrld_a:1' }
+                ]}
+            />,
+            {
+                wrapper: ({ children }) => (
+                    <GameLogSessionAffinityContext
+                        value={{
+                            favoriteIdSet: new Set(),
+                            friendIdSet: new Set()
+                        }}
+                    >
+                        {children}
+                    </GameLogSessionAffinityContext>
+                )
+            }
+        );
+
+        expect(screen.getAllByTestId('session-body')).toHaveLength(1);
+        expect(observed).toHaveLength(1);
+
+        act(() => {
+            reportIntersections(
+                [
+                    {
+                        isIntersecting: true,
+                        target: observed[0]
+                    } as IntersectionObserverEntry
+                ],
+                {} as IntersectionObserver
+            );
+        });
+
+        expect(screen.getAllByTestId('session-body')).toHaveLength(2);
     });
 });

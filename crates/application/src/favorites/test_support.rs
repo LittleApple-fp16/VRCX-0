@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use vrcx_0_application_core::{vrchat_api::VrchatApiResponse, Error, Result, RuntimeAuthScope};
+use vrcx_0_application_core::{Error, Result, RuntimeAuthScope};
+use vrcx_0_contracts::vrchat_api::VrchatResponse;
 use vrcx_0_contracts::{
     social_aggregates::{FavoriteAction, FavoriteLocalInput, FavoriteOutput},
     FavoriteRow,
@@ -20,6 +21,9 @@ pub(super) struct TestFavoriteRemote {
     favorite_worlds_by_tag: HashMap<String, String>,
     fetched_tags: Mutex<Vec<String>>,
     probed_ids: Mutex<Vec<String>>,
+    online_favorites: Option<String>,
+    favorite_groups: Option<String>,
+    remote_writes: Mutex<Vec<String>>,
 }
 
 impl TestFavoriteRemote {
@@ -47,6 +51,33 @@ impl TestFavoriteRemote {
         }
     }
 
+    pub(super) fn with_online_favorites(
+        favorites: Vec<serde_json::Value>,
+        groups: Vec<serde_json::Value>,
+    ) -> Self {
+        Self {
+            online_favorites: Some(serde_json::Value::Array(favorites).to_string()),
+            favorite_groups: Some(serde_json::Value::Array(groups).to_string()),
+            ..Self::default()
+        }
+    }
+
+    pub(super) fn and_favorite_worlds<'a>(
+        mut self,
+        rows_by_tag: impl IntoIterator<Item = (&'a str, Vec<serde_json::Value>)>,
+    ) -> Self {
+        self.favorite_worlds_by_tag =
+            Self::with_favorite_worlds(rows_by_tag).favorite_worlds_by_tag;
+        self
+    }
+
+    pub(super) fn remote_writes(&self) -> Vec<String> {
+        self.remote_writes
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .clone()
+    }
+
     pub(super) fn fetched_tags(&self) -> Vec<String> {
         self.fetched_tags
             .lock()
@@ -62,8 +93,8 @@ impl TestFavoriteRemote {
     }
 }
 
-fn response(data: &str) -> VrchatApiResponse {
-    VrchatApiResponse {
+fn response(data: &str) -> VrchatResponse {
+    VrchatResponse {
         status: 200,
         data: data.into(),
     }
@@ -74,18 +105,37 @@ impl FavoriteRemote for TestFavoriteRemote {
         &'a self,
         _endpoint: String,
         _n: i32,
-        _offset: i32,
+        offset: i32,
         _command: Option<FavoriteRemoteCommand>,
-    ) -> FavoriteRemoteFuture<'a, VrchatApiResponse> {
-        Box::pin(async { Ok(response("[]")) })
+    ) -> FavoriteRemoteFuture<'a, VrchatResponse> {
+        let data = match (offset, &self.online_favorites) {
+            (0, Some(rows)) => rows.clone(),
+            _ => "[]".to_string(),
+        };
+        Box::pin(async move { Ok(response(&data)) })
     }
 
     fn limits<'a>(
         &'a self,
         _endpoint: String,
         _command: Option<FavoriteRemoteCommand>,
-    ) -> FavoriteRemoteFuture<'a, VrchatApiResponse> {
+    ) -> FavoriteRemoteFuture<'a, VrchatResponse> {
         Box::pin(async { Ok(response("{}")) })
+    }
+
+    fn groups<'a>(
+        &'a self,
+        _endpoint: String,
+        _n: i32,
+        offset: i32,
+        _owner_id: String,
+        _command: Option<FavoriteRemoteCommand>,
+    ) -> FavoriteRemoteFuture<'a, VrchatResponse> {
+        let data = match (offset, &self.favorite_groups) {
+            (0, Some(rows)) => rows.clone(),
+            _ => "[]".to_string(),
+        };
+        Box::pin(async move { Ok(response(&data)) })
     }
 
     fn favorite_worlds<'a>(
@@ -96,7 +146,7 @@ impl FavoriteRemote for TestFavoriteRemote {
         _owner_id: String,
         _user_id: String,
         tag: String,
-    ) -> FavoriteRemoteFuture<'a, VrchatApiResponse> {
+    ) -> FavoriteRemoteFuture<'a, VrchatResponse> {
         Box::pin(async move {
             if offset > 0 {
                 return Ok(response("[]"));
@@ -119,7 +169,7 @@ impl FavoriteRemote for TestFavoriteRemote {
         _n: i32,
         _offset: i32,
         _tag: String,
-    ) -> FavoriteRemoteFuture<'a, VrchatApiResponse> {
+    ) -> FavoriteRemoteFuture<'a, VrchatResponse> {
         Box::pin(async { Ok(response("[]")) })
     }
 
@@ -127,20 +177,20 @@ impl FavoriteRemote for TestFavoriteRemote {
         &'a self,
         _endpoint: String,
         world_id: String,
-    ) -> FavoriteRemoteFuture<'a, VrchatApiResponse> {
+    ) -> FavoriteRemoteFuture<'a, VrchatResponse> {
         Box::pin(async move {
             self.probed_ids
                 .lock()
                 .unwrap_or_else(|error| error.into_inner())
                 .push(world_id.clone());
             if world_id.contains("deleted") {
-                return Ok(VrchatApiResponse {
+                return Ok(VrchatResponse {
                     status: 404,
                     data: r#"{"error":{"message":"not found"}}"#.into(),
                 });
             }
             if world_id.contains("unreachable") {
-                return Ok(VrchatApiResponse {
+                return Ok(VrchatResponse {
                     status: 500,
                     data: r#"{"error":{"message":"boom"}}"#.into(),
                 });
@@ -153,7 +203,7 @@ impl FavoriteRemote for TestFavoriteRemote {
         &'a self,
         _endpoint: String,
         avatar_id: String,
-    ) -> FavoriteRemoteFuture<'a, VrchatApiResponse> {
+    ) -> FavoriteRemoteFuture<'a, VrchatResponse> {
         Box::pin(async move { Ok(response(&format!(r#"{{"id":"{avatar_id}"}}"#))) })
     }
 
@@ -161,7 +211,7 @@ impl FavoriteRemote for TestFavoriteRemote {
         &'a self,
         _endpoint: String,
         user_id: String,
-    ) -> FavoriteRemoteFuture<'a, VrchatApiResponse> {
+    ) -> FavoriteRemoteFuture<'a, VrchatResponse> {
         Box::pin(async move { Ok(response(&format!(r#"{{"id":"{user_id}"}}"#))) })
     }
 
@@ -170,7 +220,16 @@ impl FavoriteRemote for TestFavoriteRemote {
         _endpoint: String,
         input: FavoriteRemoteAddInput,
         _command: Option<FavoriteRemoteCommand>,
-    ) -> FavoriteRemoteFuture<'a, (String, String, VrchatApiResponse)> {
+    ) -> FavoriteRemoteFuture<'a, (String, String, VrchatResponse)> {
+        self.remote_writes
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .push(format!(
+                "add {} {} {}",
+                input.kind.as_str(),
+                input.entity_id,
+                input.tags
+            ));
         Box::pin(async move {
             let kind = input.kind.as_str().to_string();
             let entity_id = input.entity_id;
@@ -184,7 +243,11 @@ impl FavoriteRemote for TestFavoriteRemote {
         _endpoint: String,
         object_id: String,
         _command: Option<FavoriteRemoteCommand>,
-    ) -> FavoriteRemoteFuture<'a, (String, VrchatApiResponse)> {
+    ) -> FavoriteRemoteFuture<'a, (String, VrchatResponse)> {
+        self.remote_writes
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .push(format!("delete {object_id}"));
         Box::pin(async move { Ok((object_id, response("{}"))) })
     }
 
@@ -194,7 +257,7 @@ impl FavoriteRemote for TestFavoriteRemote {
         _current_user_id: String,
         input: FavoriteRemoteGroupSaveInput,
         _command: Option<FavoriteRemoteCommand>,
-    ) -> FavoriteRemoteFuture<'a, (String, VrchatApiResponse)> {
+    ) -> FavoriteRemoteFuture<'a, (String, VrchatResponse)> {
         Box::pin(async move { Ok((input.group, response("{}"))) })
     }
 
@@ -204,7 +267,7 @@ impl FavoriteRemote for TestFavoriteRemote {
         _current_user_id: String,
         input: FavoriteRemoteGroupClearInput,
         _command: Option<FavoriteRemoteCommand>,
-    ) -> FavoriteRemoteFuture<'a, (String, VrchatApiResponse)> {
+    ) -> FavoriteRemoteFuture<'a, (String, VrchatResponse)> {
         let replace_scope_on_clear = self.replace_scope_on_clear.clone();
         Box::pin(async move {
             if let Some(scope) = replace_scope_on_clear {

@@ -47,7 +47,7 @@ pub enum HighRiskMark {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, specta::Type)]
-#[serde(default, rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct HighRiskDetectionSettings {
     pub rooms: Vec<HighRiskRoom>,
     pub nickname: HighRiskNickname,

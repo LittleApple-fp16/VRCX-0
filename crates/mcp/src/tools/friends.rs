@@ -4,23 +4,27 @@ use rmcp::model::CallToolResult;
 use rmcp::{schemars, tool, tool_router};
 use serde::{Deserialize, Serialize};
 use vrcx_0_contracts::social_aggregates;
+use vrcx_0_core::activity_buckets;
 use vrcx_0_core::presence::PresenceView;
 
 use crate::server::VrcxMcpServer;
 use crate::{McpFriendMemo, McpLocalModeration};
 
 use super::common::{
-    application_query_result, map_application_query_error, require_current_user_id,
+    enum_token, map_application_query_error, not_found_summary, require_current_user_id,
     resolve_optional_target_or_result, resolve_target_or_result, structured_result,
     TargetResolutionOutcome, TimeWindowParams, WithResolution,
 };
 use super::presence::presence_location_and_platform;
 use vrcx_0_core::OwnerId;
 
+const SHARED_WORLD_LIMIT: i64 = 5;
+
 #[tool_router(router = friends_tool_router, vis = "pub(crate)")]
 impl VrcxMcpServer {
     #[tool(
-        description = "[L1·query] List observed friend relationship events (friend added/removed, friend requests, display-name and trust-level changes), optionally filtered to one user (usr_ id or name) and type, with cursor paging. Leaf event log. For one friend's overview prefer get_friend_profile, which folds this in."
+        description = "[L1·query] List observed friend relationship events (friend added/removed, friend requests, display-name and trust-level changes), optionally filtered to one user (usr_ id or name) and type, with cursor paging. Leaf event log. For one friend's overview prefer get_friend_profile, which folds this in.",
+        annotations(read_only_hint = true)
     )]
     async fn get_friend_log(
         &self,
@@ -52,24 +56,34 @@ impl VrcxMcpServer {
     }
 
     #[tool(
-        description = "[L1·resolve] Resolve a VRChat display name (or fragment) to ranked candidate user id(s) for manual disambiguation or explicit lookup. User-targeting tools generally accept either a usr_ id or display name directly and return resolvedUser or needsDisambiguation; call find_user only when you need the candidate list. Never invent or guess a usr_ id. Returns userId, displayName, matchedName, isFriend, encounterCount, lastSeen."
+        description = "[L1·resolve] Resolve a VRChat display name (or fragment) to ranked candidate user id(s) for manual disambiguation or explicit lookup. User-targeting tools generally accept either a usr_ id or display name directly and return resolvedUser or needsDisambiguation; call find_user only when you need the candidate list. Never invent or guess a usr_ id. Returns userId, displayName, matchedName, isFriend, encounterCount, lastSeen.",
+        annotations(read_only_hint = true)
     )]
     async fn find_user(
         &self,
         Parameters(input): Parameters<FindUserParams>,
     ) -> Result<CallToolResult, String> {
         let owner_user_id = require_current_user_id(&self.runtime)?;
-        application_query_result(self.runtime.social_history_queries.resolve_user(
-            social_aggregates::ResolveUserInput {
+        let name = input.name.trim().to_string();
+        let output = self
+            .runtime
+            .social_history_queries
+            .resolve_user(social_aggregates::ResolveUserInput {
                 owner_user_id: owner_user_id.clone(),
-                name_query: input.name,
+                name_query: name.clone(),
                 limit: input.limit,
-            },
-        ))
+            })
+            .map_err(map_application_query_error)?;
+        let summary = output.rows.is_empty().then(|| not_found_summary(&name));
+        structured_result(FindUserOutput {
+            inner: output,
+            summary,
+        })
     }
 
     #[tool(
-        description = "[L1·query] Read your private local friend notes; note text is returned to the AI. Leaf lookup over local memos; one user or a paged list."
+        description = "[L1·query] Read your private local friend notes; note text is returned to the AI. Leaf lookup over local memos; one user or a paged list.",
+        annotations(read_only_hint = true)
     )]
     async fn get_friend_note(
         &self,
@@ -95,7 +109,8 @@ impl VrcxMcpServer {
     }
 
     #[tool(
-        description = "[write·local] Save a private local friend note (usr_ id required). Local only, no VRChat change, no message to anyone; dry_run defaults to true."
+        description = "[write·local] Save a private local friend note (usr_ id required). Local only, no VRChat change, no message to anyone; dry_run defaults to true.",
+        annotations(read_only_hint = false)
     )]
     async fn set_friend_note(
         &self,
@@ -104,7 +119,8 @@ impl VrcxMcpServer {
         structured_result(self.set_friend_note_output(input)?)
     }
     #[tool(
-        description = "[L3·bundle] One call composing everything local about ONE friend: current realtime state, relationship/trust history, your note, read-only moderation flags, your co-presence, their activity pattern, recent changes, favorite groups. Use for \"tell me about X\". Supersedes calling get_friend_log, get_friend_note, or get_friend_changes separately for that person."
+        description = "[L3·bundle] One call composing everything local about ONE person, friend or not: current realtime state, relationship/trust history, your note, read-only moderation flags, your co-presence, when you first and last met with the worlds you shared, their activity pattern, recent changes, favorite groups. Use for \"tell me about X\" or \"how are X and I doing lately\". Supersedes calling get_friend_log, get_friend_note, or get_friend_changes separately for that person.",
+        annotations(read_only_hint = true)
     )]
     async fn get_friend_profile(
         &self,
@@ -120,6 +136,7 @@ impl VrcxMcpServer {
             FriendProfileParams {
                 user: target.user_id,
                 time_window: input.time_window,
+                utc_offset_minutes: input.utc_offset_minutes,
             },
         )?;
         structured_result(WithResolution {
@@ -128,7 +145,8 @@ impl VrcxMcpServer {
         })
     }
     #[tool(
-        description = "[L2·analyze] Per-friend counts of observed status, avatar, or bio changes over a window (who keeps changing status, who got a new avatar). Pick one kind per call."
+        description = "[L2·analyze] Per-friend counts of observed status, avatar, or bio changes over a window (who keeps changing status, who got a new avatar). Pick one kind per call.",
+        annotations(read_only_hint = true)
     )]
     async fn get_friend_changes(
         &self,
@@ -326,11 +344,19 @@ impl VrcxMcpServer {
         if user_id.is_empty() {
             return Err("get_friend_profile requires userId".into());
         }
-        let time_window_params = input.time_window.unwrap_or_default();
+        let time_window_params = input
+            .time_window
+            .unwrap_or_default()
+            .in_utc_offset(input.utc_offset_minutes)?;
         let time_window: social_aggregates::TimeWindow = time_window_params.clone().into();
-        let recent_changes =
+        let mut recent_changes =
             self.friend_profile_changes(&owner_user_id, &user_id, time_window.clone())?;
         let latest_bio = latest_bio_from_changes(&recent_changes);
+        for change in &mut recent_changes {
+            if change.kind == "bio" {
+                change.recent_events.clear();
+            }
+        }
         let current = self
             .runtime
             .realtime_runtime
@@ -379,16 +405,18 @@ impl VrcxMcpServer {
                 time_window: time_window.clone(),
                 group_by: social_aggregates::CopresenceGroupBy::Friend,
                 min_minutes: None,
-                limit: Some(100),
+                limit: Some(1),
                 owner_user_id: Some(owner_user_id.clone()),
                 audience: social_aggregates::CopresenceAudience::Everyone,
                 order_by: social_aggregates::CopresenceOrderBy::default(),
-                utc_offset_minutes: None,
+                utc_offset_minutes: input.utc_offset_minutes,
+                world_id: None,
+                target_user_id: Some(user_id.clone()),
             })
             .map_err(map_application_query_error)?
             .rows
             .into_iter()
-            .find(|row| row.user_id == user_id);
+            .next();
         let activity_pattern = self
             .runtime
             .activity_queries
@@ -397,12 +425,48 @@ impl VrcxMcpServer {
                 user_id: Some(user_id.clone()),
                 time_window: time_window.clone(),
                 bucket: social_aggregates::ActivityBucket::HourOfDay,
-                utc_offset_minutes: None,
+                utc_offset_minutes: input.utc_offset_minutes,
             })
             .map_err(map_application_query_error)?
             .rows
             .into_iter()
             .next();
+        let encounter = self
+            .runtime
+            .activity_queries
+            .recall_encounter(social_aggregates::RecallEncounterInput {
+                owner_user_id: owner_user_id.clone(),
+                name_query: None,
+                world_id: None,
+                co_present_with_user_id: None,
+                target_user_id: Some(user_id.clone()),
+                time_window: social_aggregates::TimeWindow::all(),
+                limit: Some(1),
+            })
+            .map_err(map_application_query_error)?
+            .rows
+            .into_iter()
+            .next();
+        let shared_worlds = self
+            .runtime
+            .activity_queries
+            .copresence_summary(social_aggregates::CopresenceSummaryInput {
+                time_window: time_window.clone(),
+                group_by: social_aggregates::CopresenceGroupBy::FriendWorld,
+                min_minutes: None,
+                limit: Some(SHARED_WORLD_LIMIT),
+                owner_user_id: Some(owner_user_id.clone()),
+                audience: social_aggregates::CopresenceAudience::Everyone,
+                order_by: social_aggregates::CopresenceOrderBy::default(),
+                utc_offset_minutes: input.utc_offset_minutes,
+                world_id: None,
+                target_user_id: Some(user_id.clone()),
+            })
+            .map_err(map_application_query_error)?
+            .rows
+            .into_iter()
+            .map(FriendProfileSharedWorld::from)
+            .collect();
         let current = current
             .or_else(|| fallback_friend_profile_current(&user_id, &relationship, latest_bio));
         Ok(FriendProfileOutput {
@@ -412,6 +476,8 @@ impl VrcxMcpServer {
             note,
             moderation,
             copresence,
+            encounter,
+            shared_worlds,
             activity_pattern,
             recent_changes,
             favorite_groups: self.friend_favorite_groups(&user_id)?,
@@ -419,6 +485,11 @@ impl VrcxMcpServer {
                 "Friend profile combines local VRCX-0 observations and current realtime memory; missing fields mean unobserved or not loaded.".into(),
                 "When realtime friend memory is unavailable, current uses the latest observed local profile fields where possible.".into(),
                 "Moderation status is read-only here; MCP does not execute block or mute actions.".into(),
+                "encounter covers all history (first/last time you saw them join an instance you were in); sharedWorlds and copresence follow timeWindow.".into(),
+                format!(
+                    "activityPattern hour buckets are in {}.",
+                    activity_buckets::utc_offset_label(input.utc_offset_minutes.unwrap_or(0))
+                ),
             ],
         })
     }
@@ -555,7 +626,7 @@ impl From<FriendChangeKindParam> for social_aggregates::FriendChangeKind {
         }
     }
 }
-#[derive(Clone, Copy, Debug, Deserialize, schemars::JsonSchema)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, schemars::JsonSchema)]
 enum FriendLogTypeParam {
     Friend,
     Unfriend,
@@ -565,7 +636,43 @@ enum FriendLogTypeParam {
     TrustLevel,
 }
 
+const FRIEND_LOG_TYPE_NAMES: &[&str] = &[
+    "Friend",
+    "Unfriend",
+    "FriendRequest",
+    "CancelFriendRequest",
+    "DisplayName",
+    "TrustLevel",
+];
+
 impl FriendLogTypeParam {
+    fn from_token(token: &str) -> Option<Self> {
+        match token {
+            "friend" | "friends" | "friended" | "added" => Some(Self::Friend),
+            "unfriend" | "unfriended" | "removed" => Some(Self::Unfriend),
+            "friendrequest" | "friendrequests" | "request" | "requests" => {
+                Some(Self::FriendRequest)
+            }
+            "cancelfriendrequest"
+            | "cancelledfriendrequest"
+            | "canceledfriendrequest"
+            | "cancelrequest" => Some(Self::CancelFriendRequest),
+            "displayname" | "displaynames" | "namechange" | "rename" => Some(Self::DisplayName),
+            "trustlevel" | "trust" | "rank" => Some(Self::TrustLevel),
+            _ => None,
+        }
+    }
+
+    fn parse(raw: &str) -> Result<Self, String> {
+        Self::from_token(&enum_token(raw)).ok_or_else(|| {
+            format!(
+                "unknown variant `{}`, expected one of {}",
+                raw.trim(),
+                FRIEND_LOG_TYPE_NAMES.join(", ")
+            )
+        })
+    }
+
     fn as_str(self) -> &'static str {
         match self {
             Self::Friend => "Friend",
@@ -578,6 +685,40 @@ impl FriendLogTypeParam {
     }
 }
 
+fn deserialize_friend_log_types<'de, D>(
+    deserializer: D,
+) -> Result<Option<Vec<FriendLogTypeParam>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let names = match serde_json::Value::deserialize(deserializer)? {
+        serde_json::Value::Null => Vec::new(),
+        serde_json::Value::String(value) => {
+            value.split([',', ';', '|']).map(str::to_owned).collect()
+        }
+        serde_json::Value::Array(values) => values
+            .into_iter()
+            .map(|value| match value {
+                serde_json::Value::String(value) => Ok(value),
+                _ => Err(serde::de::Error::custom(
+                    "types entries must be friend log type strings",
+                )),
+            })
+            .collect::<Result<_, _>>()?,
+        _ => {
+            return Err(serde::de::Error::custom(
+                "types must be an array of friend log type strings",
+            ))
+        }
+    };
+    let types = names
+        .iter()
+        .filter(|name| !name.trim().is_empty())
+        .map(|name| FriendLogTypeParam::parse(name).map_err(serde::de::Error::custom))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok((!types.is_empty()).then_some(types))
+}
+
 #[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct FriendLogParams {
@@ -585,6 +726,7 @@ struct FriendLogParams {
     #[serde(alias = "targetUserId", alias = "target_user_id")]
     target: Option<String>,
     /// Relationship event types to include. Omit to include every type.
+    #[serde(default, deserialize_with = "deserialize_friend_log_types")]
     types: Option<Vec<FriendLogTypeParam>>,
     time_window: Option<TimeWindowParams>,
     limit: Option<i64>,
@@ -622,6 +764,9 @@ struct FriendProfileParams {
     #[serde(alias = "userId", alias = "user_id")]
     user: String,
     time_window: Option<TimeWindowParams>,
+    /// The user's UTC offset in minutes (e.g. 540 for UTC+9, -300 for UTC-5).
+    /// Pass it so the activity pattern's hour buckets come back in local time.
+    utc_offset_minutes: Option<i64>,
 }
 #[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -634,6 +779,15 @@ struct FriendChangesParams {
     kind: FriendChangeKindParam,
     limit: Option<i64>,
 }
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FindUserOutput {
+    #[serde(flatten)]
+    inner: social_aggregates::ResolveUserOutput,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    summary: Option<String>,
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct FriendNoteOutput {
@@ -681,13 +835,40 @@ struct FriendProfileOutput {
     user_id: String,
     current: Option<FriendProfileCurrent>,
     relationship: FriendRelationshipProfile,
+    #[serde(skip_serializing_if = "Option::is_none")]
     note: Option<FriendNoteRow>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     moderation: Option<FriendModerationStatus>,
     copresence: Option<social_aggregates::CopresenceSummaryRow>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    encounter: Option<social_aggregates::RecallEncounterRow>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    shared_worlds: Vec<FriendProfileSharedWorld>,
     activity_pattern: Option<social_aggregates::FriendActivityPatternRow>,
     recent_changes: Vec<FriendProfileChangeSummary>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     favorite_groups: Vec<String>,
     caveats: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FriendProfileSharedWorld {
+    world_id: String,
+    world_name: String,
+    total_minutes: i64,
+    last_seen_together: String,
+}
+
+impl From<social_aggregates::CopresenceSummaryRow> for FriendProfileSharedWorld {
+    fn from(row: social_aggregates::CopresenceSummaryRow) -> Self {
+        Self {
+            world_id: row.world_id.unwrap_or_default(),
+            world_name: row.world_name.unwrap_or_default(),
+            total_minutes: row.total_minutes,
+            last_seen_together: row.last_seen_together,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -695,12 +876,19 @@ struct FriendProfileOutput {
 struct FriendProfileCurrent {
     user_id: String,
     display_name: String,
+    #[serde(skip_serializing_if = "CompactString::is_empty")]
     state: CompactString,
+    #[serde(skip_serializing_if = "String::is_empty")]
     location: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
     world_id: String,
+    #[serde(skip_serializing_if = "CompactString::is_empty")]
     status: CompactString,
+    #[serde(skip_serializing_if = "CompactString::is_empty")]
     status_description: CompactString,
+    #[serde(skip_serializing_if = "String::is_empty")]
     bio: String,
+    #[serde(skip_serializing_if = "CompactString::is_empty")]
     platform: CompactString,
 }
 
@@ -713,7 +901,9 @@ struct FriendRelationshipProfile {
     friend_number: Option<i64>,
     friended_at: Option<String>,
     recent_events: Vec<social_aggregates::FriendLogRow>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     display_name_changes: Vec<social_aggregates::FriendLogRow>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     trust_changes: Vec<social_aggregates::FriendLogRow>,
 }
 
@@ -745,6 +935,7 @@ struct FriendProfileChangeSummary {
     kind: String,
     change_count: i64,
     last_changed_at: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     recent_events: Vec<social_aggregates::FriendChangeEvent>,
 }
 fn normalize_optional_text(value: Option<String>) -> Option<String> {

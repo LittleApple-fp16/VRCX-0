@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use chrono::{DateTime, Datelike, Duration, Utc};
+use chrono::{Duration, Utc};
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use rmcp::{schemars, tool, tool_router};
@@ -16,10 +16,10 @@ use vrcx_0_core::location::is_real_instance;
 use crate::server::VrcxMcpServer;
 
 use super::common::{
-    application_query_result, deserialize_optional_bool, map_application_query_error,
-    ms_to_rfc3339_z, require_current_user_id, resolve_optional_target_or_result, rfc3339_z,
-    structured_result, time_window_bounds_ms, TargetResolutionOutcome, TimeWindowParams,
-    WithResolution,
+    application_query_result, deserialize_lenient_enum, deserialize_optional_bool,
+    map_application_query_error, ms_to_rfc3339_z, require_current_user_id,
+    resolve_optional_target_or_result, rfc3339_z, structured_result, time_window_bounds_ms,
+    TargetResolutionOutcome, TimeWindowParams, WithResolution,
 };
 use vrcx_0_core::OwnerId;
 
@@ -29,16 +29,23 @@ const PLAY_TIME_CAVEAT: &str =
 #[tool_router(router = activity_tool_router, vis = "pub(crate)")]
 impl VrcxMcpServer {
     #[tool(
-        description = "[L2·analyze] Ranked time-spent-together facts per person, aggregated from the local game log (reliable even inside private instances because you were there). THE tool for \"who I play/spend the most time with\". Defaults to current friends (friendsOnly=true). groupBy=friend ranks total minutes per person; groupBy=friend_world breaks one person's time down by world. For all-time/\"ever\"/\"so far\" questions OMIT timeWindow entirely — never pass a narrow window for an all-time question. Rows are pre-ranked and limited with isFriend; read the top rows, don't loop."
+        description = "[L2·analyze] Ranked time-spent-together facts per person, aggregated from the local game log (reliable even inside private instances because you were there). THE tool for \"who I play/spend the most time with\". Defaults to current friends (friendsOnly=true). groupBy=friend ranks total minutes per person; groupBy=friend_world ranks (person, world) pairs. For all-time/\"ever\"/\"so far\" questions OMIT timeWindow entirely — never pass a narrow window for an all-time question. Rows are pre-ranked and limited with isFriend; read the top rows, don't loop.",
+        annotations(read_only_hint = true)
     )]
     async fn get_copresence_summary(
         &self,
         Parameters(input): Parameters<CopresenceSummaryParams>,
     ) -> Result<CallToolResult, String> {
         let owner_user_id = require_current_user_id(&self.runtime)?;
-        application_query_result(self.runtime.activity_queries.copresence_summary(
-            social_aggregates::CopresenceSummaryInput {
-                time_window: input.time_window.into(),
+        let time_window: social_aggregates::TimeWindow = input
+            .time_window
+            .in_utc_offset(input.utc_offset_minutes)?
+            .into();
+        let mut output = self
+            .runtime
+            .activity_queries
+            .copresence_summary(social_aggregates::CopresenceSummaryInput {
+                time_window: time_window.clone(),
                 group_by: input.group_by.into(),
                 min_minutes: input.min_minutes,
                 limit: input.limit,
@@ -49,13 +56,25 @@ impl VrcxMcpServer {
                     social_aggregates::CopresenceAudience::Everyone
                 },
                 order_by: social_aggregates::CopresenceOrderBy::default(),
-                utc_offset_minutes: None,
-            },
-        ))
+                utc_offset_minutes: input.utc_offset_minutes,
+                world_id: None,
+                target_user_id: None,
+            })
+            .map_err(map_application_query_error)?;
+        if output.rows.is_empty() {
+            if let Some(from) = time_window.from.as_deref() {
+                output.summary = format!(
+                    "No co-presence observed between {from} and {}. That is the complete answer for this window, not missing data to look up with other tools; offer a wider window if useful.",
+                    time_window.to.as_deref().unwrap_or("now")
+                );
+            }
+        }
+        structured_result(output)
     }
 
     #[tool(
-        description = "[L2·analyze] One friend's (or all friends') online activity bucketed by hour-of-day or weekday, from the online/offline log. Use for \"when is X usually online\". Buckets are UTC unless you pass utcOffsetMinutes (the user's offset, e.g. 540 for UTC+9) for the user's local time. For \"best time to catch the MOST people\" prefer get_best_time_to_play."
+        description = "[L2·analyze] One friend's online activity bucketed by hour-of-day or weekday, from the online/offline log; without `user`, the most active friends (by online events, capped by `limit`). Use for \"when is X usually online\". Weekday bucket keys run 0=Monday through 6=Sunday. Buckets are UTC unless you pass utcOffsetMinutes (the user's offset, e.g. 540 for UTC+9) for the user's local time. For \"best time to catch the MOST people\" prefer get_best_time_to_play.",
+        annotations(read_only_hint = true)
     )]
     async fn get_friend_activity_pattern(
         &self,
@@ -70,7 +89,8 @@ impl VrcxMcpServer {
                 Some(TargetResolutionOutcome::ToolResult(result)) => return Ok(result),
                 None => (None, None),
             };
-        let output = self
+        let all_friends = user_id.is_none();
+        let mut output = self
             .runtime
             .activity_queries
             .friend_activity_pattern(social_aggregates::FriendActivityPatternInput {
@@ -84,6 +104,20 @@ impl VrcxMcpServer {
                 utc_offset_minutes: input.utc_offset_minutes,
             })
             .map_err(map_application_query_error)?;
+        if all_friends {
+            let limit = input.limit.unwrap_or(10).clamp(1, 50) as usize;
+            let total = output.rows.len();
+            output
+                .rows
+                .sort_by_cached_key(|row| std::cmp::Reverse(row.buckets.values().sum::<i64>()));
+            output.rows.truncate(limit);
+            if total > output.rows.len() {
+                output.caveats.push(format!(
+                    "Showing the {} most active of {total} friends by online events.",
+                    output.rows.len()
+                ));
+            }
+        }
         structured_result(WithResolution {
             inner: output,
             resolved_user,
@@ -91,7 +125,8 @@ impl VrcxMcpServer {
     }
 
     #[tool(
-        description = "[L1·query] List worlds the signed-in user recently visited, newest first, from the local game log (worldId, worldName, location, visitedAt, leftAt, stayMinutes; leftAt is null for the visit still in progress or when the leave was not recorded). Leaf lookup. Drill into one row with get_visit_timeline (pass its visitedAt as `at`) to see who came and went. For \"which worlds did I play most\" use the aggregated summarize_social_period instead of counting these rows yourself."
+        description = "[L1·query] List worlds the signed-in user recently visited, newest first, from the local game log (worldId, worldName, accessType, visitedAt, leftAt, stayMinutes; leftAt is null for the visit still in progress or when the leave was not recorded). Leaf lookup. Drill into one row with get_visit_timeline (pass its visitedAt as `at`) to see who came and went. For \"which worlds did I play most\" use the aggregated summarize_social_period instead of counting these rows yourself.",
+        annotations(read_only_hint = true)
     )]
     async fn search_worlds_visited(
         &self,
@@ -108,7 +143,8 @@ impl VrcxMcpServer {
     }
 
     #[tool(
-        description = "[L1·query] Reconstruct one instance visit from the local game log: the world/instance, your exact joinedAt and leftAt (UTC, millisecond precision), and everyone observed while you were there — per person, ordered by time shared, with each stay's joinedAt/leftAt (a person who leaves and comes back has several stints). Select the visit with `at`: any UTC timestamp inside it, or the visitedAt of a search_worlds_visited row; add `location` only to disambiguate. Use for \"who was in that room with me\", \"when did X join or leave\", or exact timestamps for a recording. Caveats: the visit you are still in has no leftAt (inProgress=true); a crash or truncated log drops leave events, so a missing leftAt never means the person stayed; a missing joinedAt means the person was already inside before you arrived or before VRCX-0 started watching; old rows may lack userId and are keyed by display name; the roster is capped (truncated=true, peopleObserved keeps the real count) and the summary still covers the whole visit. Pairs with search_worlds_visited to find visits in a period."
+        description = "[L1·query] Reconstruct one instance visit from the local game log: the world/instance, your exact joinedAt and leftAt (UTC, millisecond precision), and everyone observed while you were there — per person, ordered by time shared, with each stay's joinedAt/leftAt (a person who leaves and comes back has several stints). Select the visit with `at`: any UTC timestamp inside it, or the visitedAt of a search_worlds_visited row; add `location` only to disambiguate. Use for \"who was in that room with me\", \"when did X join or leave\", or exact timestamps for a recording. Caveats: the visit you are still in has no leftAt (inProgress=true); a crash or truncated log drops leave events, so a missing leftAt never means the person stayed; a missing joinedAt means the person was already inside before you arrived or before VRCX-0 started watching; old rows may lack userId and are keyed by display name; the roster is capped (truncated=true, peopleObserved keeps the real count) and the summary still covers the whole visit. Pairs with search_worlds_visited to find visits in a period.",
+        annotations(read_only_hint = true)
     )]
     async fn get_visit_timeline(
         &self,
@@ -125,7 +161,8 @@ impl VrcxMcpServer {
         ))
     }
     #[tool(
-        description = "[L2·analyze] Your own aggregated playtime for a window: total minutes, sessions, average/longest session, weekday breakdown. Use for \"how much did I play\". For trends over time prefer get_activity_timeline; for streaks/breaks prefer get_activity_streaks."
+        description = "[L2·analyze] Your own aggregated playtime for a window: total minutes, sessions, average/longest session, weekday breakdown. Use for \"how much did I play\". For trends over time prefer get_activity_timeline; for streaks/breaks prefer get_activity_streaks.",
+        annotations(read_only_hint = true)
     )]
     async fn get_my_activity(
         &self,
@@ -136,7 +173,8 @@ impl VrcxMcpServer {
     }
 
     #[tool(
-        description = "[L2·analyze] The signed-in user's own playtime bucketed over time: year, month, week, dayOfWeek, or hourOfDay, with a ready-to-read summary. Use this for \"which months/days did I play most\", activity trends, and personal schedule / when I log on. Pass utcOffsetMinutes (e.g. 540 for UTC+9) so month/day/hour buckets are local. Omit timeWindow for all history. Rows carry minutes and sessionCount."
+        description = "[L2·analyze] The signed-in user's own playtime bucketed over time: year, month, week, dayOfWeek, or hourOfDay, with a ready-to-read summary. Use this for \"which months/days did I play most\", activity trends, and personal schedule / when I log on. Pass utcOffsetMinutes (e.g. 540 for UTC+9) so month/day/hour buckets are local. Omit timeWindow for all history. Rows carry minutes and sessionCount.",
+        annotations(read_only_hint = true)
     )]
     async fn get_activity_timeline(
         &self,
@@ -163,7 +201,8 @@ impl VrcxMcpServer {
     }
 
     #[tool(
-        description = "[L2·analyze] The signed-in user's play-streak facts: longest break without playing, current break, longest daily play streak, total active days, first/last session, total minutes, and session count, with a ready-to-read summary. Use this for \"longest I went without playing\" or \"how many days have I played\". Pass utcOffsetMinutes so day boundaries are local."
+        description = "[L2·analyze] The signed-in user's play-streak facts: longest break without playing, current break, longest daily play streak, total active days, first/last session, total minutes, and session count, with a ready-to-read summary. Use this for \"longest I went without playing\" or \"how many days have I played\". Pass utcOffsetMinutes so day boundaries are local.",
+        annotations(read_only_hint = true)
     )]
     async fn get_activity_streaks(
         &self,
@@ -177,7 +216,8 @@ impl VrcxMcpServer {
         structured_result(activity_streaks_output(offset_minutes, streaks))
     }
     #[tool(
-        description = "[L2·analyze] Friends whose observed co-presence dropped sharply versus the prior equal-length window (fading relationships), ranked by drop; defaults to the last 30 days versus the prior 30 days. Report as an observation (overlap fell — could be schedule, status, or sample size), never as the other person's intent or feelings."
+        description = "[L2·analyze] Friends whose observed co-presence dropped sharply versus the prior equal-length window (fading relationships), ranked by drop; defaults to the last 30 days versus the prior 30 days. Report as an observation (overlap fell — could be schedule, status, or sample size), never as the other person's intent or feelings.",
+        annotations(read_only_hint = true)
     )]
     async fn get_fading_friends(
         &self,
@@ -192,7 +232,8 @@ impl VrcxMcpServer {
     }
 
     #[tool(
-        description = "[L2·analyze] The hour-of-day or weekday buckets where the most distinct friends are observed coming online (best time to catch people), across all friends. Use for \"when should I log on to find people\". Buckets are UTC unless you pass utcOffsetMinutes (e.g. 540 for UTC+9) for the user's local time. For a single named friend prefer get_friend_activity_pattern."
+        description = "[L2·analyze] The hour-of-day or weekday buckets where the most distinct friends are observed coming online (best time to catch people), across all friends, ranked with each bucket's top friends by name. Use for \"when should I log on to find people\". Buckets are UTC unless you pass utcOffsetMinutes (e.g. 540 for UTC+9) for the user's local time. For a single named friend prefer get_friend_activity_pattern.",
+        annotations(read_only_hint = true)
     )]
     async fn get_best_time_to_play(
         &self,
@@ -208,7 +249,7 @@ impl VrcxMcpServer {
                         .in_utc_offset(input.utc_offset_minutes)?
                         .into(),
                     bucket: input.bucket.into(),
-                    limit: input.limit,
+                    limit: input.limit.or(Some(5)),
                     utc_offset_minutes: input.utc_offset_minutes,
                 },
             ),
@@ -216,7 +257,8 @@ impl VrcxMcpServer {
     }
 
     #[tool(
-        description = "[L1·query] Fuzzy-recall people from the local game log by name fragment, time window, world, or who they shared an instance with; INCLUDES non-friends/strangers (each row flags isFriend). Use for \"who was that person I met at ...\". Recall only, not prediction."
+        description = "[L1·query] Fuzzy-recall people from the local game log by name fragment, time window, world, or who they shared an instance with; INCLUDES non-friends/strangers (each row flags isFriend and names up to two worlds you saw them in). Use for \"who was that person I met at ...\". Recall only, not prediction.",
+        annotations(read_only_hint = true)
     )]
     async fn recall_encounter(
         &self,
@@ -239,8 +281,9 @@ impl VrcxMcpServer {
                 name_query: input.name_query,
                 world_id: input.world_id,
                 co_present_with_user_id,
+                target_user_id: None,
                 time_window: input.time_window.unwrap_or_default().into(),
-                limit: input.limit,
+                limit: input.limit.or(Some(20)),
             })
             .map_err(map_application_query_error)?;
         structured_result(WithResolution {
@@ -250,7 +293,8 @@ impl VrcxMcpServer {
     }
 
     #[tool(
-        description = "[L3·bundle] One call composing several L2 analyses for a period (your activity, top companions, new friends, fading friends, top worlds, best times) into a structured bundle for you to narrate. Use for \"recap my week/month\" or \"how was my social activity\". Do NOT separately call the parts it already includes; drill into a specific L2 tool only for extra detail."
+        description = "[L3·bundle] One call composing several L2 analyses for a period (your activity, top companions, new friends, fading friends, top worlds, best times) into a structured bundle for you to narrate. Use for \"recap my week/month\" or \"how was my social activity\". Do NOT separately call the parts it already includes; drill into a specific L2 tool only for extra detail.",
+        annotations(read_only_hint = true)
     )]
     async fn summarize_social_period(
         &self,
@@ -274,7 +318,6 @@ impl VrcxMcpServer {
             .into();
         let bounds = time_window_bounds_ms(&time_window)?;
         let offset_minutes = input.utc_offset_minutes.unwrap_or(0);
-        let offset_ms = offset_minutes.saturating_mul(60_000);
         let to_ms = bounds.to.unwrap_or_else(|| Utc::now().timestamp_millis());
         let spans = self.play_spans(&owner_user_id, bounds.from, to_ms)?;
         let sessions = activity_buckets::merge_spans(&spans, PLAY_SESSION_MERGE_GAP_MS);
@@ -284,20 +327,19 @@ impl VrcxMcpServer {
             .map(|(start, end)| end - start)
             .max()
             .unwrap_or(0);
-        let mut total_ms = 0i64;
-        let mut by_weekday = BTreeMap::new();
-        for (start, end) in activity_buckets::merge_spans(&spans, 0) {
-            let duration_ms = end - start;
-            total_ms += duration_ms;
-            if let Some(start_at) =
-                DateTime::<Utc>::from_timestamp_millis(start.saturating_add(offset_ms))
-            {
-                *by_weekday
-                    .entry(start_at.weekday().to_string())
-                    .or_insert(0) += duration_ms / 60_000;
-            }
-        }
-        let total_minutes = total_ms / 60_000;
+        let played = activity_buckets::merge_spans(&spans, 0);
+        let total_minutes = played.iter().map(|(start, end)| end - start).sum::<i64>() / 60_000;
+        let by_weekday = activity_buckets::activity_timeline(
+            &played,
+            activity_buckets::ActivityTimeBucket::DayOfWeek,
+            offset_minutes,
+            None,
+            None,
+        )
+        .into_iter()
+        .filter(|bucket| bucket.minutes > 0)
+        .map(|bucket| (bucket.label, bucket.minutes))
+        .collect::<BTreeMap<_, _>>();
         Ok(MyActivityOutput {
             total_minutes,
             session_count,
@@ -366,6 +408,8 @@ impl VrcxMcpServer {
                 audience: social_aggregates::CopresenceAudience::Friends,
                 order_by: social_aggregates::CopresenceOrderBy::default(),
                 utc_offset_minutes: input.utc_offset_minutes,
+                world_id: None,
+                target_user_id: None,
             })
             .map_err(map_application_query_error)?
             .rows;
@@ -447,7 +491,10 @@ impl VrcxMcpServer {
         time_window: &social_aggregates::TimeWindow,
     ) -> Result<social_aggregates::FadingFriendsInput, String> {
         let bounds = time_window_bounds_ms(time_window)?;
-        let (prior_from, pivot, now) = match (bounds.from, bounds.to) {
+        let to = bounds
+            .from
+            .map(|_| bounds.to.unwrap_or_else(|| Utc::now().timestamp_millis()));
+        let (prior_from, pivot, now) = match (bounds.from, to) {
             (Some(from), Some(to)) if to > from => {
                 let mid = from + (to - from) / 2;
                 (
@@ -599,12 +646,27 @@ impl From<CoreActivityBucket> for ActivityTimelineRow {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 enum CopresenceGroupByParam {
     #[default]
     Friend,
     FriendWorld,
+}
+
+impl<'de> Deserialize<'de> for CopresenceGroupByParam {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserialize_lenient_enum(
+            deserializer,
+            &["friend", "friend_world"],
+            |token| match token {
+                "friend" | "friends" | "person" | "people" | "user" | "users" => Some(Self::Friend),
+                "friendworld" | "friendsworld" | "friendworlds" | "friendandworld" | "world"
+                | "worlds" | "perworld" => Some(Self::FriendWorld),
+                _ => None,
+            },
+        )
+    }
 }
 
 impl From<CopresenceGroupByParam> for social_aggregates::CopresenceGroupBy {
@@ -663,14 +725,28 @@ impl From<ActivityTimelineBucketParam> for ActivityTimeBucket {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 enum ActivityBucketParam {
     #[default]
-    #[serde(alias = "hourOfDay")]
     HourOfDay,
-    #[serde(alias = "dayOfWeek", alias = "weekday")]
     DayOfWeek,
+}
+
+impl<'de> Deserialize<'de> for ActivityBucketParam {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserialize_lenient_enum(
+            deserializer,
+            &["hour_of_day", "day_of_week"],
+            |token| match token {
+                "hourofday" | "hour" | "hours" | "hourly" => Some(Self::HourOfDay),
+                "dayofweek" | "weekday" | "weekdays" | "day" | "days" | "daily" => {
+                    Some(Self::DayOfWeek)
+                }
+                _ => None,
+            },
+        )
+    }
 }
 
 impl From<ActivityBucketParam> for social_aggregates::ActivityBucket {
@@ -687,12 +763,13 @@ struct CopresenceSummaryParams {
     /// Time window to search. Accepts {from, to} RFC3339, a four-digit calendar
     /// year, or a relative string ("today", "yesterday", "this week",
     /// "last week", "this month", "last month", or a rolling window like
-    /// "7d", "2w", "3mo"). Resolved in UTC; weeks start Monday. Omit only for
-    /// all history ("ever", "so far").
+    /// "7d", "2w", "3mo"). Calendar forms resolve in utcOffsetMinutes (UTC
+    /// when omitted); weeks start Monday. Omit only for all history ("ever",
+    /// "so far").
     #[serde(default)]
     time_window: TimeWindowParams,
-    /// friend (default) ranks total time per person; friend_world breaks one
-    /// person's time down per world (use only for a per-world breakdown).
+    /// friend (default) ranks total time per person; friend_world ranks
+    /// (person, world) pairs instead (use only for a per-world breakdown).
     #[serde(default)]
     group_by: CopresenceGroupByParam,
     /// Minimum co-presence minutes to include after aggregation.
@@ -703,6 +780,9 @@ struct CopresenceSummaryParams {
     /// strangers/acquaintances you are not friends with.
     #[serde(default, deserialize_with = "deserialize_optional_bool")]
     friends_only: Option<bool>,
+    /// The user's UTC offset in minutes (e.g. 540 for UTC+9, -300 for UTC-5).
+    /// Pass it so "this week", calendar days and coDays follow local time.
+    utc_offset_minutes: Option<i64>,
 }
 
 #[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
@@ -717,6 +797,9 @@ struct FriendActivityPatternParams {
     /// The user's UTC offset in minutes (e.g. 540 for UTC+9, -300 for UTC-5).
     /// Pass it so hour/weekday buckets come back in the user's local time.
     utc_offset_minutes: Option<i64>,
+    /// Without `user`, how many of the most active friends to return
+    /// (default 10, max 50).
+    limit: Option<i64>,
 }
 
 #[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
@@ -780,6 +863,7 @@ struct BestTimeToPlayParams {
     time_window: TimeWindowParams,
     #[serde(default)]
     bucket: ActivityBucketParam,
+    /// Ranked buckets to return (default 5, max 50).
     limit: Option<i64>,
     /// The user's UTC offset in minutes (e.g. 540 for UTC+9, -300 for UTC-5).
     /// Pass it so hour/weekday buckets come back in the user's local time.
@@ -794,6 +878,7 @@ struct RecallEncounterParams {
     #[serde(alias = "coPresentWithUserId", alias = "co_present_with_user_id")]
     co_present_with: Option<String>,
     time_window: Option<TimeWindowParams>,
+    /// People to return, most recently seen first (default 20, max 200).
     limit: Option<i64>,
 }
 

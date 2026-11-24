@@ -1,5 +1,5 @@
 import { CameraIcon, ImageIcon, StarIcon } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -7,13 +7,11 @@ import {
     type LocationMetadataEntry
 } from '@/components/location/useLocationMetadata';
 import { FadeInImage } from '@/components/media/FadeInImage';
-import { rememberScreenshotThumbnailUrl } from '@/components/media/screenshotThumbnailUrlCache';
+import { useScreenshotThumbnailUrl } from '@/components/media/useScreenshotThumbnailUrl';
 import { TileShell } from '@/components/tile/TileShell';
 import { formatScreenshotDateTime } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
-import { convertFileSrc } from '@/platform/tauri/assets';
 import type { ScreenshotLibraryImage } from '@/platform/tauri/bindings';
-import { requestScreenshotThumbnail } from '@/services/screenshotThumbnailQueueService';
 import {
     TILE_FAVORITE_TOGGLE,
     TILE_SELECT_BOX,
@@ -22,6 +20,7 @@ import {
 } from '@/shared/constants/selectableTile';
 import { parseLocation } from '@/shared/utils/location';
 import { resolveScreenshotCapturedTime } from '@/shared/utils/screenshot';
+import { HintTooltip } from '@/ui/hint-tooltip';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import { Skeleton } from '@/ui/shadcn/skeleton';
@@ -133,6 +132,7 @@ export function ScreenshotThumbnailCard({
     onOpen,
     title = '',
     worldNameHint = '',
+    hideWorldTitle = false,
     selectable = false,
     selected = false,
     selectionActive = false,
@@ -148,6 +148,7 @@ export function ScreenshotThumbnailCard({
     onOpen: (path: string) => void;
     title?: string;
     worldNameHint?: string;
+    hideWorldTitle?: boolean;
     selectable?: boolean;
     selected?: boolean;
     selectionActive?: boolean;
@@ -159,39 +160,10 @@ export function ScreenshotThumbnailCard({
 }) {
     const { i18n, t } = useTranslation();
     const shiftPressedRef = useRef(false);
-    const [thumbnailUrl, setThumbnailUrl] = useState('');
-    const [loadState, setLoadState] = useState('idle');
-
-    useEffect(() => {
-        let active = true;
-        setThumbnailUrl('');
-        setLoadState('loading');
-
-        const request = requestScreenshotThumbnail(item.path);
-        request.promise
-            .then((thumbnailPath) => {
-                if (!active) {
-                    return;
-                }
-                const nextThumbnailUrl = convertFileSrc(
-                    String(thumbnailPath || ''),
-                    'vrcx-0-thumb'
-                );
-                rememberScreenshotThumbnailUrl(item.path, nextThumbnailUrl);
-                setThumbnailUrl(nextThumbnailUrl);
-                setLoadState('ready');
-            })
-            .catch(() => {
-                if (active) {
-                    setLoadState('error');
-                }
-            });
-
-        return () => {
-            active = false;
-            request.cancel();
-        };
-    }, [item.modifiedAt, item.path, item.sizeBytes]);
+    const { thumbnailUrl, loadState } = useScreenshotThumbnailUrl(
+        item.path,
+        `${item.modifiedAt}:${item.sizeBytes}`
+    );
 
     const dateLabel = formatScreenshotDateTime(
         resolveScreenshotCapturedTime(item),
@@ -228,7 +200,10 @@ export function ScreenshotThumbnailCard({
                 }
             >
                 <div
-                    className={`bg-muted relative flex ${mediaHeight} items-center justify-center overflow-hidden`}
+                    className={cn(
+                        'bg-muted relative flex items-center justify-center overflow-hidden',
+                        hideWorldTitle ? 'min-h-0 flex-1' : mediaHeight
+                    )}
                 >
                     {thumbnailUrl ? (
                         <FadeInImage
@@ -265,29 +240,39 @@ export function ScreenshotThumbnailCard({
                             </div>
                         </>
                     )}
-                </div>
-                <div className="flex min-h-0 flex-1 flex-col gap-1 p-2">
-                    {worldTitle ? (
-                        <div
-                            className="truncate text-sm font-medium"
+                    {hideWorldTitle ? (
+                        <span
+                            className="absolute inset-x-0 bottom-0 truncate bg-linear-to-t from-black/70 to-transparent px-2 pt-5 pb-1.5 text-xs font-medium text-white/90 tabular-nums"
                             title={item.fileName}
                         >
-                            {worldTitle}
-                        </div>
+                            {dateLabel}
+                        </span>
                     ) : null}
-                    <div
-                        className={cn(
-                            'flex items-center gap-1',
-                            worldTitle
-                                ? 'text-muted-foreground text-xs'
-                                : 'text-sm font-medium'
-                        )}
-                        title={item.fileName}
-                    >
-                        <CameraIcon data-icon="inline-start" />
-                        <span className="truncate">{dateLabel}</span>
-                    </div>
                 </div>
+                {hideWorldTitle ? null : (
+                    <div className="flex min-h-0 flex-1 flex-col gap-1 p-2">
+                        {worldTitle ? (
+                            <div
+                                className="truncate text-sm font-medium"
+                                title={item.fileName}
+                            >
+                                {worldTitle}
+                            </div>
+                        ) : null}
+                        <div
+                            className={cn(
+                                'flex items-center gap-1',
+                                worldTitle
+                                    ? 'text-muted-foreground text-xs'
+                                    : 'text-sm font-medium'
+                            )}
+                            title={item.fileName}
+                        >
+                            <CameraIcon data-icon="inline-start" />
+                            <span className="truncate">{dateLabel}</span>
+                        </div>
+                    </div>
+                )}
             </TileShell>
             {selectable ? (
                 <span
@@ -315,25 +300,26 @@ export function ScreenshotThumbnailCard({
                 </span>
             ) : null}
             {onToggleFavorite && !isSelectionActive ? (
-                <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon-xs"
-                    aria-label={favoriteLabel}
-                    aria-pressed={favorite}
-                    className={cn(
-                        TILE_FAVORITE_TOGGLE,
-                        'bg-background/85 shadow-sm',
-                        favorite && TILE_SELECT_TOGGLE_VISIBLE
-                    )}
-                    onClick={() => onToggleFavorite(!favorite)}
-                >
-                    <StarIcon
+                <HintTooltip label={favoriteLabel}>
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        size="icon-xs"
+                        aria-pressed={favorite}
                         className={cn(
-                            favorite && 'fill-current text-amber-400'
+                            TILE_FAVORITE_TOGGLE,
+                            'bg-background/85 shadow-sm',
+                            favorite && TILE_SELECT_TOGGLE_VISIBLE
                         )}
-                    />
-                </Button>
+                        onClick={() => onToggleFavorite(!favorite)}
+                    >
+                        <StarIcon
+                            className={cn(
+                                favorite && 'fill-current text-amber-400'
+                            )}
+                        />
+                    </Button>
+                </HintTooltip>
             ) : null}
         </div>
     );

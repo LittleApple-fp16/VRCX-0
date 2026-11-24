@@ -1,6 +1,14 @@
-import { ChevronRightIcon, ExternalLinkIcon, PencilIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import {
+    ChevronRightIcon,
+    CrownIcon,
+    ImageIcon,
+    PencilIcon,
+    SparklesIcon,
+    UsersRoundIcon
+} from 'lucide-react';
+import { memo, type ReactNode, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { shallow } from 'zustand/shallow';
 
 import { formatCredits } from '@/components/economy/economyDisplay';
 import { useEconomyBalance } from '@/components/economy/useEconomyBalance';
@@ -9,7 +17,6 @@ import { useAvatarImageInfo } from '@/components/feed/useAvatarImageInfo';
 import { InstanceActionBar } from '@/components/instances/InstanceActionBar';
 import { Location } from '@/components/Location';
 import { LocationWorld } from '@/components/LocationWorld';
-import { BioLinkFavicon } from '@/components/media/BioLinkFavicon';
 import { FadeInImage } from '@/components/media/FadeInImage';
 import {
     Timeline,
@@ -24,15 +31,17 @@ import { TranslatableText } from '@/components/translation/TranslatableText';
 import type { EntityRecord } from '@/domain/entities/shared';
 import type { UserProfileEntity } from '@/domain/entities/user';
 import { formatDateTime } from '@/lib/dateTime';
+import { useWorldSummaries } from '@/lib/useWorldSummaries';
 import { cn } from '@/lib/utils';
-import {
-    convertFileUrlToImageUrl,
-    openExternalLink
-} from '@/services/entityMediaService';
+import { openWorldDialog } from '@/services/dialogService';
+import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import type { UserDialogPreviousInstance } from '@/services/userDialogSessionCacheService';
 import type { UserDialogRelationshipEvent } from '@/services/userDialogSessionCacheService';
 import { parseLocation } from '@/shared/utils/location';
+import { replaceBioSymbols } from '@/shared/utils/string';
+import { useAssistantChatStore } from '@/state/assistantChatStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
+import { HintTooltip } from '@/ui/hint-tooltip';
 import { Button } from '@/ui/shadcn/button';
 import {
     Card,
@@ -111,7 +120,6 @@ export type UserDialogNotesSectionProps = {
 
 export type UserDialogBioSectionProps = {
     profile: UserProfileEntity;
-    bioLinks: string[];
     onEditBio?: () => void;
 };
 
@@ -164,12 +172,12 @@ function InfoPanel({
         <Card
             size="sm"
             className={cn(
-                'ring-stroke-subtle min-w-0 border-0 shadow-none',
+                'bg-card/40 min-w-0 border shadow-none ring-0',
                 className
             )}
         >
-            <CardHeader className="border-stroke-subtle border-b pb-3">
-                <CardTitle className="min-w-0 truncate text-sm">
+            <CardHeader>
+                <CardTitle className="text-foreground min-w-0 truncate text-sm font-semibold">
                     {title}
                 </CardTitle>
                 {action ? <CardAction>{action}</CardAction> : null}
@@ -189,14 +197,14 @@ function InfoStat({
     children,
     mono = false,
     onClick,
-    subtle = false
+    className
 }: {
     label?: ReactNode;
     value?: string;
     children?: ReactNode;
     mono?: boolean;
     onClick?: () => void;
-    subtle?: boolean;
+    className?: string;
 }) {
     const body = (
         <>
@@ -208,10 +216,7 @@ function InfoStat({
                     <span
                         className={cn(
                             'block truncate text-sm leading-snug font-medium',
-                            mono ? 'font-mono text-xs font-normal' : '',
-                            subtle
-                                ? 'text-muted-foreground text-xs font-normal'
-                                : ''
+                            mono ? 'font-mono text-xs font-normal' : ''
                         )}
                     >
                         {value || '\u2014'}
@@ -221,7 +226,7 @@ function InfoStat({
             {onClick ? (
                 <ChevronRightIcon
                     data-icon="inline-end"
-                    className="text-muted-foreground ml-2 shrink-0 opacity-70 transition-transform group-hover/info-stat:translate-x-0.5"
+                    className="text-muted-foreground ml-2 shrink-0 opacity-40 transition-[opacity,transform] group-hover/info-stat:translate-x-0.5 group-hover/info-stat:opacity-80 group-focus-visible/info-stat:opacity-80"
                 />
             ) : null}
         </>
@@ -232,7 +237,10 @@ function InfoStat({
             <Button
                 type="button"
                 variant="ghost"
-                className="group/info-stat h-auto w-full justify-start px-2 py-1.5 text-left"
+                className={cn(
+                    'group/info-stat -mx-2 h-auto justify-start px-2 py-1.5 text-left font-normal',
+                    className
+                )}
                 onClick={onClick}
             >
                 {body}
@@ -240,7 +248,16 @@ function InfoStat({
         );
     }
 
-    return <div className="flex min-w-0 items-start px-2 py-1.5">{body}</div>;
+    return (
+        <div
+            className={cn(
+                '-mx-2 flex min-w-0 items-start px-2 py-1.5',
+                className
+            )}
+        >
+            {body}
+        </div>
+    );
 }
 
 function InfoStatGrid({
@@ -262,6 +279,8 @@ function InfoStatGrid({
     );
 }
 
+const DASH = '\u2014';
+
 function formatLocalizedActivityDate(
     value: unknown,
     locale: string | null | undefined,
@@ -275,20 +294,20 @@ function formatLocalizedActivityDate(
         },
         {
             appLocale: locale || undefined,
-            fallback: '\u2014'
+            fallback: DASH
         }
     );
 }
 
 function TextScroll({
     children,
-    className = 'h-52'
+    className
 }: {
     children?: ReactNode;
     className?: string;
 }) {
     return (
-        <div className={cn('overflow-auto', className)}>
+        <div className={cn('max-h-52 overflow-auto', className)}>
             <pre className="text-muted-foreground m-0 min-w-0 font-sans text-xs whitespace-pre-wrap">
                 {children || '\u2014'}
             </pre>
@@ -346,68 +365,128 @@ function UserDialogPresenceSection({
         locationInstanceUsers = []
     } = presence || {};
 
+    const isInstanceLocation = visiblePresenceLocation.includes(':');
+    const worldId = isInstanceLocation
+        ? parseLocation(visiblePresenceLocation).worldId
+        : '';
+    const worldIds = useMemo(() => (worldId ? [worldId] : []), [worldId]);
+    const worldSummary = useWorldSummaries(worldIds).get(worldId);
+    const worldThumbnailUrl = convertFileUrlToImageUrl(
+        worldSummary?.thumbnailUrl,
+        256
+    );
+    const worldTitle = locationWorldTitle || worldSummary?.name || worldId;
+
     if (!visiblePresenceLocation) {
         return null;
     }
 
+    function openPresenceWorld() {
+        openWorldDialog({
+            worldId: visiblePresenceLocation,
+            title: worldTitle || undefined
+        });
+    }
+
     return (
         <InfoPanel title={t('dialog.user.info.current_status')}>
-            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                {visiblePresenceLocation.includes(':') ? (
-                    <>
-                        <LocationWorld
-                            className="min-w-0"
-                            locationObject={{
-                                ...locationInstance,
-                                tag: visiblePresenceLocation,
-                                location: visiblePresenceLocation,
-                                userId: locationOwnerId,
-                                playerCount: locationPlayerCount,
-                                capacity:
-                                    locationInstance?.capacity ??
-                                    locationInstance?.recommendedCapacity
-                            }}
-                            currentUserId={currentUserId}
-                            grouphint={locationInstance?.groupName || ''}
-                            endpoint={currentEndpoint}
-                            hint={locationWorldTitle}
-                            instanceClickAction="world"
-                            disableTooltip
-                            showPlayerSummary={false}
-                        />
-                        <InstanceActionBar
-                            className="min-w-0 flex-wrap"
-                            target={{
-                                location: visiblePresenceLocation,
-                                shortName:
-                                    locationInstance?.shortName ||
-                                    parseLocation(visiblePresenceLocation)
-                                        .shortName ||
-                                    '',
-                                worldName: locationWorldTitle
-                            }}
-                            instance={locationInstance}
-                            friendCount={locationFriendCount}
-                            playerCount={locationPlayerCount}
-                            capacity={
-                                locationInstance?.capacity ??
-                                locationInstance?.recommendedCapacity
-                            }
-                            refreshTooltip={t(
-                                'dialog.user.info.refresh_instance_info'
-                            )}
-                            disableTooltip
-                            disableInstanceInfoTooltip={false}
-                            showHistory={Boolean(previousInstances.length)}
-                            onRefresh={() =>
-                                actions?.onRefreshLocation?.(
-                                    visiblePresenceLocation
-                                )
-                            }
-                            onHistory={actions?.onShowInstanceHistory}
-                        />
-                    </>
-                ) : (
+            {isInstanceLocation ? (
+                <InstanceActionBar
+                    target={{
+                        location: visiblePresenceLocation,
+                        shortName:
+                            locationInstance?.shortName ||
+                            parseLocation(visiblePresenceLocation).shortName ||
+                            '',
+                        worldName: locationWorldTitle
+                    }}
+                    instance={locationInstance}
+                    friendCount={locationFriendCount}
+                    playerCount={locationPlayerCount}
+                    capacity={
+                        locationInstance?.capacity ??
+                        locationInstance?.recommendedCapacity
+                    }
+                    refreshTooltip={t('dialog.user.info.refresh_instance_info')}
+                    disableInstanceInfoTooltip={false}
+                    instanceCountAlign="left"
+                    actionVariant="prominent"
+                    showHistory={Boolean(previousInstances.length)}
+                    onRefresh={() =>
+                        actions?.onRefreshLocation?.(visiblePresenceLocation)
+                    }
+                    onHistory={actions?.onShowInstanceHistory}
+                    renderLayout={({ summary, actions: instanceActions }) => (
+                        <div className="flex min-w-0 gap-3">
+                            <button
+                                type="button"
+                                aria-label={worldTitle}
+                                className="bg-muted focus-visible:ring-ring/50 flex h-18 w-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md transition-[filter] outline-none hover:brightness-110 focus-visible:ring-3"
+                                onClick={openPresenceWorld}
+                            >
+                                {worldThumbnailUrl ? (
+                                    <FadeInImage
+                                        src={worldThumbnailUrl}
+                                        alt=""
+                                        className="size-full object-cover"
+                                        fallback={
+                                            <ImageIcon className="text-muted-foreground size-6 opacity-50" />
+                                        }
+                                    />
+                                ) : (
+                                    <ImageIcon className="text-muted-foreground size-6 opacity-50" />
+                                )}
+                            </button>
+                            <div className="flex min-h-18 min-w-0 flex-1 flex-col justify-between gap-1.5">
+                                <div className="flex min-w-0 flex-col gap-1">
+                                    <button
+                                        type="button"
+                                        className="text-foreground/90 hover:text-foreground line-clamp-1 cursor-pointer text-left text-sm font-medium break-words transition-colors outline-none focus-visible:underline"
+                                        title={worldTitle}
+                                        onClick={openPresenceWorld}
+                                    >
+                                        {worldTitle}
+                                    </button>
+                                    <div className="text-muted-foreground flex min-w-0 items-center gap-3 text-xs">
+                                        <LocationWorld
+                                            className="min-w-0 shrink"
+                                            locationObject={{
+                                                ...locationInstance,
+                                                tag: visiblePresenceLocation,
+                                                location:
+                                                    visiblePresenceLocation,
+                                                userId: locationOwnerId,
+                                                playerCount:
+                                                    locationPlayerCount,
+                                                capacity:
+                                                    locationInstance?.capacity ??
+                                                    locationInstance?.recommendedCapacity
+                                            }}
+                                            currentUserId={currentUserId}
+                                            grouphint={
+                                                locationInstance?.groupName ||
+                                                ''
+                                            }
+                                            endpoint={currentEndpoint}
+                                            hint={locationWorldTitle}
+                                            instanceClickAction="world"
+                                            showPlayerSummary={false}
+                                            showWorldName={false}
+                                        />
+                                        <span className="shrink-0">
+                                            {summary}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    {instanceActions}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                />
+            ) : (
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                     <Location
                         location={visiblePresenceLocation}
                         hint={locationWorldTitle}
@@ -415,10 +494,10 @@ function UserDialogPresenceSection({
                         enableContextMenu
                         showLaunchActions
                     />
-                )}
-            </div>
+                </div>
+            )}
             {locationInstanceUsers.length ? (
-                <div className="max-h-60 min-h-10 overflow-auto rounded-md">
+                <div className="-mx-2 max-h-60 min-h-10 overflow-auto rounded-md">
                     <EntityList
                         rows={locationInstanceUsers}
                         kind="user"
@@ -446,35 +525,44 @@ function UserDialogNotesPanel({
         return null;
     }
 
+    const showBoth = showNote && showMemo;
+    const title = showBoth
+        ? t('dialog.user.info.notes_memo')
+        : showNote
+          ? t('dialog.user.info.note')
+          : t('dialog.user.info.memo');
+
     return (
-        <InfoPanel title={t('dialog.user.info.notes_memo')}>
+        <InfoPanel title={title}>
             <div
                 role="button"
                 tabIndex={0}
-                className="focus-visible:border-ring focus-visible:ring-ring/50 rounded-md p-2 text-left transition-colors outline-none hover:bg-(--state-hover-surface) focus-visible:ring-3"
+                className="focus-visible:border-ring focus-visible:ring-ring/50 -mx-2 rounded-md p-2 text-left transition-colors outline-none hover:bg-(--state-hover-surface) focus-visible:ring-3"
                 onClick={onEditMemo}
                 onKeyDown={(event) => handlePanelKeyDown(event, onEditMemo)}
             >
                 <div className="flex min-w-0 flex-col gap-3">
                     {showNote ? (
                         <div className="min-w-0">
-                            <span className="text-muted-foreground block truncate text-xs">
-                                {t('dialog.user.info.note')}
-                            </span>
-                            <AdaptiveTextBlock className="mt-1">
+                            {showBoth ? (
+                                <span className="text-muted-foreground mb-1 block truncate text-xs">
+                                    {t('dialog.user.info.note')}
+                                </span>
+                            ) : null}
+                            <AdaptiveTextBlock>
                                 {profile.note}
                             </AdaptiveTextBlock>
                         </div>
                     ) : null}
-                    {showNote && showMemo ? <Separator /> : null}
+                    {showBoth ? <Separator /> : null}
                     {showMemo ? (
                         <div className="min-w-0">
-                            <span className="text-muted-foreground block truncate text-xs">
-                                {t('dialog.user.info.memo')}
-                            </span>
-                            <AdaptiveTextBlock className="mt-1">
-                                {memo}
-                            </AdaptiveTextBlock>
+                            {showBoth ? (
+                                <span className="text-muted-foreground mb-1 block truncate text-xs">
+                                    {t('dialog.user.info.memo')}
+                                </span>
+                            ) : null}
+                            <AdaptiveTextBlock>{memo}</AdaptiveTextBlock>
                         </div>
                     ) : null}
                 </div>
@@ -534,6 +622,12 @@ function UserDialogProfileLinksPanel({
             }
           : null;
 
+    const representedGroupIconFallback = (
+        <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-md">
+            <UsersRoundIcon aria-hidden="true" className="size-5" />
+        </span>
+    );
+
     return (
         <InfoPanel title={t('dialog.user.info.profile_details')}>
             {avatarInfo ? (
@@ -545,9 +639,19 @@ function UserDialogProfileLinksPanel({
                             userId={profile?.id}
                         />
                     </InfoStat>
-                    <Separator />
                 </>
             ) : null}
+            {isCurrentUser ? null : (
+                <InfoStat
+                    label={t('dialog.user.info.avatar_cloning')}
+                    value={t(
+                        profile.allowAvatarCopying
+                            ? 'dialog.user.info.avatar_cloning_allow'
+                            : 'dialog.user.info.avatar_cloning_deny'
+                    )}
+                />
+            )}
+            {avatarInfo || !isCurrentUser ? <Separator /> : null}
 
             <InfoStat label={t('dialog.user.info.represented_group')}>
                 {representedGroupStatus === 'running' ? (
@@ -578,18 +682,37 @@ function UserDialogProfileLinksPanel({
                                 )}
                                 alt=""
                                 className="size-10 shrink-0 rounded-md object-cover"
+                                fallback={representedGroupIconFallback}
                             />
-                        ) : null}
+                        ) : (
+                            representedGroupIconFallback
+                        )}
                         <span className="min-w-0">
-                            <span className="block truncate">
-                                {representedGroup.ownerId === profile.id
-                                    ? 'Owner - '
-                                    : ''}
-                                {representedGroup.name || 'Group'}
+                            <span className="flex min-w-0 items-center gap-1.5">
+                                {representedGroup.ownerId === profile.id && (
+                                    <HintTooltip
+                                        label={t('dialog.group.label.owner_2')}
+                                    >
+                                        <span
+                                            role="img"
+                                            className="inline-flex shrink-0"
+                                        >
+                                            <CrownIcon className="text-muted-foreground size-3.5 shrink-0" />
+                                        </span>
+                                    </HintTooltip>
+                                )}
+                                <span className="truncate">
+                                    {representedGroup.name || 'Group'}
+                                </span>
                             </span>
                             <span className="text-muted-foreground block truncate">
                                 {representedGroup.memberCount
-                                    ? `${representedGroup.memberCount} members`
+                                    ? t(
+                                          'host.tools_dialogs.group_moderation.member_count',
+                                          {
+                                              count: representedGroup.memberCount
+                                          }
+                                      )
                                     : ''}
                             </span>
                         </span>
@@ -620,15 +743,18 @@ function UserDialogProfileLinksPanel({
 
 export function UserDialogBioPanel({
     profile,
-    bioLinks,
     onEditBio
 }: UserDialogBioSectionProps) {
     const { t } = useTranslation();
     const editLabel = t('dialog.user.actions.edit_profile');
 
+    if (!profile.bio?.trim() && !onEditBio) {
+        return null;
+    }
+
     return (
         <TranslatableText
-            source={profile.bio || ''}
+            source={replaceBioSymbols(profile.bio)}
             entityId={profile.id || ''}
             density="button"
         >
@@ -645,7 +771,8 @@ export function UserDialogBioPanel({
                                             <Button
                                                 type="button"
                                                 size="icon-xs"
-                                                variant="outline"
+                                                variant="ghost"
+                                                className="text-muted-foreground"
                                                 aria-label={editLabel}
                                                 onClick={onEditBio}
                                             >
@@ -663,36 +790,9 @@ export function UserDialogBioPanel({
                 >
                     {meta}
                     <div className="min-w-0">
-                        <TextScroll className="h-52 min-w-0">{text}</TextScroll>
+                        <TextScroll className="min-w-0">{text}</TextScroll>
                         {error}
                     </div>
-                    {bioLinks.length ? (
-                        <div className="flex flex-wrap gap-1.5">
-                            {bioLinks.map((link) => (
-                                <Button
-                                    key={link}
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-xs"
-                                    aria-label={t(
-                                        'dialog.user.info.open_bio_link',
-                                        {
-                                            link
-                                        }
-                                    )}
-                                    title={link}
-                                    onClick={() => openExternalLink(link)}
-                                >
-                                    <BioLinkFavicon
-                                        link={link}
-                                        fallback={
-                                            <ExternalLinkIcon data-icon="inline-start" />
-                                        }
-                                    />
-                                </Button>
-                            ))}
-                        </div>
-                    ) : null}
                 </InfoPanel>
             )}
         </TranslatableText>
@@ -709,6 +809,13 @@ function UserRelationshipStat({
     const { i18n, t } = useTranslation();
     const locale = i18n.resolvedLanguage || i18n.language;
     const latest = history[0];
+    const dateText = formatLocalizedActivityDate(
+        latest?.created_at || friendedAt,
+        locale
+    );
+    if (dateText === DASH) {
+        return null;
+    }
     const stat = (
         <InfoStat
             label={t(
@@ -716,11 +823,8 @@ function UserRelationshipStat({
                     ? 'dialog.user.info.unfriended'
                     : 'dialog.user.info.friended'
             )}
-            value={formatLocalizedActivityDate(
-                latest?.created_at || friendedAt,
-                locale
-            )}
-            subtle
+            value={dateText}
+            className={latest ? 'mx-0' : undefined}
         />
     );
     if (!latest) {
@@ -732,14 +836,14 @@ function UserRelationshipStat({
                 render={
                     <Button
                         variant="ghost"
-                        className="group/info-stat h-auto w-full justify-start p-0 text-left"
+                        className="group/info-stat -mx-2 h-auto justify-start p-0 text-left font-normal"
                     />
                 }
             >
                 <div className="min-w-0 flex-1">{stat}</div>
                 <ChevronRightIcon
                     aria-hidden="true"
-                    className="text-muted-foreground mr-2 shrink-0 opacity-70 transition-transform group-hover/info-stat:translate-x-0.5"
+                    className="text-muted-foreground mr-2 shrink-0 opacity-40 transition-[opacity,transform] group-hover/info-stat:translate-x-0.5 group-hover/info-stat:opacity-80 group-focus-visible/info-stat:opacity-80 group-aria-expanded/info-stat:opacity-80"
                 />
             </PopoverTrigger>
             <PopoverContent
@@ -803,7 +907,6 @@ function UserCreditsStat({ userId }: { userId: string }) {
                     .getState()
                     .setSystemHostOpen('purchaseHistoryOpen', true);
             }}
-            subtle
         />
     );
 }
@@ -823,54 +926,90 @@ export function UserDialogActivitySummaryPanel({
 }: UserDialogActivitySummarySectionProps) {
     const { i18n, t } = useTranslation();
     const dateLocale = i18n.resolvedLanguage || i18n.language;
+    const lastSeenText = formatLocalizedActivityDate(lastSeen, dateLocale);
+    const lastActivityText = formatLocalizedActivityDate(
+        presenceActivityAt,
+        dateLocale
+    );
+    const timeSpentText = formatStatsDuration(userTimeSpent);
 
     return (
         <InfoPanel
             title={t('dialog.user.info.activity_summary')}
             contentClassName="gap-1"
+            action={
+                !isCurrentUser && profile.id ? (
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    size="icon-xs"
+                                    variant="ghost"
+                                    className="text-muted-foreground"
+                                    aria-label={t('assistant.title')}
+                                    onClick={() =>
+                                        useAssistantChatStore
+                                            .getState()
+                                            .startAssistantDraft({
+                                                topic: 'profile',
+                                                target: {
+                                                    kind: 'user',
+                                                    id: profile.id ?? '',
+                                                    name:
+                                                        profile.displayName ||
+                                                        profile.id ||
+                                                        ''
+                                                }
+                                            })
+                                    }
+                                >
+                                    <SparklesIcon data-icon="inline-start" />
+                                </Button>
+                            }
+                        />
+                        <TooltipContent>{t('assistant.title')}</TooltipContent>
+                    </Tooltip>
+                ) : null
+            }
         >
             <InfoStatGrid className="sm:grid-cols-1">
-                {!isCurrentUser ? (
+                {!isCurrentUser && lastSeenText !== DASH ? (
                     <InfoStat
                         label={t('dialog.user.info.last_seen')}
-                        value={formatLocalizedActivityDate(
-                            lastSeen,
-                            dateLocale
-                        )}
-                        subtle
+                        value={lastSeenText}
                     />
                 ) : null}
-                <InfoStat
-                    label={t('dialog.user.info.last_activity')}
-                    value={formatLocalizedActivityDate(
-                        presenceActivityAt,
-                        dateLocale
-                    )}
-                    onClick={isFriend ? onOpenFeed : undefined}
-                    subtle
-                />
-                {isCurrentUser ? (
+                {lastActivityText !== DASH ? (
                     <InfoStat
-                        label={t('dialog.user.info.play_time')}
-                        value={formatStatsDuration(userTimeSpent)}
-                        onClick={onOpenInstanceHistory}
-                        subtle
+                        label={t('dialog.user.info.last_activity')}
+                        value={lastActivityText}
+                        onClick={isFriend ? onOpenFeed : undefined}
                     />
+                ) : null}
+                {isCurrentUser ? (
+                    timeSpentText !== DASH ? (
+                        <InfoStat
+                            label={t('dialog.user.info.play_time')}
+                            value={timeSpentText}
+                            onClick={onOpenInstanceHistory}
+                        />
+                    ) : null
                 ) : (
                     <>
-                        <InfoStat
-                            label={t('dialog.user.info.join_count')}
-                            value={
-                                userJoinCount ? String(userJoinCount) : '\u2014'
-                            }
-                            onClick={onOpenInstanceHistory}
-                            subtle
-                        />
-                        <InfoStat
-                            label={t('dialog.user.info.time_together')}
-                            value={formatStatsDuration(userTimeSpent)}
-                            subtle
-                        />
+                        {userJoinCount ? (
+                            <InfoStat
+                                label={t('dialog.user.info.join_count')}
+                                value={String(userJoinCount)}
+                                onClick={onOpenInstanceHistory}
+                            />
+                        ) : null}
+                        {timeSpentText !== DASH ? (
+                            <InfoStat
+                                label={t('dialog.user.info.time_together')}
+                                value={timeSpentText}
+                            />
+                        ) : null}
                         <UserRelationshipStat
                             friendedAt={friendedAt}
                             history={relationshipHistory}
@@ -880,19 +1019,21 @@ export function UserDialogActivitySummaryPanel({
                 {isCurrentUser && profile.id ? (
                     <UserCreditsStat userId={profile.id} />
                 ) : null}
-                <InfoStat
-                    label={t('dialog.user.info.date_joined')}
-                    value={formatLocalizedActivityDate(
-                        profile.date_joined,
-                        dateLocale,
-                        true
-                    )}
-                    subtle
-                />
             </InfoStatGrid>
         </InfoPanel>
     );
 }
+
+const MemoPresenceSection = memo(
+    UserDialogPresenceSection,
+    (prev, next) =>
+        shallow(prev.presence, next.presence) &&
+        shallow(prev.actions, next.actions)
+);
+const MemoNotesPanel = memo(UserDialogNotesPanel);
+const MemoBioPanel = memo(UserDialogBioPanel);
+const MemoProfileLinksPanel = memo(UserDialogProfileLinksPanel);
+const MemoActivitySummaryPanel = memo(UserDialogActivitySummaryPanel);
 
 export function UserDialogInfoTab({
     presenceSection,
@@ -901,31 +1042,27 @@ export function UserDialogInfoTab({
     profileLinksSection,
     activitySummarySection
 }: UserDialogInfoTabProps) {
-    const { profile, bioLinks, onEditBio } = bioSection;
+    const { profile, onEditBio } = bioSection;
 
     return (
         <EntityDialogTabContent value="info" className="pt-3">
             <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
                 <div className="flex min-w-0 flex-col gap-4">
-                    <UserDialogPresenceSection
+                    <MemoPresenceSection
                         presence={presenceSection.presence}
                         actions={presenceSection.actions}
                     />
-                    <UserDialogNotesPanel
+                    <MemoNotesPanel
                         profile={notesSection.profile}
                         hideUserNotes={notesSection.hideUserNotes}
                         memo={notesSection.memo}
                         hideUserMemos={notesSection.hideUserMemos}
                         onEditMemo={notesSection.onEditMemo}
                     />
-                    <UserDialogBioPanel
-                        profile={profile}
-                        bioLinks={bioLinks}
-                        onEditBio={onEditBio}
-                    />
+                    <MemoBioPanel profile={profile} onEditBio={onEditBio} />
                 </div>
                 <div className="flex min-w-0 flex-col gap-4">
-                    <UserDialogProfileLinksPanel
+                    <MemoProfileLinksPanel
                         currentAvatarDisplayName={
                             profileLinksSection.currentAvatarDisplayName
                         }
@@ -940,7 +1077,7 @@ export function UserDialogInfoTab({
                             profileLinksSection.visibleHomeLocationTarget
                         }
                     />
-                    <UserDialogActivitySummaryPanel
+                    <MemoActivitySummaryPanel
                         friendedAt={activitySummarySection.friendedAt}
                         relationshipHistory={
                             activitySummarySection.relationshipHistory

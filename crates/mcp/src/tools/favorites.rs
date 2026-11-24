@@ -1,15 +1,20 @@
+use std::collections::BTreeMap;
+
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use rmcp::{schemars, tool, tool_router};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use vrcx_0_application::favorites::FavoriteRemoteAddInput;
-use vrcx_0_application_core::{
-    vrchat_api::{self},
-    FavoriteEntityKind,
+use vrcx_0_application::favorites::{
+    FavoriteRemoteAddInput, FavoriteRemoteEntry, FavoriteRemoteGroupSummary,
+    FavoriteRemoteListInput, FavoriteRemoteMoveInput, FavoriteRemoteMoveOutput,
+    FavoriteRemoteMoveStatus,
 };
+use vrcx_0_application_core::FavoriteEntityKind;
 use vrcx_0_contracts::social_aggregates::{self, FavoriteAction};
+use vrcx_0_contracts::vrchat_api;
 use vrcx_0_contracts::FavoriteRow as PersistenceFavoriteRow;
+use vrcx_0_core::OwnerId;
 
 use crate::server::VrcxMcpServer;
 
@@ -18,7 +23,8 @@ use super::common::{map_application_query_error, require_current_user_id, struct
 #[tool_router(router = favorites_tool_router, vis = "pub(crate)")]
 impl VrcxMcpServer {
     #[tool(
-        description = "[write·local] Add or remove a VRCX-0 LOCAL favorite for a world, friend, or avatar — local label only, no VRChat account change, no message to anyone; dry_run defaults to true. Use get_favorites to check duplicates first."
+        description = "[write·local] Add or remove a VRCX-0 LOCAL favorite for a world, friend, or avatar — local label only, no VRChat account change, no message to anyone; dry_run defaults to true. Use get_favorites to check duplicates first.",
+        annotations(read_only_hint = false)
     )]
     async fn favorite_local(
         &self,
@@ -28,7 +34,8 @@ impl VrcxMcpServer {
     }
 
     #[tool(
-        description = "[write·account] Add a world, friend, or avatar favorite to the signed-in VRChat ACCOUNT (tags like worlds1, group_0, or avatars1 required). Changes the real account; subject to group capacity limits; gated by a setting and dry_run defaults to true. Confirm before a real write. Never invites or messages anyone."
+        description = "[write·account] Add a world, friend, or avatar favorite to the signed-in VRChat ACCOUNT (tags like worlds1, group_0, or avatars1 required). Changes the real account; subject to group capacity limits; dry_run defaults to true. Never invites or messages anyone. To change the group of an existing account favorite, use favorite_move.",
+        annotations(read_only_hint = false)
     )]
     async fn favorite_vrchat(
         &self,
@@ -38,7 +45,30 @@ impl VrcxMcpServer {
     }
 
     #[tool(
-        description = "[L1·query] List VRCX-0 local favorites. Omit kind or use all to list worlds, friends, and avatars; otherwise filter by world, friend, or avatar. Use before a favorite write to check duplicates."
+        description = "[write·account] Move up to 10 world, friend, or avatar favorites that are already on the signed-in VRChat ACCOUNT into one of its favorite groups, in a single call the user approves once. Put every favorite headed for the same group in one call; for more than 10, call again. Name the target group by its tag (worlds2, group_1, avatars3) or by the name the user gave it; check get_vrchat_favorites first. Each favorite's current group is looked up; ones already in the target or not on the account are skipped and reported. VRChat has no move call, so each favorite is removed and re-added; if re-adding fails it is restored to its original group. dry_run defaults to true and only previews. Never invites or messages anyone.",
+        annotations(read_only_hint = false)
+    )]
+    async fn favorite_move(
+        &self,
+        Parameters(input): Parameters<FavoriteMoveParams>,
+    ) -> Result<CallToolResult, String> {
+        structured_result(self.favorite_move_output(input).await?)
+    }
+
+    #[tool(
+        description = "[L1·query] List the signed-in VRChat ACCOUNT's world, friend, or avatar favorite groups (tag, the name the user gave it, count, capacity) and the favorites in them, with names where known. Pass group (tag or name) to list one group. Use it before favorite_move or favorite_vrchat to find the right group and to pick ids that are account favorites; get_favorites only covers VRCX-0 local favorites.",
+        annotations(read_only_hint = true)
+    )]
+    async fn get_vrchat_favorites(
+        &self,
+        Parameters(input): Parameters<GetVrchatFavoritesParams>,
+    ) -> Result<CallToolResult, String> {
+        structured_result(self.get_vrchat_favorites_output(input).await?)
+    }
+
+    #[tool(
+        description = "[L1·query] List VRCX-0 local favorites, newest first, with per-group counts for every favorite. Omit kind or use all to list worlds, friends, and avatars; otherwise filter by world, friend, or avatar. Before a favorite write, pass entityId to check that exact entity for duplicates.",
+        annotations(read_only_hint = true)
     )]
     async fn get_favorites(
         &self,
@@ -71,6 +101,11 @@ impl VrcxMcpServer {
     fn get_favorites_output(&self, input: GetFavoritesParams) -> Result<FavoritesOutput, String> {
         let requested_kind = parse_favorite_list_kind(input.kind.as_deref())?;
         let owner_user_id = require_current_user_id(&self.runtime)?;
+        let entity_id = input
+            .entity_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
         let mut rows = Vec::new();
         for kind in requested_kind.canonical_kinds() {
             let values = self
@@ -81,12 +116,51 @@ impl VrcxMcpServer {
             rows.extend(
                 values
                     .iter()
-                    .filter_map(|row| favorite_row_from_value(*kind, row)),
+                    .filter_map(|row| favorite_row_from_value(*kind, row))
+                    .filter(|row| entity_id.is_none_or(|entity_id| row.entity_id == entity_id)),
             );
         }
-        let summary = favorites_summary(requested_kind, rows.len());
+        let total_rows = rows.len();
+        let mut group_counts = BTreeMap::<(String, String), usize>::new();
+        for row in &rows {
+            *group_counts
+                .entry((row.kind.clone(), row.group.clone()))
+                .or_default() += 1;
+        }
+        rows.sort_by(|left, right| right.created_at.cmp(&left.created_at));
+        rows.truncate(input.limit.unwrap_or(50).clamp(1, 500) as usize);
+        let truncated = rows.len() < total_rows;
+        let mut summary = favorites_summary(requested_kind, total_rows);
+        if requested_kind.canonical_kinds().len() > 1 {
+            let by_kind = requested_kind
+                .canonical_kinds()
+                .iter()
+                .map(|kind| {
+                    let count = group_counts
+                        .iter()
+                        .filter(|((row_kind, _), _)| row_kind == kind.as_str())
+                        .map(|(_, count)| count)
+                        .sum::<usize>();
+                    format!("{} {count}", kind.as_str())
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            summary.push_str(&format!(" By kind: {by_kind}."));
+        }
+        if truncated {
+            summary.push_str(&format!(
+                " Showing the {} newest; groups counts every favorite.",
+                rows.len()
+            ));
+        }
         Ok(FavoritesOutput {
             rows,
+            groups: group_counts
+                .into_iter()
+                .map(|((kind, group), count)| FavoriteGroupCount { kind, group, count })
+                .collect(),
+            total_rows,
+            truncated,
             summary,
             caveats: vec![
                 "Favorites are VRCX-0 local favorite rows and may differ from remote VRChat favorites until synced."
@@ -143,6 +217,169 @@ impl VrcxMcpServer {
     }
 }
 
+impl VrcxMcpServer {
+    async fn favorite_move_output(
+        &self,
+        input: FavoriteMoveParams,
+    ) -> Result<FavoriteMoveOutput, String> {
+        let requested_write = !input.dry_run.unwrap_or(true);
+        let writes_allowed = self.runtime.vrchat_writes_allowed();
+        let coordinator = self.runtime.favorite_mutations.clone();
+        let move_input = FavoriteRemoteMoveInput {
+            kind: input.kind.into(),
+            entity_ids: input.entity_ids,
+            target_group: input.target_group,
+            dry_run: !requested_write || !writes_allowed,
+        };
+        // A caller that stops waiting must not cut a move between its delete
+        // and re-add, so the move runs to completion on its own task.
+        let mut move_output =
+            tokio::spawn(async move { coordinator.move_remote(move_input).await })
+                .await
+                .map_err(|error| format!("favorite move stopped unexpectedly: {error}"))?
+                .map_err(|error| error.to_string())?;
+        let friend_names = self.friend_names(
+            move_output.kind,
+            move_output.items.iter().map(|item| item.entity_id.as_str()),
+        );
+        for item in &mut move_output.items {
+            if item.name.is_none() {
+                item.name = friend_names.get(&item.entity_id).cloned();
+            }
+        }
+        let mut caveats = vec![
+            "VRChat has no move call: each favorite is removed from its group and re-added to the target group."
+                .to_string(),
+        ];
+        if requested_write && !writes_allowed {
+            caveats.push(
+                "A real move was requested but VRChat writes are disabled; enable them in VRCX-0 settings first."
+                    .into(),
+            );
+        }
+        Ok(FavoriteMoveOutput {
+            summary: favorite_move_summary(&move_output),
+            favorite: move_output,
+            caveats,
+        })
+    }
+
+    async fn get_vrchat_favorites_output(
+        &self,
+        input: GetVrchatFavoritesParams,
+    ) -> Result<VrchatFavoritesOutput, String> {
+        let listing = self
+            .runtime
+            .favorite_mutations
+            .list_remote(FavoriteRemoteListInput {
+                kind: input.kind.into(),
+                group: input.group,
+            })
+            .await
+            .map_err(|error| error.to_string())?;
+        let total_favorites = listing.favorites.len();
+        let mut favorites = listing.favorites;
+        favorites.truncate(input.limit.unwrap_or(100).clamp(1, 500) as usize);
+        let truncated = favorites.len() < total_favorites;
+        let friend_names = self.friend_names(
+            listing.kind,
+            favorites.iter().map(|entry| entry.entity_id.as_str()),
+        );
+        for entry in &mut favorites {
+            if entry.name.is_none() {
+                entry.name = friend_names.get(&entry.entity_id).cloned();
+            }
+        }
+        let mut summary = format!(
+            "{} VRChat {} favorite groups; {total_favorites} favorites listed.",
+            listing.groups.len(),
+            listing.kind.as_str()
+        );
+        if truncated {
+            summary.push_str(&format!(" Showing the first {}.", favorites.len()));
+        }
+        Ok(VrchatFavoritesOutput {
+            groups: listing.groups,
+            favorites,
+            total_favorites,
+            truncated,
+            summary,
+        })
+    }
+
+    fn friend_names<'a>(
+        &self,
+        kind: FavoriteEntityKind,
+        entity_ids: impl Iterator<Item = &'a str>,
+    ) -> std::collections::HashMap<String, String> {
+        let Some(owner_user_id) = self
+            .runtime
+            .current_user_id()
+            .filter(|_| kind == FavoriteEntityKind::Friend)
+        else {
+            return Default::default();
+        };
+        let user_ids = entity_ids.map(str::to_string).collect::<Vec<_>>();
+        self.runtime
+            .friend_local_data
+            .friend_display_names(OwnerId::new(owner_user_id), &user_ids)
+            .unwrap_or_else(|error| {
+                tracing::warn!("MCP favorite friend names failed: {error}");
+                Default::default()
+            })
+    }
+}
+
+fn favorite_move_summary(output: &FavoriteRemoteMoveOutput) -> String {
+    let target = if output.target.display_name.is_empty() {
+        output.target.name.clone()
+    } else {
+        format!(
+            "\"{}\" ({})",
+            output.target.display_name, output.target.name
+        )
+    };
+    let count = |status: FavoriteRemoteMoveStatus| {
+        output
+            .items
+            .iter()
+            .filter(|item| item.status == status)
+            .count()
+    };
+    let mut parts = Vec::new();
+    for (status, label) in [
+        (FavoriteRemoteMoveStatus::WouldMove, "would move"),
+        (FavoriteRemoteMoveStatus::Moved, "moved"),
+        (
+            FavoriteRemoteMoveStatus::RestoredToSource,
+            "could not be added and went back to their group",
+        ),
+        (
+            FavoriteRemoteMoveStatus::SavedToLocalFallback,
+            "could not be re-added and were saved to the local Recovered group",
+        ),
+        (FavoriteRemoteMoveStatus::AlreadyInTarget, "already there"),
+        (
+            FavoriteRemoteMoveStatus::NotFavorited,
+            "not account favorites, skipped",
+        ),
+        (FavoriteRemoteMoveStatus::Failed, "failed"),
+    ] {
+        let count = count(status);
+        if count > 0 {
+            parts.push(format!("{count} {label}"));
+        }
+    }
+    let prefix = if !output.dry_run {
+        ""
+    } else if count(FavoriteRemoteMoveStatus::WouldMove) == 0 {
+        "Nothing to move, "
+    } else {
+        "Dry run, "
+    };
+    format!("{prefix}target {target}: {}.", parts.join("; "))
+}
+
 fn map_favorite_local_error(error: vrcx_0_application_core::Error) -> String {
     match error {
         vrcx_0_application_core::Error::PersistenceInvalidData(message) => message,
@@ -161,10 +398,10 @@ fn finish_remote_favorite_write(
     kind: FavoriteEntityKind,
     entity_id: String,
     tags: String,
-    response: vrchat_api::VrchatApiResponse,
+    response: vrchat_api::VrchatResponse,
 ) -> FavoriteVrchatOutput {
     let status = response.status;
-    let policy = vrchat_api::classify_api_response(status);
+    let policy = vrchat_api::classify_vrchat_response(status);
     FavoriteVrchatOutput {
         kind,
         entity_id,
@@ -201,11 +438,73 @@ struct FavoriteVrchatParams {
 
 #[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
+struct FavoriteMoveParams {
+    kind: FavoriteAccountKind,
+    /// The wrld_, usr_, or avtr_ ids of the favorites to move, at most 10.
+    entity_ids: Vec<String>,
+    /// Target group tag (worlds2, group_1, avatars3) or the name the user gave it.
+    target_group: String,
+    dry_run: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+struct GetVrchatFavoritesParams {
+    kind: FavoriteAccountKind,
+    /// Only this group, by tag (worlds2) or the name the user gave it.
+    group: Option<String>,
+    /// Favorites to list (default 100, max 500); groups are always complete.
+    limit: Option<i64>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+enum FavoriteAccountKind {
+    World,
+    Friend,
+    Avatar,
+}
+
+impl From<FavoriteAccountKind> for FavoriteEntityKind {
+    fn from(kind: FavoriteAccountKind) -> Self {
+        match kind {
+            FavoriteAccountKind::World => Self::World,
+            FavoriteAccountKind::Friend => Self::Friend,
+            FavoriteAccountKind::Avatar => Self::Avatar,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct VrchatFavoritesOutput {
+    groups: Vec<FavoriteRemoteGroupSummary>,
+    favorites: Vec<FavoriteRemoteEntry>,
+    total_favorites: usize,
+    truncated: bool,
+    summary: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FavoriteMoveOutput {
+    favorite: FavoriteRemoteMoveOutput,
+    summary: String,
+    caveats: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
 struct GetFavoritesParams {
     /// Filter by one favorite kind. Omit or use `all` to return every kind.
     #[serde(default)]
     #[schemars(with = "Option<FavoriteListKind>")]
     kind: Option<String>,
+    /// Only this world, friend, or avatar id (wrld_/usr_/avtr_), e.g. to check
+    /// for a duplicate before a write.
+    entity_id: Option<String>,
+    /// Newest favorites to list (default 50, max 500); groups always counts all.
+    limit: Option<i64>,
 }
 
 #[derive(Clone, Copy, Debug, schemars::JsonSchema)]
@@ -245,8 +544,19 @@ impl FavoriteListKind {
 #[serde(rename_all = "camelCase")]
 struct FavoritesOutput {
     rows: Vec<FavoriteRow>,
+    groups: Vec<FavoriteGroupCount>,
+    total_rows: usize,
+    truncated: bool,
     summary: String,
     caveats: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FavoriteGroupCount {
+    kind: String,
+    group: String,
+    count: usize,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -413,6 +723,44 @@ mod favorite_kind_tests {
     }
 
     #[test]
+    fn move_summary_counts_each_outcome_against_the_target() {
+        let item =
+            |entity_id: &str, status| vrcx_0_application::favorites::FavoriteRemoteMoveItem {
+                entity_id: entity_id.into(),
+                name: None,
+                source: None,
+                status,
+                message: String::new(),
+            };
+        let mut output = FavoriteRemoteMoveOutput {
+            kind: FavoriteEntityKind::World,
+            target: vrcx_0_application::favorites::FavoriteRemoteGroup {
+                name: "worlds2".into(),
+                display_name: "Sleep".into(),
+                favorite_type: vrcx_0_contracts::VrchatFavoriteType::World,
+            },
+            dry_run: true,
+            items: vec![
+                item("wrld_a", FavoriteRemoteMoveStatus::WouldMove),
+                item("wrld_b", FavoriteRemoteMoveStatus::WouldMove),
+                item("wrld_c", FavoriteRemoteMoveStatus::AlreadyInTarget),
+            ],
+        };
+        assert_eq!(
+            favorite_move_summary(&output),
+            "Dry run, target \"Sleep\" (worlds2): 2 would move; 1 already there."
+        );
+
+        output.dry_run = false;
+        output.items[0].status = FavoriteRemoteMoveStatus::Moved;
+        output.items[1].status = FavoriteRemoteMoveStatus::RestoredToSource;
+        assert_eq!(
+            favorite_move_summary(&output),
+            "target \"Sleep\" (worlds2): 1 moved; 1 could not be added and went back to their group; 1 already there."
+        );
+    }
+
+    #[test]
     fn accepts_singular_plural_and_user_synonym() {
         for input in ["world", "worlds", "World"] {
             assert_eq!(
@@ -501,7 +849,7 @@ mod favorite_kind_tests {
                 FavoriteEntityKind::World,
                 "wrld_test".into(),
                 "worlds1".into(),
-                vrchat_api::VrchatApiResponse {
+                vrchat_api::VrchatResponse {
                     status,
                     data: "{}".into(),
                 },

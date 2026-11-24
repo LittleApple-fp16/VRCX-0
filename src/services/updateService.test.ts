@@ -10,13 +10,14 @@ vi.mock('@/platform/tauri/bindings', () => ({
     }
 }));
 
-import { fetchBranchReleases, fetchLatestBranchRelease } from './updateService';
+import { fetchBranchReleasePage } from './updateService';
 
 function release({ publishedAt }: { publishedAt: string }) {
     return {
         tag_name: 'v2.7.0',
         assets: Array<unknown>(),
-        html_url: 'https://github.com/Map1en/VRCX-0/releases/tag/v2.7.0',
+        html_url:
+            'https://github.com/LittleApple-fp16/VRCX-0/releases/tag/v2.7.0',
         name: 'VRCX-0 2.7.0',
         prerelease: false,
         published_at: publishedAt,
@@ -35,10 +36,34 @@ describe('updateService branch release fetching', () => {
             data: [release({ publishedAt: '2026-06-21T07:00:00Z' })]
         });
 
-        const releases = await fetchBranchReleases('stable');
+        const { releases, hasMore } = await fetchBranchReleasePage('stable', 1);
 
         expect(releases).toHaveLength(1);
         expect(releases[0].canonicalVersion).toBe('2.7.0');
+        expect(hasMore).toBe(false);
+        expect(mocks.fetchGithubReleases).toHaveBeenCalledWith(
+            expect.objectContaining({
+                url: 'https://api.github.com/repos/LittleApple-fp16/VRCX-0/releases?per_page=30&page=1'
+            })
+        );
+    });
+
+    it('reports more pages when GitHub returns a full page', async () => {
+        mocks.fetchGithubReleases.mockResolvedValue({
+            status: 200,
+            data: Array.from({ length: 30 }, () =>
+                release({ publishedAt: '2026-06-21T07:00:00Z' })
+            )
+        });
+
+        const { hasMore } = await fetchBranchReleasePage('stable', 2);
+
+        expect(hasMore).toBe(true);
+        expect(mocks.fetchGithubReleases).toHaveBeenCalledWith(
+            expect.objectContaining({
+                url: 'https://api.github.com/repos/LittleApple-fp16/VRCX-0/releases?per_page=30&page=2'
+            })
+        );
     });
 
     it('throws when the GitHub release request fails', async () => {
@@ -47,7 +72,7 @@ describe('updateService branch release fetching', () => {
             data: []
         });
 
-        await expect(fetchLatestBranchRelease('stable')).rejects.toThrow(
+        await expect(fetchBranchReleasePage('stable', 1)).rejects.toThrow(
             'GitHub release request failed (500).'
         );
     });
@@ -65,7 +90,7 @@ describe('updateService branch release fetching', () => {
             ]
         });
 
-        const releases = await fetchBranchReleases('beta');
+        const { releases } = await fetchBranchReleasePage('beta', 1);
 
         expect(releases.map((item) => item.canonicalVersion)).toEqual([
             '2.8.0-beta.2'

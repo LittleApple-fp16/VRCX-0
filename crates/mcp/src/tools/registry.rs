@@ -13,12 +13,15 @@ impl VrcxMcpServer {
 
     fn tool_router() -> ToolRouter<Self> {
         Self::activity_tool_router()
+            + Self::chatbox_tool_router()
             + Self::favorites_tool_router()
             + Self::feed_tool_router()
             + Self::friends_tool_router()
             + Self::graph_tool_router()
             + Self::invites_tool_router()
             + Self::presence_tool_router()
+            + Self::screenshots_tool_router()
+            + Self::worlds_tool_router()
     }
 }
 
@@ -39,11 +42,13 @@ mod router_tests {
             names,
             vec![
                 "favorite_local",
+                "favorite_move",
                 "favorite_vrchat",
                 "find_user",
                 "get_activity_streaks",
                 "get_activity_timeline",
                 "get_best_time_to_play",
+                "get_chatbox",
                 "get_companions_of",
                 "get_copresence_summary",
                 "get_fading_friends",
@@ -59,12 +64,48 @@ mod router_tests {
                 "get_online_friends",
                 "get_social_graph",
                 "get_visit_timeline",
+                "get_vrchat_favorites",
+                "get_world_profile",
                 "recall_encounter",
                 "refresh_mutual_graph",
                 "search_friend_feed",
+                "search_screenshots",
                 "search_worlds_visited",
+                "send_chatbox_message",
+                "set_chatbox_afk",
                 "set_friend_note",
+                "summarize_screenshots",
                 "summarize_social_period",
+                "update_chatbox",
+            ]
+        );
+    }
+
+    #[test]
+    fn every_tool_declares_whether_it_changes_anything() {
+        let router = VrcxMcpServer::tool_router();
+        let mut side_effecting = Vec::new();
+        for tool in router.list_all() {
+            let read_only = tool
+                .annotations
+                .as_ref()
+                .and_then(|annotations| annotations.read_only_hint)
+                .unwrap_or_else(|| panic!("{} must declare read_only_hint", tool.name));
+            if !read_only {
+                side_effecting.push(tool.name.to_string());
+            }
+        }
+
+        assert_eq!(
+            side_effecting,
+            vec![
+                "favorite_local",
+                "favorite_move",
+                "favorite_vrchat",
+                "send_chatbox_message",
+                "set_chatbox_afk",
+                "set_friend_note",
+                "update_chatbox",
             ]
         );
     }
@@ -74,6 +115,8 @@ mod router_tests {
         let router = VrcxMcpServer::tool_router();
         let tools = router.list_all();
         for name in [
+            "get_copresence_summary",
+            "get_friend_profile",
             "get_friend_activity_pattern",
             "get_best_time_to_play",
             "get_activity_timeline",

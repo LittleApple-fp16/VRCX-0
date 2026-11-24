@@ -4,9 +4,10 @@ import {
     Trash2Icon,
     TriangleAlertIcon
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { DeferredDropdownMenu } from '@/components/DeferredDropdownMenu';
 import { useMinuteNowMs } from '@/lib/useMinuteNowMs';
 import { cn } from '@/lib/utils';
 import type { NotificationRow } from '@/repositories/notificationPersistenceRepository';
@@ -15,20 +16,22 @@ import {
     selectMarkAllSeenRowState,
     useVrcNotificationStore
 } from '@/state/vrcNotificationStore';
+import { IntentTooltip } from '@/ui/hint-tooltip';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import {
-    DropdownMenu,
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger
+    DropdownMenuSeparator
 } from '@/ui/shadcn/dropdown-menu';
 import { HoverCard, HoverCardTrigger } from '@/ui/shadcn/hover-card';
 import { Spinner } from '@/ui/shadcn/spinner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
+import {
+    NotificationActionMenuText,
+    NotificationActionScopeTooltip
+} from '../components/NotificationActionScope';
 import { NotificationMessage } from '../components/NotificationMessage';
 import {
     NOTIFICATION_ROW_HOVER_REVEAL,
@@ -92,7 +95,7 @@ function useExpiryCountdown(
     return remainingMs;
 }
 
-export function NotificationDrawerRow({
+export const NotificationDrawerRow = memo(function NotificationDrawerRow({
     notification,
     isUnseen,
     currentUserId,
@@ -109,7 +112,7 @@ export function NotificationDrawerRow({
 }) {
     const { t } = useTranslation();
     const actionPending = useNotificationActionPending(notification);
-    const rawMessage = String(getNotificationMessage(notification) || '');
+    const rawMessage = String(getNotificationMessage(notification, t) || '');
     const typeLabel = getNotificationTypeLabel(notification, t);
     const nowMs = useMinuteNowMs();
     const relativeTime = getNotificationRelativeTime(notification, nowMs);
@@ -123,8 +126,8 @@ export function NotificationDrawerRow({
     const isQueueReady = notification?.type === 'group.queueReady';
     const showAvatar = usesAvatar(notification);
     const view = useMemo(
-        () => toNotificationViewModel(notification),
-        [notification]
+        () => toNotificationViewModel(notification, { t }),
+        [notification, t]
     );
     const isBroadcast = view.template === 'broadcast';
     const senderName = isBroadcast
@@ -160,10 +163,12 @@ export function NotificationDrawerRow({
     const showMenuMarkRead =
         isUnseen &&
         notification.type !== 'friendRequest' &&
+        !orderedActions.some((action) => action.key === 'mark-seen') &&
         !getDismissResponse(notification.responses);
     const showDelete = Boolean(shouldShowDeleteLog(notification));
     const hasMenu =
         showMenuMarkRead || overflowActions.length > 0 || showDelete;
+    const moreActionsLabel = t('side_panel.notification_center.more_actions');
 
     const countdownMs = useExpiryCountdown(
         notification?.expiresAt,
@@ -196,25 +201,20 @@ export function NotificationDrawerRow({
                                 {markAllSeenState === 'active' ? (
                                     <Spinner className="text-muted-foreground size-3 shrink-0 -translate-y-0.5" />
                                 ) : markAllSeenState === 'failed' ? (
-                                    <Tooltip>
-                                        <TooltipTrigger
-                                            render={
-                                                <span className="flex shrink-0 -translate-y-0.5 text-amber-500">
-                                                    <TriangleAlertIcon className="size-3" />
-                                                    <span className="sr-only">
-                                                        {t(
-                                                            'side_panel.notification_center.mark_read_failed'
-                                                        )}
-                                                    </span>
-                                                </span>
-                                            }
-                                        />
-                                        <TooltipContent>
-                                            {t(
-                                                'side_panel.notification_center.mark_read_failed'
-                                            )}
-                                        </TooltipContent>
-                                    </Tooltip>
+                                    <IntentTooltip
+                                        content={t(
+                                            'side_panel.notification_center.mark_read_failed'
+                                        )}
+                                    >
+                                        <span className="flex shrink-0 -translate-y-0.5 text-amber-500">
+                                            <TriangleAlertIcon className="size-3" />
+                                            <span className="sr-only">
+                                                {t(
+                                                    'side_panel.notification_center.mark_read_failed'
+                                                )}
+                                            </span>
+                                        </span>
+                                    </IntentTooltip>
                                 ) : showUnreadDot && !nested ? (
                                     <span className="bg-primary size-2 rounded-full">
                                         <span className="sr-only">
@@ -273,6 +273,15 @@ export function NotificationDrawerRow({
                                         <span className="text-muted-foreground shrink-0 text-xs">
                                             · {typeLabel}
                                         </span>
+                                    ) : !senderName ? (
+                                        <span
+                                            className={cn(
+                                                'min-w-0 truncate text-sm',
+                                                showUnreadDot && 'font-medium'
+                                            )}
+                                        >
+                                            {typeLabel}
+                                        </span>
                                     ) : (
                                         <Badge
                                             className={cn(
@@ -303,21 +312,18 @@ export function NotificationDrawerRow({
                                     )}
                                 >
                                     {hasMenu ? (
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger
-                                                render={
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon-xs"
-                                                        aria-label={t(
-                                                            'side_panel.notification_center.more_actions'
-                                                        )}
-                                                    >
-                                                        <MoreHorizontalIcon data-icon="icon" />
-                                                    </Button>
-                                                }
-                                            />
+                                        <DeferredDropdownMenu
+                                            label={moreActionsLabel}
+                                            trigger={
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon-xs"
+                                                >
+                                                    <MoreHorizontalIcon data-icon="icon" />
+                                                </Button>
+                                            }
+                                        >
                                             <DropdownMenuContent
                                                 align="end"
                                                 className="w-56"
@@ -332,9 +338,12 @@ export function NotificationDrawerRow({
                                                             }
                                                         >
                                                             <CheckCheckIcon data-icon="inline-start" />
-                                                            {t(
-                                                                'side_panel.notification_center.mark_as_read'
-                                                            )}
+                                                            <NotificationActionMenuText
+                                                                label={t(
+                                                                    'side_panel.notification_center.mark_as_read'
+                                                                )}
+                                                                scope="vrchat"
+                                                            />
                                                         </DropdownMenuItem>
                                                     ) : null}
                                                     {overflowActions.map(
@@ -346,7 +355,14 @@ export function NotificationDrawerRow({
                                                                 }
                                                             >
                                                                 <action.Icon data-icon="inline-start" />
-                                                                {action.label}
+                                                                <NotificationActionMenuText
+                                                                    label={
+                                                                        action.label
+                                                                    }
+                                                                    scope={
+                                                                        action.scope
+                                                                    }
+                                                                />
                                                             </DropdownMenuItem>
                                                         )
                                                     )}
@@ -368,15 +384,18 @@ export function NotificationDrawerRow({
                                                                 }
                                                             >
                                                                 <Trash2Icon data-icon="inline-start" />
-                                                                {t(
-                                                                    'view.notification.actions.delete_log'
-                                                                )}
+                                                                <NotificationActionMenuText
+                                                                    label={t(
+                                                                        'view.notification.actions.delete_log'
+                                                                    )}
+                                                                    scope="local"
+                                                                />
                                                             </DropdownMenuItem>
                                                         </DropdownMenuGroup>
                                                     </>
                                                 ) : null}
                                             </DropdownMenuContent>
-                                        </DropdownMenu>
+                                        </DeferredDropdownMenu>
                                     ) : null}
                                 </div>
                             </div>
@@ -439,18 +458,11 @@ export function NotificationDrawerRow({
                             inlineActions.length > 0 ? (
                                 <div className="mt-2 flex items-center gap-2">
                                     {relativeTime ? (
-                                        <Tooltip>
-                                            <TooltipTrigger
-                                                render={
-                                                    <span className="text-muted-foreground shrink-0 text-xs whitespace-nowrap">
-                                                        {relativeTime}
-                                                    </span>
-                                                }
-                                            />
-                                            <TooltipContent>
-                                                {absoluteTime}
-                                            </TooltipContent>
-                                        </Tooltip>
+                                        <IntentTooltip content={absoluteTime}>
+                                            <span className="text-muted-foreground shrink-0 text-xs whitespace-nowrap">
+                                                {relativeTime}
+                                            </span>
+                                        </IntentTooltip>
                                     ) : null}
                                     <div className="min-w-0 flex-1 truncate text-xs">
                                         <NotificationLocationLine
@@ -499,16 +511,20 @@ export function NotificationDrawerRow({
                                                 </Button>
                                             ) : null}
                                             {inlineActions.map((action) => (
-                                                <Button
+                                                <NotificationActionScopeTooltip
                                                     key={action.key}
-                                                    type="button"
-                                                    size="xs"
-                                                    variant="ghost"
-                                                    disabled={actionPending}
-                                                    onClick={action.onClick}
+                                                    scope={action.scope}
                                                 >
-                                                    {action.label}
-                                                </Button>
+                                                    <Button
+                                                        type="button"
+                                                        size="xs"
+                                                        variant="ghost"
+                                                        disabled={actionPending}
+                                                        onClick={action.onClick}
+                                                    >
+                                                        {action.label}
+                                                    </Button>
+                                                </NotificationActionScopeTooltip>
                                             ))}
                                         </div>
                                     ) : null}
@@ -529,4 +545,4 @@ export function NotificationDrawerRow({
             />
         </HoverCard>
     );
-}
+});

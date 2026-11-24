@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { AssistantChart } from '@/domain/assistant/types';
+
 import { useAssistantChatStore } from './assistantChatStore';
+
+const CHART: AssistantChart = {
+    kind: 'topCompanions',
+    axis: 'label',
+    points: [{ key: 'Alice', value: 120 }]
+};
 
 describe('assistantChatStore', () => {
     beforeEach(() => {
@@ -42,12 +50,14 @@ describe('assistantChatStore', () => {
                 {
                     id: 'session-completed',
                     title: 'Completed',
+                    pinned: false,
                     busy: false,
                     updatedAt: '2026-08-11T00:00:00Z'
                 },
                 {
                     id: 'session-running',
                     title: 'Running',
+                    pinned: false,
                     busy: true,
                     updatedAt: '2026-08-11T00:00:00Z'
                 }
@@ -94,12 +104,14 @@ describe('assistantChatStore', () => {
                 {
                     id: 'session-1',
                     title: 'First',
+                    pinned: false,
                     busy: false,
                     updatedAt: '2026-08-11T00:00:00Z'
                 },
                 {
                     id: 'session-2',
                     title: 'Second',
+                    pinned: false,
                     busy: false,
                     updatedAt: '2026-08-11T00:00:00Z'
                 }
@@ -185,7 +197,8 @@ describe('assistantChatStore', () => {
                                 id: 'usr_alice',
                                 displayName: 'Alice'
                             }
-                        ]
+                        ],
+                        charts: [CHART]
                     }
                 },
                 {
@@ -221,9 +234,9 @@ describe('assistantChatStore', () => {
                 }
             ],
             activeTurn: null,
+            pendingApproval: null,
             endpointId: null,
             model: null,
-            allowWrites: false,
             playbookMode: 'auto',
             entityPanelOpen: false,
             surfacedEntities: [],
@@ -259,7 +272,8 @@ describe('assistantChatStore', () => {
                                 id: 'usr_alice',
                                 displayName: 'Alice'
                             }
-                        ]
+                        ],
+                        charts: [CHART]
                     }
                 ]
             },
@@ -282,11 +296,140 @@ describe('assistantChatStore', () => {
                         args: '{"timeWindow":"last week"}',
                         status: 'error',
                         summary: '',
-                        entities: []
+                        entities: [],
+                        charts: []
                     }
                 ]
             }
         ]);
+    });
+
+    it('reloads a running turn with its waiting approval card and keeps following that turn', () => {
+        const store = useAssistantChatStore.getState();
+        store.hydrateSession({
+            id: 'session-1',
+            title: 'Note',
+            messages: [
+                {
+                    id: 'm1',
+                    seq: 1,
+                    role: 'user',
+                    content: 'note that I met Alice',
+                    createdAt: '2026-11-12T00:00:00Z',
+                    toolCall: null,
+                    toolResult: null
+                },
+                {
+                    id: 'm2',
+                    seq: 2,
+                    role: 'tool_call',
+                    content: '',
+                    createdAt: '2026-11-12T00:00:01Z',
+                    toolCall: {
+                        id: 'call_1',
+                        name: 'set_friend_note',
+                        arguments: '{"userId":"usr_alice","note":"met"}'
+                    },
+                    toolResult: null
+                }
+            ],
+            activeTurn: { turnId: 'turn_1', status: 'running' },
+            pendingApproval: {
+                id: 'approval_1',
+                toolCallId: 'call_1',
+                tool: 'set_friend_note',
+                fields: [{ name: 'note', value: 'met' }],
+                favoriteMove: null
+            },
+            endpointId: null,
+            model: null,
+            playbookMode: 'auto',
+            entityPanelOpen: false,
+            surfacedEntities: [],
+            createdAt: '2026-11-12T00:00:00Z',
+            updatedAt: '2026-11-12T00:00:01Z'
+        });
+
+        const reloaded =
+            useAssistantChatStore.getState().messagesBySession['session-1'];
+        expect(reloaded[1]).toMatchObject({
+            turnId: 'turn_1',
+            toolCalls: [
+                {
+                    id: 'call_1',
+                    status: 'pending',
+                    approval: {
+                        id: 'approval_1',
+                        sessionId: 'session-1',
+                        status: 'pending',
+                        fields: [{ name: 'note', value: 'met' }],
+                        favoriteMove: null
+                    }
+                }
+            ]
+        });
+
+        store.resolveApproval('session-1', 'approval_1', false);
+        store.applyToolResult({
+            ownerUserId: 'usr_self',
+            sessionId: 'session-1',
+            turnId: 'turn_1',
+            toolCallId: 'call_1',
+            ok: false,
+            summary: 'Declined by the user; nothing was changed.',
+            entities: [],
+            charts: [],
+            screenshots: null,
+            denied: true
+        });
+
+        const messages =
+            useAssistantChatStore.getState().messagesBySession['session-1'];
+        expect(messages).toHaveLength(2);
+        expect(messages[1].toolCalls[0]).toMatchObject({
+            status: 'denied',
+            approval: { status: 'denied' }
+        });
+    });
+
+    it('drops a waiting approval card when its turn ends without an answer', () => {
+        const store = useAssistantChatStore.getState();
+        const turn = {
+            ownerUserId: 'usr_self',
+            sessionId: 'session-1',
+            turnId: 'turn_1'
+        };
+        store.applyToolCall({
+            ...turn,
+            toolCallId: 'call_1',
+            name: 'send_chatbox_message',
+            args: '{"text":"hi"}'
+        });
+        store.applyApprovalRequest({
+            ...turn,
+            approval: {
+                id: 'approval_1',
+                toolCallId: 'call_1',
+                tool: 'send_chatbox_message',
+                fields: [{ name: 'text', value: 'hi' }],
+                favoriteMove: null
+            }
+        });
+        expect(
+            useAssistantChatStore.getState().messagesBySession['session-1'][0]
+                .toolCalls[0].approval?.status
+        ).toBe('pending');
+
+        store.applyError({
+            ...turn,
+            code: 'cancelled',
+            message: 'Turn cancelled.'
+        });
+
+        expect(
+            useAssistantChatStore.getState().messagesBySession['session-1'][0]
+                .toolCalls[0].approval
+        ).toBeUndefined();
     });
 
     it('resets all account-scoped assistant state', () => {
@@ -299,6 +442,7 @@ describe('assistantChatStore', () => {
                 {
                     id: 'session-1',
                     title: 'First',
+                    pinned: false,
                     busy: true,
                     updatedAt: '2026-08-11T00:00:00Z'
                 }
@@ -322,5 +466,25 @@ describe('assistantChatStore', () => {
         expect(state.surfacedEntitiesBySession).toEqual({});
         expect(state.entityPanelOpenBySession).toEqual({});
         expect(state.busySessions).toEqual({});
+    });
+
+    it('opens a blank chat about a person until another session is opened', () => {
+        useAssistantChatStore.setState({ activeSessionId: 'session-1' });
+
+        useAssistantChatStore.getState().startAssistantDraft({
+            topic: 'profile',
+            target: { kind: 'user', id: 'usr_a', name: 'Alice' }
+        });
+        let state = useAssistantChatStore.getState();
+        expect(state.open).toBe(true);
+        expect(state.activeSessionId).toBeNull();
+        expect(state.assistantDraft).toEqual({
+            topic: 'profile',
+            target: { kind: 'user', id: 'usr_a', name: 'Alice' }
+        });
+
+        state.setActiveSession('session-2');
+        state = useAssistantChatStore.getState();
+        expect(state.assistantDraft).toBeNull();
     });
 });

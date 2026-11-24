@@ -37,6 +37,7 @@ pub(in crate::state) async fn run_background_presence_tick(
         crate::game_state_store::PersistenceGameStateStore::new(std::sync::Arc::clone(context.db));
     let background_remote = crate::background_remote::DesktopBackgroundRemoteApi::new(
         std::sync::Arc::clone(context.web),
+        std::sync::Arc::clone(context.world_cache),
     );
     let facts = match build_background_presence_facts(
         &game_state_store,
@@ -71,7 +72,7 @@ pub(in crate::state) async fn run_background_presence_tick(
         .realtime_runtime
         .capture_current_user_refresh_expectation();
     let result = match run_background_presence_automation(
-        &game_state_store,
+        context.config_store.as_ref(),
         &background_remote,
         context.auth_scope,
         context.remote_mutations.as_ref(),

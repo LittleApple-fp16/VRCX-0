@@ -8,6 +8,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { InstanceActionBar } from '@/components/instances/InstanceActionBar';
+import {
+    ToolbarActions,
+    ToolbarIconButton,
+    ToolbarSearch,
+    ToolbarStatus
+} from '@/components/layout/ToolbarControls';
 import { StaticLocation } from '@/components/location/StaticLocation';
 import { formatDateFilterOrFallback, formatDateTime } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
@@ -16,6 +22,7 @@ import { copyTextToClipboard } from '@/services/clipboardService';
 import { toast } from '@/services/toastService';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
+import { HintTooltip } from '@/ui/hint-tooltip';
 import { Button } from '@/ui/shadcn/button';
 import {
     DropdownMenu,
@@ -24,8 +31,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
-import { Input } from '@/ui/shadcn/input';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
     type PreviousInstanceRow,
@@ -65,6 +70,7 @@ function InstanceHistoryRowLocation({
             <PreviousInstanceWorldLocation
                 row={row}
                 currentUserId={currentUserId}
+                showWorldName={false}
             />
         );
     }
@@ -94,6 +100,7 @@ function InstanceHistoryListRow<TRow extends PreviousInstanceRow>({
     const { t } = useTranslation();
     const location = rowLocation(row);
     const createdAt = row?.created_at || row?.createdAt;
+    const moreActionsLabel = t('dialog.previous_instances.action.more_actions');
 
     return (
         <div className="relative flex min-h-9 items-center gap-3 rounded-md px-2 text-xs">
@@ -125,7 +132,7 @@ function InstanceHistoryListRow<TRow extends PreviousInstanceRow>({
                     <InstanceCreatorCell row={row} />
                 </div>
             ) : null}
-            <span className="pointer-events-none relative w-14 shrink-0 text-right tabular-nums">
+            <span className="pointer-events-none relative min-w-14 shrink-0 text-right whitespace-nowrap tabular-nums">
                 {rowDuration(row)}
             </span>
             <div className="relative flex shrink-0 items-center gap-0.5">
@@ -134,25 +141,23 @@ function InstanceHistoryListRow<TRow extends PreviousInstanceRow>({
                         location,
                         worldName: row?.worldName || ''
                     }}
-                    actionVariant="ghost"
                     showRefresh={false}
                     showInstanceInfo={false}
                 />
                 <DropdownMenu>
-                    <DropdownMenuTrigger
-                        render={
-                            <Button
-                                type="button"
-                                size="icon-xs"
-                                variant="ghost"
-                                aria-label={t(
-                                    'dialog.previous_instances.action.more_actions'
-                                )}
-                            >
-                                <MoreHorizontalIcon data-icon="icon" />
-                            </Button>
-                        }
-                    />
+                    <HintTooltip label={moreActionsLabel}>
+                        <DropdownMenuTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    size="icon-xs"
+                                    variant="ghost"
+                                >
+                                    <MoreHorizontalIcon data-icon="icon" />
+                                </Button>
+                            }
+                        />
+                    </HintTooltip>
                     <DropdownMenuContent align="end">
                         <DropdownMenuItem
                             disabled={!location}
@@ -336,33 +341,25 @@ export function InstanceHistoryListPanel<TRow extends PreviousInstanceRow>({
                 enterClassName
             )}
         >
-            <div className="flex items-center gap-2">
-                <Input
+            <div className="flex flex-wrap items-center gap-2">
+                <ToolbarStatus className="mr-auto tabular-nums">
+                    {query ? `${visibleRows.length}/${rows.length}` : null}
+                </ToolbarStatus>
+                <ToolbarSearch
                     value={search}
-                    onChange={(event) => setSearch(event.target.value)}
+                    onValueChange={setSearch}
                     placeholder={t(
                         'dialog.previous_instances.search_placeholder'
                     )}
-                    className="max-w-sm"
                 />
                 {onOpenFullHistory ? (
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon-sm"
-                                    className="ml-auto"
-                                    aria-label={openFullLabel}
-                                    onClick={() => onOpenFullHistory(query)}
-                                >
-                                    <ArrowUpRightIcon className="size-4" />
-                                </Button>
-                            }
+                    <ToolbarActions>
+                        <ToolbarIconButton
+                            icon={ArrowUpRightIcon}
+                            label={openFullLabel}
+                            onClick={() => onOpenFullHistory(query)}
                         />
-                        <TooltipContent>{openFullLabel}</TooltipContent>
-                    </Tooltip>
+                    </ToolbarActions>
                 ) : null}
             </div>
             {visibleRows.length ? (

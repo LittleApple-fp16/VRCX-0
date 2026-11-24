@@ -30,7 +30,6 @@ function renderNotification(notification: NotificationRow, isUnseen = true) {
         onAcceptRequestInvite: vi.fn(),
         onDeleteNotification: vi.fn(),
         onHideNotification: vi.fn(),
-        onIgnoreNotificationLocally: vi.fn(),
         onJoinQueueReady: vi.fn(),
         onMarkSeen: vi.fn(),
         onSendInviteResponseWithMessage: vi.fn(),
@@ -110,7 +109,7 @@ describe('NotificationDrawerRow', () => {
         expect(screen.queryByText('view.notification.feed.unread')).toBeNull();
     });
 
-    it('orders friend request actions as accept, decline, mark read', () => {
+    it('orders friend request actions as accept, ignore, mark read', () => {
         const notification: NotificationRow = {
             id: 'not_friend',
             type: 'friendRequest',
@@ -122,7 +121,7 @@ describe('NotificationDrawerRow', () => {
         const handlers = renderNotification(notification);
         const actionLabels = [
             'view.notification.actions.accept',
-            'view.notification.actions.decline',
+            'view.notification.actions.ignore',
             'view.notification.action.mark_seen'
         ];
 
@@ -164,23 +163,25 @@ describe('NotificationDrawerRow', () => {
         );
         fireEvent.click(
             await screen.findByRole('menuitem', {
-                name: 'side_panel.notification_center.mark_as_read'
+                name: /^side_panel\.notification_center\.mark_as_read/
             })
         );
         expect(handlers.onMarkSeen).toHaveBeenCalledWith(notification);
     });
 
-    it('hides a message that only restates the notification type', () => {
+    it('titles a senderless instance-closed row with its type label', () => {
         renderNotification({
             id: 'not_instance_closed',
             type: 'instance.closed',
-            message: 'view.notification.filters.instance.closed',
+            message: 'Instance Closed',
             seen: false
         });
 
         expect(
             screen.getAllByText('view.notification.filters.instance.closed')
         ).toHaveLength(1);
+        expect(screen.queryByText('instance.closed')).toBeNull();
+        expect(screen.queryByText('Instance Closed')).toBeNull();
     });
 
     it('drops mark as read when the notification offers a dismiss response', async () => {
@@ -200,12 +201,12 @@ describe('NotificationDrawerRow', () => {
         );
         expect(
             await screen.findByRole('menuitem', {
-                name: 'view.notification.actions.delete_log'
+                name: /^view\.notification\.actions\.delete_log/
             })
         ).toBeTruthy();
         expect(
             screen.queryByRole('menuitem', {
-                name: 'side_panel.notification_center.mark_as_read'
+                name: /^side_panel\.notification_center\.mark_as_read/
             })
         ).toBeNull();
     });

@@ -4,12 +4,12 @@ use std::time::Duration;
 
 use serde_json::Value;
 use vrcx_0_application::social::{
-    NotificationMarkSeenActions, NotificationMarkSeenBatchItem, NotificationRemoteActionError,
+    NotificationLocalRead, NotificationMarkSeenActions, NotificationMarkSeenBatchItem,
+    NotificationMarkSeenEffect, NotificationRemoteActionError,
 };
-use vrcx_0_application_core::vrchat_api::VrchatScope;
-use vrcx_0_application_core::{
-    RemoteMutationGate, RuntimeAuthScope, RuntimeAuthScopeSnapshot, WebClient,
-};
+use vrcx_0_application_core::{AuthenticatedMutationContext, WebClient};
+use vrcx_0_contracts::vrchat_api::VrchatScope;
+use vrcx_0_persistence::notifications::NotificationRead;
 use vrcx_0_persistence::DatabaseService;
 
 const NOTIFICATION_REMOTE_MUTATION_INTERVAL: Duration = Duration::from_millis(250);
@@ -17,52 +17,35 @@ const NOTIFICATION_REMOTE_MUTATION_INTERVAL: Duration = Duration::from_millis(25
 pub struct LocalNotificationMarkSeenActions<'a> {
     db: &'a DatabaseService,
     web: &'a WebClient,
-    auth_scope: &'a RuntimeAuthScope,
-    expected_scope: RuntimeAuthScopeSnapshot,
-    remote_mutation_gate: &'a RemoteMutationGate,
+    mutation: AuthenticatedMutationContext<'a>,
 }
 
 impl<'a> LocalNotificationMarkSeenActions<'a> {
     pub fn new(
         db: &'a DatabaseService,
         web: &'a WebClient,
-        auth_scope: &'a RuntimeAuthScope,
-        expected_scope: RuntimeAuthScopeSnapshot,
-        remote_mutation_gate: &'a RemoteMutationGate,
+        mutation: AuthenticatedMutationContext<'a>,
     ) -> Self {
-        Self {
-            db,
-            web,
-            auth_scope,
-            expected_scope,
-            remote_mutation_gate,
-        }
-    }
-
-    fn ensure_generation(&self) -> crate::Result<()> {
-        if self
-            .auth_scope
-            .snapshot()
-            .generation_matches(&self.expected_scope)
-        {
-            Ok(())
-        } else {
-            Err(crate::Error::Custom(
-                "Notification action authentication scope changed.".into(),
-            ))
-        }
+        Self { db, web, mutation }
     }
 }
 
 impl NotificationMarkSeenActions for LocalNotificationMarkSeenActions<'_> {
-    fn mark_local(&self, ids: Vec<String>) -> crate::Result<()> {
-        self.ensure_generation()?;
-        vrcx_0_persistence::notifications::notification_mark_seen_local_bulk(
+    fn commit_local(&self, reads: Vec<NotificationLocalRead>) -> crate::Result<()> {
+        self.mutation.ensure_current()?;
+        vrcx_0_persistence::notifications::notification_mark_read_bulk(
             self.db,
-            self.expected_scope.current_user_id.clone(),
-            ids,
+            self.mutation.scope().current_user_id.clone(),
+            reads
+                .into_iter()
+                .map(|read| NotificationRead {
+                    id: read.id,
+                    version: read.version,
+                    expire: read.effect == NotificationMarkSeenEffect::Expired,
+                })
+                .collect(),
         )
-        .map_err(crate::map_persistence_error)
+        .map_err(crate::Error::from)
     }
 
     fn mark_remote<'a>(
@@ -70,17 +53,14 @@ impl NotificationMarkSeenActions for LocalNotificationMarkSeenActions<'_> {
         item: &'a NotificationMarkSeenBatchItem,
     ) -> BoxFuture<'a, Result<(), NotificationRemoteActionError>> {
         Box::pin(async move {
-            self.ensure_generation()
+            self.mutation
+                .wait_for_remote(NOTIFICATION_REMOTE_MUTATION_INTERVAL)
+                .await
                 .map_err(NotificationRemoteActionError::terminal)?;
-            self.remote_mutation_gate
-                .wait(&self.expected_scope, NOTIFICATION_REMOTE_MUTATION_INTERVAL)
-                .await;
-            self.ensure_generation()
-                .map_err(NotificationRemoteActionError::terminal)?;
-            let (_, id, request) =
-                vrcx_0_vrchat_client::notifications::notification_mark_seen_input(
-                    self.expected_scope.endpoint.clone(),
-                    self.expected_scope.current_user_id.clone(),
+            let (_, _, request) =
+                vrcx_0_vrchat_protocol::notifications::notification_mark_seen_input(
+                    self.mutation.scope().endpoint.clone(),
+                    self.mutation.scope().current_user_id.clone(),
                     item.id.clone(),
                     item.version,
                 )
@@ -98,16 +78,7 @@ impl NotificationMarkSeenActions for LocalNotificationMarkSeenActions<'_> {
                     response.status,
                 ));
             }
-            self.ensure_generation()
-                .map_err(NotificationRemoteActionError::terminal)?;
-            vrcx_0_persistence::notifications::notification_mark_seen(
-                self.db,
-                self.expected_scope.current_user_id.clone(),
-                id,
-                item.version,
-            )
-            .map_err(crate::map_persistence_error)
-            .map_err(NotificationRemoteActionError::terminal)
+            Ok(())
         })
     }
 }
